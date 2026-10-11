@@ -1,0 +1,45 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/actors/player/player_controller.gd" id="1_controller"]
+[ext_resource type="Texture2D" path="res://icon.svg" id="2_icon"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
+size = Vector2(16, 30)
+
+[node name="Player" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+floor_constant_speed = true
+floor_snap_length = 4.0
+script = ExtResource("1_controller")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_player")
+
+[node name="Visuals" type="Node2D" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="Visuals"]
+scale = Vector2(0.24, 0.24)
+texture = ExtResource("2_icon")
+
+[node name="EyeIndicator" type="ColorRect" parent="Visuals"]
+offset_left = 3.0
+offset_top = -8.0
+offset_right = 8.0
+offset_bottom = -3.0
+color = Color(1, 1, 1, 1)
+
+[node name="CeilingChecker" type="RayCast2D" parent="."]
+target_position = Vector2(0, -20)
+collision_mask = 1
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position_smoothing_enabled = true
+position_smoothing_speed = 7.0
+drag_horizontal_enabled = true
+drag_vertical_enabled = true
+limit_left = -150
+limit_top = -200
+limit_right = 1250
+limit_bottom = 450
+

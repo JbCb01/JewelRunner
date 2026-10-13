@@ -58,3 +58,28 @@ func _startGame() -> void:
 	if not ResourceLoader.exists(arenaScenePath):
 		push_error("BŁĄD: Nie znaleziono pliku sceny pod ścieżką: " + arenaScenePath + " -> Wybierz poprawny plik w Inspektorze węzła MainMenu!")
 		return
+		
+	Events.level_started.emit()
+	get_tree().change_scene_to_file(arenaScenePath)
+
+func _toggleMusic() -> void:
+	isMusicMuted = not isMusicMuted
+	if musicPlayer:
+		musicPlayer.stream_paused = isMusicMuted
+		
+	var busIdx = AudioServer.get_bus_index("Music")
+	if busIdx != -1:
+		AudioServer.set_bus_mute(busIdx, isMusicMuted)
+
+func _toggleSfx() -> void:
+	isSfxMuted = not isSfxMuted
+	var busIdx = AudioServer.get_bus_index("SFX")
+	if busIdx != -1:
+		AudioServer.set_bus_mute(busIdx, isSfxMuted)
+
+func _toggleFullscreen() -> void:
+	var curMode = DisplayServer.window_get_mode()
+	if curMode == DisplayServer.WINDOW_MODE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)

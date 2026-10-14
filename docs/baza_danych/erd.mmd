@@ -1,0 +1,95 @@
+erDiagram
+    poziom {
+        BIGINT id PK
+        TEXT nazwa
+        INTEGER kolejnosc
+        INTEGER pozycja_mapy_x
+        INTEGER pozycja_mapy_y
+        JSONB warunek_odblokowania
+        JSONB punkt_startowy
+        JSONB punkty_kontrolne
+    }
+    element_personalizacji {
+        BIGINT id PK
+        TEXT typ
+        TEXT nazwa
+        TEXT zasob_graficzny
+        TEXT wartosc_koloru
+        TEXT punkt_mocowania
+        TEXT warunek_typ
+        INTEGER warunek_wartosc
+        BOOLEAN czy_domyslny
+    }
+    wzmocnienie {
+        BIGINT id PK
+        TEXT typ
+        TEXT efekt
+        INTEGER czas_trwania_s
+    }
+    oferta_sklepu {
+        BIGINT wzmocnienie_id PK, FK
+        INTEGER cena_w_klejnotach
+        BOOLEAN dostepnosc
+    }
+    specjalny_klejnot {
+        BIGINT id PK
+        TEXT nazwa
+        TEXT rzadkosc
+        BIGINT poziom_id FK
+        INTEGER pozycja_x
+        INTEGER pozycja_y
+        TEXT tresc_edukacyjna
+    }
+    nagroda {
+        BIGINT id PK
+        TEXT typ
+        INTEGER liczba_klejnotow
+        BIGINT element_id FK
+        BIGINT wzmocnienie_id FK
+    }
+    wyzwanie {
+        BIGINT id PK
+        TEXT nazwa
+        TEXT opis
+        TEXT poziom_trudnosci
+        BIGINT poziom_id FK
+        JSONB warunki_udzialu
+        JSONB warunki_ukonczenia
+        BIGINT nagroda_id FK
+        TIMESTAMPTZ data_rozpoczecia
+        TIMESTAMPTZ data_zakonczenia
+        TEXT status
+    }
+    autor {
+        BIGINT id PK
+        TEXT imie_i_nazwisko
+        TEXT rola
+        INTEGER kolejnosc
+    }
+    gracz {
+        UUID id PK
+        TEXT nazwa_uzytkownika
+        TEXT email
+        TEXT skrot_hasla
+        TEXT status_konta
+        INTEGER liczba_nieudanych_logowan
+        TIMESTAMPTZ zablokowany_do
+        TIMESTAMPTZ data_rejestracji
+        TIMESTAMPTZ data_ostatniego_logowania
+        TIMESTAMPTZ data_ostatniej_synchronizacji
+        TIMESTAMPTZ data_modyfikacji
+    }
+    sesja_logowania {
+        UUID id PK
+        UUID gracz_id FK
+        TEXT skrot_tokenu
+        TEXT urzadzenie
+        TIMESTAMPTZ data_utworzenia
+        TIMESTAMPTZ data_wygasniecia
+        TIMESTAMPTZ data_uniewaznienia
+    }
+    token_resetu_hasla {
+        BIGINT id PK
+        UUID gracz_id FK
+        TEXT skrot_wartosci
+        TIMESTAMPTZ data_utworzenia

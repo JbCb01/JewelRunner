@@ -218,11 +218,113 @@ func _state_air(delta: float) -> void:
 		can_air_dash = false
 		_start_dash(input_x)
 		return
+		
+	# Grawitacja i zmienna wysokość skoku
+	if velocity.y < 0.0 and not _is_jump_pressed():
+		velocity.y += gravity * delta * (1.0 / jump_cut_multiplier)
+	else:
+		velocity.y = min(velocity.y + gravity * delta, max_fall_speed)
+		
+	# Buforowanie skoku i podwójny skok
+	if Input.is_action_just_pressed("jump") or (Input.is_key_pressed(KEY_SPACE) and jump_buffer_timer <= 0.0):
+		if coyote_timer > 0.0:
+			_execute_jump()
+			return
+		elif can_double_jump:
+			_execute_double_jump()
+			return
+		else:
+			jump_buffer_timer = jump_buffer_time
+			
+	# Detekcja lądowania
+	if is_on_floor():
+		if jump_buffer_timer > 0.0:
+			_execute_jump()
+		else:
+			_change_state(State.IDLE if input_x == 0.0 else State.RUN)
+		return
+		
+	# Detekcja ściany (Wall slide / climb)
+	if is_on_wall_only() and velocity.y > -50.0:
+		last_wall_normal = get_wall_normal()
+		# Jeśli gracz naciska w stronę ściany lub trzyma wspinaczkę
+		if (input_x != 0.0 and sign(input_x) == -sign(last_wall_normal.x)) or _get_vertical_input() < 0.0:
+			_change_state(State.WALL_SLIDE)
+			return
 
-func _state_ground(delta: float) -> void:
+# 3. Dash (Zryw poziomy)
+func _state_dash(delta: float) -> void:
+	dash_timer -= delta
+	velocity.x = dash_direction * dash_speed
+	velocity.y = 0.0
+	
+	if dash_timer <= 0.0:
+		if is_on_floor():
+			_change_state(State.RUN if _get_input_direction() != 0.0 else State.IDLE)
+		else:
+			_change_state(State.FALL)
+
+func _start_dash(input_x: float) -> void:
+	dash_direction = input_x if input_x != 0.0 else facing_direction
+	facing_direction = dash_direction
+	dash_timer = dash_duration
+	dash_cooldown_timer = dash_cooldown
+	_change_state(State.DASH)
+	Events.player_dashed.emit(Vector2(dash_direction, 0.0))
+
+# 4. Kucanie (CROUCH)
+func _state_crouch(delta: float) -> void:
 	var input_x = _get_input_direction()
+	
+	# Jeśli puszcza kucanie i sufit jest wolny -> wstaje
+	if not _is_crouch_pressed() and not ceiling_checker.is_colliding():
+		_set_collider_crouched(false)
+		_change_state(State.IDLE)
+		return
+		
+	if _check_jump_input() and not ceiling_checker.is_colliding():
+		_set_collider_crouched(false)
+		_execute_jump()
+		return
+		
 	if input_x != 0.0:
 		facing_direction = input_x
-		velocity.x = move_toward(velocity.x, input_x * speed, acceleration * delta)
+		velocity.x = move_toward(velocity.x, input_x * crouch_speed, acceleration * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
+		
+	if not is_on_floor():
+		_set_collider_crouched(false)
+		_change_state(State.FALL)
+
+# 5. Wślizg (SLIDE)
+func _state_slide(delta: float) -> void:
+	# Wyhamowywanie wślizgu
+	velocity.x = move_toward(velocity.x, 0.0, slide_friction * delta)
+	velocity.y = 0.0
+	
+	# Możliwość wyskoczenia z wślizgu
+	if _check_jump_input() and not ceiling_checker.is_colliding():
+		_set_collider_crouched(false)
+		_execute_jump()
+		return
+		
+	# Koniec wślizgu przy niskiej prędkości
+	if abs(velocity.x) < slide_min_speed:
+		if _is_crouch_pressed() or ceiling_checker.is_colliding():
+			_change_state(State.CROUCH)
+		else:
+			_set_collider_crouched(false)
+			_change_state(State.IDLE)
+			
+	if not is_on_floor():
+		_set_collider_crouched(false)
+		_change_state(State.FALL)
+
+func _start_slide() -> void:
+	slide_direction = facing_direction
+	velocity.x = slide_direction * slide_initial_speed
+	_set_collider_crouched(true)
+	_change_state(State.SLIDE)
+	Events.player_slid.emit()
+

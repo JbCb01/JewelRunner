@@ -328,3 +328,83 @@ func _start_slide() -> void:
 	_change_state(State.SLIDE)
 	Events.player_slid.emit()
 
+# 6. Ściany (WALL SLIDE & WALL CLIMB)
+func _state_wall(delta: float) -> void:
+	if not is_on_wall_only() or is_on_floor():
+		_change_state(State.IDLE if is_on_floor() else State.FALL)
+		return
+		
+	last_wall_normal = get_wall_normal()
+	var vertical_input = _get_vertical_input()
+	var horizontal_input = _get_input_direction()
+	
+	# Wall Jump
+	if _check_jump_input():
+		_execute_wall_jump()
+		return
+		
+	# Odklejenie się od ściany w przeciwną stronę
+	if horizontal_input != 0.0 and sign(horizontal_input) == sign(last_wall_normal.x):
+		_change_state(State.FALL)
+		return
+		
+	# Wspinaczka w górę (Wall Climb) z limitem staminy
+	if vertical_input < 0.0 and wall_stamina > 0.0:
+		_change_state(State.WALL_CLIMB)
+		wall_stamina = max(0.0, wall_stamina - delta)
+		velocity.y = -wall_climb_speed
+	elif vertical_input > 0.0:
+		# Szybsze zsuwanie się w dół
+		_change_state(State.WALL_SLIDE)
+		velocity.y = wall_slide_speed * 1.8
+	else:
+		# Zwykłe zsuwanie się (Wall Slide)
+		_change_state(State.WALL_SLIDE)
+		velocity.y = wall_slide_speed
+
+# --- Akcje Skoków ---
+func _check_jump_input() -> bool:
+	if Input.is_action_just_pressed("jump"):
+		return true
+	if Input.is_key_pressed(KEY_SPACE) and jump_buffer_timer <= 0.0:
+		jump_buffer_timer = jump_buffer_time
+		return true
+	return false
+
+func _execute_jump() -> void:
+	velocity.y = jump_velocity
+	coyote_timer = 0.0
+	jump_buffer_timer = 0.0
+	_change_state(State.JUMP)
+	Events.player_jumped.emit(false)
+
+func _execute_double_jump() -> void:
+	velocity.y = double_jump_velocity
+	can_double_jump = false
+	jump_buffer_timer = 0.0
+	_change_state(State.JUMP)
+	Events.player_jumped.emit(true)
+
+func _execute_wall_jump() -> void:
+	velocity.x = last_wall_normal.x * wall_jump_velocity.x
+	velocity.y = wall_jump_velocity.y
+	facing_direction = sign(velocity.x)
+	can_double_jump = true
+	can_air_dash = true
+	jump_buffer_timer = 0.0
+	_change_state(State.JUMP)
+	Events.player_jumped.emit(false)
+
+# --- Pomocnicze funkcje Hitboxa i Wizualiów ---
+func _set_collider_crouched(crouched: bool) -> void:
+	var shape = collision_shape.shape as RectangleShape2D
+	if not shape:
+		return
+	if crouched:
+		shape.size = crouch_shape_size
+		collision_shape.position = crouch_shape_position
+	else:
+		shape.size = standing_shape_size
+		collision_shape.position = standing_shape_position
+
+func _update_visuals() -> void:

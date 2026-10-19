@@ -408,3 +408,24 @@ func _set_collider_crouched(crouched: bool) -> void:
 		collision_shape.position = standing_shape_position
 
 func _update_visuals() -> void:
+	# Zwrot postaci
+	visuals.scale.x = facing_direction
+	
+	# Modyfikacja wizualna makiety zależnie od stanu
+	match current_state:
+		State.DASH:
+			visuals.modulate = Color(1.5, 1.5, 0.4, 1.0) # Błysk złotego dasha
+			visuals.scale.y = 0.8
+		State.CROUCH:
+			visuals.modulate = Color(0.6, 0.8, 1.0, 1.0)
+			visuals.scale.y = 0.55
+		State.SLIDE:
+			visuals.modulate = Color(0.4, 1.0, 0.9, 1.0)
+			visuals.scale.y = 0.5
+		State.WALL_CLIMB, State.WALL_SLIDE:
+			visuals.modulate = Color(1.0, 0.6, 0.8, 1.0)
+			visuals.scale.y = 1.0
+		_:
+			visuals.modulate = Color(0.35, 0.75, 1.0, 1.0) # Domyślny niebieski
+			visuals.scale.y = 1.0
+

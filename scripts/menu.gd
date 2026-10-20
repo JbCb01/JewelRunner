@@ -5,6 +5,7 @@ extends Control
 @onready var homeView: Control = get_node_or_null("HomeView")
 @onready var lvlView: Control = get_node_or_null("LevelSelectView")
 @onready var setView: Control = get_node_or_null("SettingsView")
+@onready var creatorsView: Control = get_node_or_null("CreatorsView")
 @onready var musicPlayer: AudioStreamPlayer = get_node_or_null("MusicPlayer")
 
 @onready var playBtn: Button = get_node_or_null("HomeView/MenuBtns/PlayBtn")
@@ -27,6 +28,7 @@ func _ready() -> void:
 	if playBtn: playBtn.pressed.connect(_startGame)
 	if lvlBtn and lvlView: lvlBtn.pressed.connect(func(): _showView(lvlView))
 	if setBtn and setView: setBtn.pressed.connect(func(): _showView(setView))
+	if creatorsBtn and creatorsView: creatorsBtn.pressed.connect(func(): _showView(creatorsView))
 	if exitBtn: exitBtn.pressed.connect(func(): get_tree().quit())
 	
 	if lvl1Btn: lvl1Btn.pressed.connect(_startGame)
@@ -45,6 +47,7 @@ func _showView(targetView: Control) -> void:
 	if homeView: homeView.visible = (targetView == homeView)
 	if lvlView: lvlView.visible = (targetView == lvlView)
 	if setView: setView.visible = (targetView == setView)
+	if creatorsView: creatorsView.visible = (targetView == creatorsView)
 	
 	if targetView == homeView and playBtn:
 		playBtn.grab_focus()
@@ -54,9 +57,8 @@ func _showView(targetView: Control) -> void:
 		musicBtn.grab_focus()
 
 func _startGame() -> void:
-	print("Start gry! Ładowanie sceny: ", arenaScenePath)
 	if not ResourceLoader.exists(arenaScenePath):
-		push_error("BŁĄD: Nie znaleziono pliku sceny pod ścieżką: " + arenaScenePath + " -> Wybierz poprawny plik w Inspektorze węzła MainMenu!")
+		push_error("BŁĄD: Nie znaleziono pliku sceny: " + arenaScenePath)
 		return
 		
 	Events.level_started.emit()
@@ -75,7 +77,7 @@ func _toggleSfx() -> void:
 	isSfxMuted = not isSfxMuted
 	var busIdx = AudioServer.get_bus_index("SFX")
 	if busIdx != -1:
-		AudioServer.set_bus_mute(busIdx, isSfxMuted)
+		AudioServer.set_bus_mute(busIdx, isMusicMuted)
 
 func _toggleFullscreen() -> void:
 	var curMode = DisplayServer.window_get_mode()

@@ -6,6 +6,7 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_j7h1y"]
 
 [node name="Jewel" type="Area2D" unique_id=1529331324]
+collision_mask = 2
 script = ExtResource("1_i372p")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=95116919]

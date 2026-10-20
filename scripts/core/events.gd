@@ -11,6 +11,7 @@ signal player_slid()
 signal player_jumped(is_double_jump: bool)
 signal player_hit(damage: int)
 signal player_died()
+signal player_stamina_changed(current: float, max_stamina: float)
 
 # --- Zdarzenia Świata i Zbieractwa (Gameplay Events) ---
 signal jewel_collected(value: int, position: Vector2)

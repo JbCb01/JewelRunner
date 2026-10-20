@@ -56,7 +56,8 @@ var current_state: State = State.IDLE
 
 # --- Referencje do Węzłów ---
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
-@onready var ceiling_checker: RayCast2D = $CeilingChecker
+@onready var ceiling_checker: ShapeCast2D = $CeilingChecker
+@onready var stamina_bar: ProgressBar = $StaminaBar
 @onready var visuals: Node2D = $Visuals
 @onready var sprite: Sprite2D = $Visuals/Sprite2D
 
@@ -86,7 +87,9 @@ var crouch_shape_position: Vector2 = Vector2(0, 7)
 func _ready() -> void:
 	add_to_group("player")
 	wall_stamina = wall_climb_max_stamina
+	_update_stamina_bar()
 	Events.player_spawned.emit(self)
+	Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
 
 func _physics_process(delta: float) -> void:
 	_update_timers(delta)
@@ -109,13 +112,16 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_update_visuals()
 
-# --- Aktualizacja Timerów ---
+# --- Aktualizacja Timerów i Staminy ---
 func _update_timers(delta: float) -> void:
 	if is_on_floor():
 		coyote_timer = coyote_time
 		can_double_jump = true
 		can_air_dash = true
-		wall_stamina = wall_climb_max_stamina
+		if wall_stamina < wall_climb_max_stamina:
+			wall_stamina = wall_climb_max_stamina
+			Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
+			_update_stamina_bar()
 	else:
 		coyote_timer = max(0.0, coyote_timer - delta)
 		
@@ -125,37 +131,71 @@ func _update_timers(delta: float) -> void:
 	if dash_cooldown_timer > 0.0:
 		dash_cooldown_timer = max(0.0, dash_cooldown_timer - delta)
 
-# --- Pomocnicze odczyty wejścia (Input z obsługą fallbacków klawiatury) ---
+func _update_stamina(delta: float, is_draining: bool) -> void:
+	if is_draining:
+		wall_stamina = max(0.0, wall_stamina - delta)
+	elif is_on_floor():
+		wall_stamina = wall_climb_max_stamina
+		
+	Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
+	_update_stamina_bar()
+
+func _update_stamina_bar() -> void:
+	if not stamina_bar:
+		return
+	stamina_bar.max_value = wall_climb_max_stamina
+	stamina_bar.value = wall_stamina
+	
+	var show_bar = (wall_stamina < wall_climb_max_stamina - 0.02) or (current_state == State.WALL_CLIMB or current_state == State.WALL_SLIDE)
+	stamina_bar.visible = show_bar
+	
+	if show_bar:
+		var ratio = wall_stamina / wall_climb_max_stamina
+		var fill_style = stamina_bar.get_theme_stylebox("fill") as StyleBoxFlat
+		if fill_style:
+			if ratio > 0.5:
+				fill_style.bg_color = Color(0.23, 0.96, 0.42, 1.0)
+			elif ratio > 0.25:
+				fill_style.bg_color = Color(0.96, 0.82, 0.23, 1.0)
+			else:
+				fill_style.bg_color = Color(0.96, 0.25, 0.25, 1.0)
+
+# --- Pomocnicze odczyty wejścia ---
 func _get_input_direction() -> float:
-	var left = Input.is_action_pressed("move_left") or Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT)
-	var right = Input.is_action_pressed("move_right") or Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT)
-	return (1.0 if right else 0.0) - (1.0 if left else 0.0)
+	return Input.get_axis("move_left", "move_right")
 
 func _get_vertical_input() -> float:
-	var up = Input.is_action_pressed("move_up") or Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP)
-	var down = Input.is_action_pressed("move_down") or Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN)
-	return (1.0 if down else 0.0) - (1.0 if up else 0.0)
+	return Input.get_axis("move_up", "move_down")
 
 func _is_jump_just_pressed() -> bool:
-	return Input.is_action_just_pressed("jump") or Input.is_key_pressed(KEY_SPACE) and jump_buffer_timer <= 0.0
+	return Input.is_action_just_pressed("jump")
 
 func _is_jump_pressed() -> bool:
-	return Input.is_action_pressed("jump") or Input.is_key_pressed(KEY_SPACE)
+	return Input.is_action_pressed("jump")
 
 func _is_dash_just_pressed() -> bool:
-	return Input.is_action_just_pressed("dash") or Input.is_key_pressed(KEY_SHIFT)
+	return Input.is_action_just_pressed("dash")
 
 func _is_crouch_pressed() -> bool:
-	return Input.is_action_pressed("crouch_slide") or Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN)
+	return Input.is_action_pressed("crouch_slide")
+
+func _can_stand_up() -> bool:
+	if ceiling_checker:
+		ceiling_checker.force_shapecast_update()
+		return not ceiling_checker.is_colliding()
+	return true
 
 # --- Zmiana Stanu ---
 func _change_state(new_state: State) -> void:
 	if current_state == new_state:
 		return
 		
-	# Exit logic
+	# Exit logic ze stanów kucania/wślizgu
 	if current_state == State.CROUCH or current_state == State.SLIDE:
 		if new_state != State.CROUCH and new_state != State.SLIDE:
+			if not _can_stand_up():
+				# Nie pozwalamy wyjść ze stanu kucania jeśli sufit blokuje postać!
+				return
 			_set_collider_crouched(false)
 			
 	current_state = new_state
@@ -183,9 +223,18 @@ func _state_ground(delta: float) -> void:
 			return
 			
 	# Wejście w Skok
-	if _check_jump_input():
+	if _is_jump_just_pressed() or jump_buffer_timer > 0.0:
 		_execute_jump()
 		return
+		
+	# Rozpoczęcie wspinaczki bezpośrednio przy ścianie po naciśnięciu W (góra)
+	if is_on_wall() and _get_vertical_input() < 0.0 and wall_stamina > 0.0:
+		var wall_norm = get_wall_normal()
+		if abs(wall_norm.x) > 0.7:
+			last_wall_normal = wall_norm
+			facing_direction = -sign(wall_norm.x)
+			_change_state(State.WALL_CLIMB)
+			return
 		
 	# Zejście z platformy
 	if not is_on_floor():
@@ -226,7 +275,7 @@ func _state_air(delta: float) -> void:
 		velocity.y = min(velocity.y + gravity * delta, max_fall_speed)
 		
 	# Buforowanie skoku i podwójny skok
-	if Input.is_action_just_pressed("jump") or (Input.is_key_pressed(KEY_SPACE) and jump_buffer_timer <= 0.0):
+	if _is_jump_just_pressed():
 		if coyote_timer > 0.0:
 			_execute_jump()
 			return
@@ -241,16 +290,22 @@ func _state_air(delta: float) -> void:
 		if jump_buffer_timer > 0.0:
 			_execute_jump()
 		else:
-			_change_state(State.IDLE if input_x == 0.0 else State.RUN)
+			_change_state(State.RUN if input_x != 0.0 else State.IDLE)
 		return
 		
 	# Detekcja ściany (Wall slide / climb)
-	if is_on_wall_only() and velocity.y > -50.0:
-		last_wall_normal = get_wall_normal()
-		# Jeśli gracz naciska w stronę ściany lub trzyma wspinaczkę
-		if (input_x != 0.0 and sign(input_x) == -sign(last_wall_normal.x)) or _get_vertical_input() < 0.0:
-			_change_state(State.WALL_SLIDE)
-			return
+	if is_on_wall():
+		var wall_norm = get_wall_normal()
+		if abs(wall_norm.x) > 0.7:
+			var pushing_into_wall = (input_x != 0.0 and sign(input_x) == -sign(wall_norm.x))
+			var climbing_up = (_get_vertical_input() < 0.0 and wall_stamina > 0.0)
+			
+			# Chwytamy ścianę jeśli naciskamy w jej stronę LUB chcemy się wspinać
+			if pushing_into_wall or climbing_up:
+				last_wall_normal = wall_norm
+				facing_direction = -sign(wall_norm.x)
+				_change_state(State.WALL_CLIMB if climbing_up else State.WALL_SLIDE)
+				return
 
 # 3. Dash (Zryw poziomy)
 func _state_dash(delta: float) -> void:
@@ -276,26 +331,37 @@ func _start_dash(input_x: float) -> void:
 func _state_crouch(delta: float) -> void:
 	var input_x = _get_input_direction()
 	
-	# Jeśli puszcza kucanie i sufit jest wolny -> wstaje
-	if not _is_crouch_pressed() and not ceiling_checker.is_colliding():
-		_set_collider_crouched(false)
-		_change_state(State.IDLE)
-		return
+	# Jeśli puszcza klawisz kucania i sufit jest wolny -> wstaje płynnie
+	if not _is_crouch_pressed():
+		if _can_stand_up():
+			_set_collider_crouched(false)
+			_change_state(State.RUN if input_x != 0.0 else State.IDLE)
+			return
+		# Jeśli sufit blokuje, postać POZOSTAJE w kucaniu (nie blokuje ruchu!)
 		
-	if _check_jump_input() and not ceiling_checker.is_colliding():
-		_set_collider_crouched(false)
-		_execute_jump()
-		return
+	# Skok z kucania tylko gdy sufit jest wolny
+	if _is_jump_just_pressed():
+		if _can_stand_up():
+			_set_collider_crouched(false)
+			_execute_jump()
+			return
 		
+	# Poruszanie się w kucaniu (czołganie)
 	if input_x != 0.0:
 		facing_direction = input_x
 		velocity.x = move_toward(velocity.x, input_x * crouch_speed, acceleration * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 		
+	# Obsługa podłoża w kucaniu
 	if not is_on_floor():
-		_set_collider_crouched(false)
-		_change_state(State.FALL)
+		velocity.y = min(velocity.y + gravity * delta, max_fall_speed)
+		if _can_stand_up():
+			_set_collider_crouched(false)
+			_change_state(State.FALL)
+			return
+	else:
+		velocity.y = 0.0
 
 # 5. Wślizg (SLIDE)
 func _state_slide(delta: float) -> void:
@@ -303,23 +369,27 @@ func _state_slide(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0.0, slide_friction * delta)
 	velocity.y = 0.0
 	
-	# Możliwość wyskoczenia z wślizgu
-	if _check_jump_input() and not ceiling_checker.is_colliding():
+	# Możliwość wyskoczenia z wślizgu tylko gdy sufit wolny
+	if _is_jump_just_pressed() and _can_stand_up():
 		_set_collider_crouched(false)
 		_execute_jump()
 		return
 		
 	# Koniec wślizgu przy niskiej prędkości
 	if abs(velocity.x) < slide_min_speed:
-		if _is_crouch_pressed() or ceiling_checker.is_colliding():
+		if _is_crouch_pressed() or not _can_stand_up():
 			_change_state(State.CROUCH)
 		else:
 			_set_collider_crouched(false)
 			_change_state(State.IDLE)
+		return
 			
 	if not is_on_floor():
-		_set_collider_crouched(false)
-		_change_state(State.FALL)
+		if _can_stand_up():
+			_set_collider_crouched(false)
+			_change_state(State.FALL)
+		else:
+			_change_state(State.CROUCH)
 
 func _start_slide() -> void:
 	slide_direction = facing_direction
@@ -330,8 +400,12 @@ func _start_slide() -> void:
 
 # 6. Ściany (WALL SLIDE & WALL CLIMB)
 func _state_wall(delta: float) -> void:
-	if not is_on_wall_only() or is_on_floor():
-		_change_state(State.IDLE if is_on_floor() else State.FALL)
+	if is_on_floor():
+		_change_state(State.RUN if _get_input_direction() != 0.0 else State.IDLE)
+		return
+		
+	if not is_on_wall():
+		_change_state(State.FALL)
 		return
 		
 	last_wall_normal = get_wall_normal()
@@ -339,7 +413,7 @@ func _state_wall(delta: float) -> void:
 	var horizontal_input = _get_input_direction()
 	
 	# Wall Jump
-	if _check_jump_input():
+	if _is_jump_just_pressed():
 		_execute_wall_jump()
 		return
 		
@@ -348,10 +422,13 @@ func _state_wall(delta: float) -> void:
 		_change_state(State.FALL)
 		return
 		
+	# Docisk poziomy do ściany, by utrzymać kontakt z colliderem w move_and_slide
+	velocity.x = -last_wall_normal.x * 20.0
+	
 	# Wspinaczka w górę (Wall Climb) z limitem staminy
 	if vertical_input < 0.0 and wall_stamina > 0.0:
 		_change_state(State.WALL_CLIMB)
-		wall_stamina = max(0.0, wall_stamina - delta)
+		_update_stamina(delta, true)
 		velocity.y = -wall_climb_speed
 	elif vertical_input > 0.0:
 		# Szybsze zsuwanie się w dół
@@ -363,14 +440,6 @@ func _state_wall(delta: float) -> void:
 		velocity.y = wall_slide_speed
 
 # --- Akcje Skoków ---
-func _check_jump_input() -> bool:
-	if Input.is_action_just_pressed("jump"):
-		return true
-	if Input.is_key_pressed(KEY_SPACE) and jump_buffer_timer <= 0.0:
-		jump_buffer_timer = jump_buffer_time
-		return true
-	return false
-
 func _execute_jump() -> void:
 	velocity.y = jump_velocity
 	coyote_timer = 0.0
@@ -428,4 +497,3 @@ func _update_visuals() -> void:
 		_:
 			visuals.modulate = Color(0.35, 0.75, 1.0, 1.0) # Domyślny niebieski
 			visuals.scale.y = 1.0
-

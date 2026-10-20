@@ -1,45 +1,71 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://iivxn17ei4mu"]
 
-[ext_resource type="Script" path="res://scripts/actors/player/player_controller.gd" id="1_controller"]
-[ext_resource type="Texture2D" path="res://icon.svg" id="2_icon"]
+[ext_resource type="Script" uid="uid://jy7r17uxay3w" path="res://scripts/actors/player/player_controller.gd" id="1_controller"]
+[ext_resource type="Texture2D" uid="uid://ypehx44tox5f" path="res://icon.svg" id="2_icon"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
-size = Vector2(16, 30)
+size = Vector2(30, 30)
 
-[node name="Player" type="CharacterBody2D"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ceiling"]
+size = Vector2(14, 14)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stamina_bg"]
+bg_color = Color(0.08, 0.1, 0.14, 0.75)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stamina_fill"]
+bg_color = Color(0.23, 0.96, 0.42, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="Player" type="CharacterBody2D" unique_id=1705831134]
 collision_layer = 2
-collision_mask = 1
 floor_constant_speed = true
 floor_snap_length = 4.0
 script = ExtResource("1_controller")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=382556599]
 shape = SubResource("RectangleShape2D_player")
 
-[node name="Visuals" type="Node2D" parent="."]
+[node name="Visuals" type="Node2D" parent="." unique_id=1644744034]
 
-[node name="Sprite2D" type="Sprite2D" parent="Visuals"]
+[node name="Sprite2D" type="Sprite2D" parent="Visuals" unique_id=1105480945]
 scale = Vector2(0.24, 0.24)
 texture = ExtResource("2_icon")
 
-[node name="EyeIndicator" type="ColorRect" parent="Visuals"]
+[node name="EyeIndicator" type="ColorRect" parent="Visuals" unique_id=1830844214]
 offset_left = 3.0
 offset_top = -8.0
 offset_right = 8.0
 offset_bottom = -3.0
-color = Color(1, 1, 1, 1)
 
-[node name="CeilingChecker" type="RayCast2D" parent="."]
-target_position = Vector2(0, -20)
-collision_mask = 1
+[node name="CeilingChecker" type="ShapeCast2D" parent="." unique_id=1334325966]
+position = Vector2(0, -1)
+shape = SubResource("RectangleShape2D_ceiling")
+target_position = Vector2(0, -6)
 
-[node name="Camera2D" type="Camera2D" parent="."]
-position_smoothing_enabled = true
-position_smoothing_speed = 7.0
-drag_horizontal_enabled = true
-drag_vertical_enabled = true
+[node name="StaminaBar" type="ProgressBar" parent="." unique_id=1669363331]
+offset_left = -12.0
+offset_top = -23.0
+offset_right = 12.0
+offset_bottom = -19.0
+theme_override_styles/background = SubResource("StyleBoxFlat_stamina_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_stamina_fill")
+max_value = 2.0
+value = 2.0
+show_percentage = false
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1815433639]
 limit_left = -150
 limit_top = -200
 limit_right = 1250
 limit_bottom = 450
-
+position_smoothing_enabled = true
+position_smoothing_speed = 7.0
+drag_horizontal_enabled = true
+drag_vertical_enabled = true

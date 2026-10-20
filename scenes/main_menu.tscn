@@ -1,0 +1,148 @@
+[gd_scene format=3 uid="uid://cu0bwfp0csmc7"]
+
+[ext_resource type="Script" uid="uid://c764hyhdbx716" path="res://scripts/menu.gd" id="1_bqqt6"]
+[ext_resource type="Texture2D" uid="uid://bxcweaicbmia" path="res://assets/HomeScreen.png" id="1_ekxnf"]
+[ext_resource type="Texture2D" uid="uid://xtyidye288j0" path="res://assets/LevelSelect.png" id="2_bqqt6"]
+[ext_resource type="Texture2D" uid="uid://12setjx3hnyl" path="res://assets/SettingsScreen.png" id="4_wu84c"]
+[ext_resource type="AudioStream" uid="uid://bsukihweapr1a" path="res://audio/music/maintheme.wav" id="5_8ln24"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_qwhmk"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_wl48s"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_gs2jv"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_jm5mo"]
+
+[node name="MainMenu" type="Control" unique_id=1858959376]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_bqqt6")
+arenaScenePath = "res://scenes/test_arena.tscn"
+
+[node name="HomeView" type="ColorRect" parent="." unique_id=1548176391]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Bg" type="TextureRect" parent="HomeView" unique_id=1781541462]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("1_ekxnf")
+stretch_mode = 6
+
+[node name="MenuBtns" type="VBoxContainer" parent="HomeView" unique_id=26689241]
+layout_mode = 1
+offset_left = 417.0
+offset_top = 157.0
+offset_right = 601.0
+offset_bottom = 344.0
+theme_override_constants/separation = 12
+
+[node name="PlayBtn" type="Button" parent="HomeView/MenuBtns" unique_id=493050400]
+custom_minimum_size = Vector2(0, 27)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_gs2jv")
+
+[node name="LvlBtn" type="Button" parent="HomeView/MenuBtns" unique_id=839733231]
+custom_minimum_size = Vector2(0, 27)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_gs2jv")
+
+[node name="SetBtn" type="Button" parent="HomeView/MenuBtns" unique_id=1269989877]
+custom_minimum_size = Vector2(0, 27)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_gs2jv")
+
+[node name="CreatorsBtn" type="Button" parent="HomeView/MenuBtns" unique_id=653102559]
+custom_minimum_size = Vector2(0, 27)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_gs2jv")
+
+[node name="ExitBtn" type="Button" parent="HomeView/MenuBtns" unique_id=1007512133]
+custom_minimum_size = Vector2(0, 27)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_gs2jv")
+
+[node name="LevelSelectView" type="ColorRect" parent="." unique_id=766226750]
+visible = false
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Bg" type="TextureRect" parent="LevelSelectView" unique_id=1473531909]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("2_bqqt6")
+
+[node name="Lvl1Btn" type="Button" parent="LevelSelectView" unique_id=1689846324]
+layout_mode = 0
+offset_left = 45.0
+offset_top = 77.0
+offset_right = 192.0
+offset_bottom = 224.0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
+
+[node name="Lvl2Btn" type="Button" parent="LevelSelectView" unique_id=1825551606]
+layout_mode = 0
+offset_left = 245.0
+offset_top = 77.0
+offset_right = 392.0
+offset_bottom = 224.0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
+
+[node name="Lvl3Btn" type="Button" parent="LevelSelectView" unique_id=1318421127]
+layout_mode = 0
+offset_left = 445.0
+offset_top = 77.0
+offset_right = 592.0
+offset_bottom = 224.0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
+
+[node name="SettingsView" type="ColorRect" parent="." unique_id=935969948]
+visible = false
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Bg" type="TextureRect" parent="SettingsView" unique_id=2010892120]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("4_wu84c")
+
+[node name="MusicBtn" type="Button" parent="SettingsView" unique_id=1816024265]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="SfxBtn" type="Button" parent="SettingsView" unique_id=785954658]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="FullBtn" type="Button" parent="SettingsView" unique_id=1310514334]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=1094510268]
+stream = ExtResource("5_8ln24")
+autoplay = true

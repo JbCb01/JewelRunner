@@ -1,7 +1,7 @@
-[gd_scene format=3 uid="uid://iivxn17ei4mu"]
+[gd_scene format=3 uid="uid://b61g8lq8h3bgx"]
 
 [ext_resource type="Script" uid="uid://jy7r17uxay3w" path="res://scripts/actors/player/player_controller.gd" id="1_controller"]
-[ext_resource type="Texture2D" uid="uid://ypehx44tox5f" path="res://icon.svg" id="2_icon"]
+[ext_resource type="Texture2D" uid="uid://duxwu22p3y5x1" path="res://assets/Stellyt.png" id="2_dovo2"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
 size = Vector2(30, 30)
@@ -35,10 +35,12 @@ shape = SubResource("RectangleShape2D_player")
 [node name="Visuals" type="Node2D" parent="." unique_id=1644744034]
 
 [node name="Sprite2D" type="Sprite2D" parent="Visuals" unique_id=1105480945]
-scale = Vector2(0.24, 0.24)
-texture = ExtResource("2_icon")
+position = Vector2(0.5000005, -0.499999)
+scale = Vector2(0.484375, 0.515625)
+texture = ExtResource("2_dovo2")
 
 [node name="EyeIndicator" type="ColorRect" parent="Visuals" unique_id=1830844214]
+visible = false
 offset_left = 3.0
 offset_top = -8.0
 offset_right = 8.0

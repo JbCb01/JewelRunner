@@ -475,7 +475,13 @@ func _set_collider_crouched(crouched: bool) -> void:
 	else:
 		shape.size = standing_shape_size
 		collision_shape.position = standing_shape_position
-
+		
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_R:
+		get_tree().reload_current_scene()
+		
 func _update_visuals() -> void:
 	# Zwrot postaci
 	visuals.scale.x = facing_direction
@@ -495,5 +501,5 @@ func _update_visuals() -> void:
 			visuals.modulate = Color(1.0, 0.6, 0.8, 1.0)
 			visuals.scale.y = 1.0
 		_:
-			visuals.modulate = Color(0.35, 0.75, 1.0, 1.0) # Domyślny niebieski
+			visuals.modulate = Color(1.0, 1.0, 1.0, 1.0) # Oryginalne kolory sprite'a Stellyt.png
 			visuals.scale.y = 1.0

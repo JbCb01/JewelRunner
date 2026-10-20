@@ -27,4 +27,3 @@ func _on_player_died() -> void:
 
 func _on_player_hit(_damage: int) -> void:
 	Events.player_died.emit()
-

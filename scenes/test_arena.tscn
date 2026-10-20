@@ -1,8 +1,9 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene format=3 uid="uid://bvbsy83weuau4"]
 
-[ext_resource type="Script" path="res://scripts/core/test_arena.gd" id="1_test_arena"]
-[ext_resource type="Script" path="res://scripts/core/hazard_area.gd" id="2_hazard"]
-[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_player"]
+[ext_resource type="Script" uid="uid://kljdkg1ruhrr" path="res://scripts/core/test_arena.gd" id="1_test_arena"]
+[ext_resource type="Script" uid="uid://vw5c4lgdmejn" path="res://scripts/core/hazard_area.gd" id="2_hazard"]
+[ext_resource type="PackedScene" uid="uid://b61g8lq8h3bgx" path="res://scenes/player/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" uid="uid://081qyuxf8ugq" path="res://scenes/Jewel.tscn" id="4_s42hq"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor_left"]
 size = Vector2(400, 32)
@@ -25,235 +26,229 @@ size = Vector2(80, 16)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_spikes"]
 size = Vector2(100, 24)
 
-[node name="TestArena" type="Node2D"]
+[node name="TestArena" type="Node2D" unique_id=615711150]
 script = ExtResource("1_test_arena")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=976019246]
 offset_left = -300.0
 offset_top = -200.0
 offset_right = 1500.0
 offset_bottom = 600.0
 color = Color(0.0784314, 0.0980392, 0.137255, 1)
 
-[node name="RespawnPoint" type="Marker2D" parent="."]
+[node name="RespawnPoint" type="Marker2D" parent="." unique_id=1485099392]
 position = Vector2(70, 270)
 
-[node name="Player" parent="." instance=ExtResource("3_player")]
+[node name="Player" parent="." unique_id=1849925778 instance=ExtResource("3_player")]
 position = Vector2(70, 270)
 
-[node name="Geometry" type="Node2D" parent="."]
+[node name="Geometry" type="Node2D" parent="." unique_id=267502090]
 
-[node name="FloorLeft" type="StaticBody2D" parent="Geometry"]
+[node name="FloorLeft" type="StaticBody2D" parent="Geometry" unique_id=219014154]
 position = Vector2(200, 320)
-collision_layer = 1
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/FloorLeft"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/FloorLeft" unique_id=727211]
 shape = SubResource("RectangleShape2D_floor_left")
 
-[node name="ColorRect" type="ColorRect" parent="Geometry/FloorLeft"]
+[node name="ColorRect" type="ColorRect" parent="Geometry/FloorLeft" unique_id=1990573951]
 offset_left = -200.0
 offset_top = -16.0
 offset_right = 200.0
 offset_bottom = 16.0
 color = Color(0.180392, 0.219608, 0.282353, 1)
 
-[node name="FloorRight" type="StaticBody2D" parent="Geometry"]
+[node name="FloorRight" type="StaticBody2D" parent="Geometry" unique_id=411837391]
 position = Vector2(800, 320)
-collision_layer = 1
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/FloorRight"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/FloorRight" unique_id=419563782]
 shape = SubResource("RectangleShape2D_floor_right")
 
-[node name="ColorRect" type="ColorRect" parent="Geometry/FloorRight"]
+[node name="ColorRect" type="ColorRect" parent="Geometry/FloorRight" unique_id=841978221]
 offset_left = -300.0
 offset_top = -16.0
 offset_right = 300.0
 offset_bottom = 16.0
 color = Color(0.180392, 0.219608, 0.282353, 1)
 
-[node name="WallLeft" type="StaticBody2D" parent="Geometry"]
+[node name="WallLeft" type="StaticBody2D" parent="Geometry" unique_id=100640552]
 position = Vector2(0, 160)
-collision_layer = 1
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/WallLeft"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/WallLeft" unique_id=1232968328]
 shape = SubResource("RectangleShape2D_outer_wall")
 
-[node name="ColorRect" type="ColorRect" parent="Geometry/WallLeft"]
+[node name="ColorRect" type="ColorRect" parent="Geometry/WallLeft" unique_id=1287554372]
 offset_left = -16.0
 offset_top = -170.0
 offset_right = 16.0
 offset_bottom = 170.0
 color = Color(0.247059, 0.298039, 0.380392, 1)
 
-[node name="WallRight" type="StaticBody2D" parent="Geometry"]
+[node name="WallRight" type="StaticBody2D" parent="Geometry" unique_id=2091240671]
 position = Vector2(1100, 160)
-collision_layer = 1
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/WallRight"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/WallRight" unique_id=1784767451]
 shape = SubResource("RectangleShape2D_outer_wall")
 
-[node name="ColorRect" type="ColorRect" parent="Geometry/WallRight"]
+[node name="ColorRect" type="ColorRect" parent="Geometry/WallRight" unique_id=130436025]
 offset_left = -16.0
 offset_top = -170.0
 offset_right = 16.0
 offset_bottom = 170.0
 color = Color(0.247059, 0.298039, 0.380392, 1)
 
-[node name="ShaftWall1" type="StaticBody2D" parent="Geometry"]
+[node name="ShaftWall1" type="StaticBody2D" parent="Geometry" unique_id=788229771]
 position = Vector2(130, 214)
-collision_layer = 1
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/ShaftWall1"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/ShaftWall1" unique_id=1048764744]
 shape = SubResource("RectangleShape2D_shaft_wall")
 
-[node name="ColorRect" type="ColorRect" parent="Geometry/ShaftWall1"]
+[node name="ColorRect" type="ColorRect" parent="Geometry/ShaftWall1" unique_id=1117884331]
 offset_left = -8.0
 offset_top = -90.0
 offset_right = 8.0
 offset_bottom = 90.0
 color = Color(0.247059, 0.298039, 0.380392, 1)
 
-[node name="ShaftWall2" type="StaticBody2D" parent="Geometry"]
+[node name="ShaftWall2" type="StaticBody2D" parent="Geometry" unique_id=876254035]
 position = Vector2(210, 214)
-collision_layer = 1
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/ShaftWall2"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/ShaftWall2" unique_id=594865277]
 shape = SubResource("RectangleShape2D_shaft_wall")
 
-[node name="ColorRect" type="ColorRect" parent="Geometry/ShaftWall2"]
+[node name="ColorRect" type="ColorRect" parent="Geometry/ShaftWall2" unique_id=1968884784]
 offset_left = -8.0
 offset_top = -90.0
 offset_right = 8.0
 offset_bottom = 90.0
 color = Color(0.247059, 0.298039, 0.380392, 1)
 
-[node name="LowCeilingTunnel" type="StaticBody2D" parent="Geometry"]
+[node name="LowCeilingTunnel" type="StaticBody2D" parent="Geometry" unique_id=749042469]
 position = Vector2(670, 270)
-collision_layer = 1
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/LowCeilingTunnel"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/LowCeilingTunnel" unique_id=1330682345]
 shape = SubResource("RectangleShape2D_low_tunnel")
 
-[node name="ColorRect" type="ColorRect" parent="Geometry/LowCeilingTunnel"]
+[node name="ColorRect" type="ColorRect" parent="Geometry/LowCeilingTunnel" unique_id=1338605655]
 offset_left = -70.0
 offset_top = -10.0
 offset_right = 70.0
 offset_bottom = 10.0
 color = Color(0.329412, 0.396078, 0.505882, 1)
 
-[node name="PlatformLow" type="StaticBody2D" parent="Geometry"]
+[node name="PlatformLow" type="StaticBody2D" parent="Geometry" unique_id=695511795]
 position = Vector2(850, 230)
-collision_layer = 1
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/PlatformLow"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/PlatformLow" unique_id=519095009]
 shape = SubResource("RectangleShape2D_platform")
 
-[node name="ColorRect" type="ColorRect" parent="Geometry/PlatformLow"]
+[node name="ColorRect" type="ColorRect" parent="Geometry/PlatformLow" unique_id=203138981]
 offset_left = -40.0
 offset_top = -8.0
 offset_right = 40.0
 offset_bottom = 8.0
 color = Color(0.247059, 0.298039, 0.380392, 1)
 
-[node name="PlatformHigh" type="StaticBody2D" parent="Geometry"]
+[node name="PlatformHigh" type="StaticBody2D" parent="Geometry" unique_id=758065372]
 position = Vector2(980, 140)
-collision_layer = 1
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/PlatformHigh"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Geometry/PlatformHigh" unique_id=154049908]
 shape = SubResource("RectangleShape2D_platform")
 
-[node name="ColorRect" type="ColorRect" parent="Geometry/PlatformHigh"]
+[node name="ColorRect" type="ColorRect" parent="Geometry/PlatformHigh" unique_id=500364946]
 offset_left = -40.0
 offset_top = -8.0
 offset_right = 40.0
 offset_bottom = 8.0
 color = Color(0.247059, 0.298039, 0.380392, 1)
 
-[node name="Hazards" type="Node2D" parent="."]
+[node name="Hazards" type="Node2D" parent="." unique_id=624560080]
 
-[node name="SpikesGap" type="Area2D" parent="Hazards"]
+[node name="SpikesGap" type="Area2D" parent="Hazards" unique_id=126053302]
 position = Vector2(450, 324)
 collision_layer = 16
 collision_mask = 2
 script = ExtResource("2_hazard")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Hazards/SpikesGap"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hazards/SpikesGap" unique_id=931782390]
 shape = SubResource("RectangleShape2D_spikes")
 
-[node name="ColorRect" type="ColorRect" parent="Hazards/SpikesGap"]
+[node name="ColorRect" type="ColorRect" parent="Hazards/SpikesGap" unique_id=1880020056]
 offset_left = -50.0
 offset_top = -12.0
 offset_right = 50.0
 offset_bottom = 12.0
 color = Color(0.780392, 0.219608, 0.219608, 1)
 
-[node name="Labels" type="Node2D" parent="."]
+[node name="Jewel" parent="." unique_id=1529331324 instance=ExtResource("4_s42hq")]
+position = Vector2(979, 113)
 
-[node name="LabelWall" type="Label" parent="Labels"]
+[node name="Labels" type="Node2D" parent="." unique_id=414206883]
+
+[node name="LabelWall" type="Label" parent="Labels" unique_id=1468059704]
 offset_left = 135.0
 offset_top = 95.0
 offset_right = 230.0
 offset_bottom = 125.0
 text = "Wall Jump / Climb"
 
-[node name="LabelGap" type="Label" parent="Labels"]
+[node name="LabelGap" type="Label" parent="Labels" unique_id=1620813678]
 offset_left = 415.0
 offset_top = 280.0
 offset_right = 490.0
 offset_bottom = 305.0
 text = "Dash / Gap"
 
-[node name="LabelTunnel" type="Label" parent="Labels"]
+[node name="LabelTunnel" type="Label" parent="Labels" unique_id=1596207508]
 offset_left = 620.0
 offset_top = 235.0
 offset_right = 720.0
 offset_bottom = 260.0
 text = "Crouch / Slide"
 
-[node name="LabelPlatforms" type="Label" parent="Labels"]
+[node name="LabelPlatforms" type="Label" parent="Labels" unique_id=1647031436]
 offset_left = 830.0
 offset_top = 80.0
 offset_right = 1000.0
 offset_bottom = 105.0
 text = "Single & Double Jump"
 
-[node name="HUD" type="CanvasLayer" parent="."]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1488724447]
 
-[node name="ControlsPanel" type="PanelContainer" parent="HUD"]
+[node name="ControlsPanel" type="PanelContainer" parent="HUD" unique_id=477308726]
 offset_left = 12.0
 offset_top = 10.0
 offset_right = 628.0
 offset_bottom = 38.0
 
-[node name="ControlsLabel" type="Label" parent="HUD/ControlsPanel"]
+[node name="ControlsLabel" type="Label" parent="HUD/ControlsPanel" unique_id=1207064204]
 layout_mode = 2
 text = "A/D: Ruch | Spacja: Skok / Double Jump | Shift: Dash | S: Kucanie / Slide | W: Wspinaczka | R: Restart"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="StaminaPanel" type="PanelContainer" parent="HUD"]
+[node name="StaminaPanel" type="PanelContainer" parent="HUD" unique_id=598167364]
 offset_left = 12.0
 offset_top = 44.0
 offset_right = 170.0
 offset_bottom = 68.0
 
-[node name="HBox" type="HBoxContainer" parent="HUD/StaminaPanel"]
+[node name="HBox" type="HBoxContainer" parent="HUD/StaminaPanel" unique_id=1122130982]
 layout_mode = 2
 
-[node name="StaminaText" type="Label" parent="HUD/StaminaPanel/HBox"]
+[node name="StaminaText" type="Label" parent="HUD/StaminaPanel/HBox" unique_id=952889627]
 layout_mode = 2
 text = " STAMINA "
 
-[node name="HudStaminaBar" type="ProgressBar" parent="HUD/StaminaPanel/HBox"]
+[node name="HudStaminaBar" type="ProgressBar" parent="HUD/StaminaPanel/HBox" unique_id=70557438]
 custom_minimum_size = Vector2(75, 10)
 layout_mode = 2
 size_flags_vertical = 4

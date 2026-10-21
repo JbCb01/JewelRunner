@@ -236,6 +236,27 @@ offset_bottom = 38.0
 
 [node name="ControlsLabel" type="Label" parent="HUD/ControlsPanel"]
 layout_mode = 2
-text = "A/D: Ruch | Spacja: Skok / Double Jump | Shift: Dash | S: Kucanie / Slide | R: Restart"
+text = "A/D: Ruch | Spacja: Skok / Double Jump | Shift: Dash | S: Kucanie / Slide | W: Wspinaczka | R: Restart"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="StaminaPanel" type="PanelContainer" parent="HUD"]
+offset_left = 12.0
+offset_top = 44.0
+offset_right = 170.0
+offset_bottom = 68.0
+
+[node name="HBox" type="HBoxContainer" parent="HUD/StaminaPanel"]
+layout_mode = 2
+
+[node name="StaminaText" type="Label" parent="HUD/StaminaPanel/HBox"]
+layout_mode = 2
+text = " STAMINA "
+
+[node name="HudStaminaBar" type="ProgressBar" parent="HUD/StaminaPanel/HBox"]
+custom_minimum_size = Vector2(75, 10)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 2.0
+value = 2.0
+show_percentage = false

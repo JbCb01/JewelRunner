@@ -54,6 +54,9 @@ var current_state: State = State.IDLE
 @export var wall_climb_max_stamina: float = 2.0
 @export var wall_jump_velocity: Vector2 = Vector2(230.0, -310.0)
 
+@export_group("Tricki w Powietrzu")
+@export var trick_points_per_second: float = 120.0
+
 # --- Referencje do Węzłów ---
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var ceiling_checker: ShapeCast2D = $CeilingChecker
@@ -83,6 +86,9 @@ var wall_stamina: float = 0.0
 var last_wall_normal: Vector2 = Vector2.ZERO
 var idle_trick_timer: float = 0.0
 
+var is_tricking: bool = false
+var trick_point_buffer: float = 0.0
+
 # Domyślne rozmiary collidera (stojący vs kucający/wślizg)
 var standing_shape_size: Vector2 = Vector2(18, 30)
 var standing_shape_position: Vector2 = Vector2(0, 0)
@@ -103,15 +109,8 @@ func _ready() -> void:
 	_play_sfx(audio_appear)
 
 func _on_animation_finished() -> void:
-	if anim_sprite and (anim_sprite.animation == "appear" or anim_sprite.animation == "trick"):
+	if anim_sprite and anim_sprite.animation == "appear":
 		anim_sprite.play("idle")
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		if ResourceLoader.exists("res://scenes/main_menu.tscn"):
-			get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_R:
-		get_tree().reload_current_scene()
 
 func _physics_process(delta: float) -> void:
 	_update_timers(delta)
@@ -201,6 +200,9 @@ func _is_dash_just_pressed() -> bool:
 func _is_crouch_pressed() -> bool:
 	return Input.is_action_pressed("crouch_slide")
 
+func _is_trick_pressed() -> bool:
+	return Input.is_action_pressed("trick") or Input.is_physical_key_pressed(KEY_C)
+
 func _can_stand_up() -> bool:
 	if ceiling_checker:
 		ceiling_checker.force_shapecast_update()
@@ -269,17 +271,16 @@ func _state_ground(delta: float) -> void:
 		
 	# Ruch poziomy
 	if input_x != 0.0:
-		idle_trick_timer = 0.0
+		is_tricking = false
+		trick_point_buffer = 0.0
 		facing_direction = input_x
 		velocity.x = move_toward(velocity.x, input_x * speed, acceleration * delta)
 		_change_state(State.RUN)
 	else:
+		is_tricking = false
+		trick_point_buffer = 0.0
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 		_change_state(State.IDLE)
-		idle_trick_timer += delta
-		if idle_trick_timer > 5.0 and anim_sprite and anim_sprite.animation == "idle":
-			idle_trick_timer = 0.0
-			anim_sprite.play("trick")
 		
 	velocity.y = 0.0
 
@@ -297,9 +298,29 @@ func _state_air(delta: float) -> void:
 	# Wejście w Dash w powietrzu
 	if _is_dash_just_pressed() and can_air_dash and dash_cooldown_timer <= 0.0:
 		can_air_dash = false
+		is_tricking = false
+		trick_point_buffer = 0.0
 		_start_dash(input_x)
 		return
 		
+	# Obsługa tricku w powietrzu (trzymanie C podczas skoków i spadków)
+	if _is_trick_pressed() and not is_on_wall():
+		if not is_tricking:
+			is_tricking = true
+			if anim_sprite:
+				anim_sprite.play("trick")
+		# Gromadzenie punktów za trzymanie klawisza C w locie
+		trick_point_buffer += trick_points_per_second * delta
+		if trick_point_buffer >= 10.0:
+			var pts: int = int(trick_point_buffer)
+			trick_point_buffer -= pts
+			Events.score_added.emit(pts)
+			Events.trick_performed.emit(pts)
+	else:
+		if is_tricking:
+			is_tricking = false
+			trick_point_buffer = 0.0
+
 	# Grawitacja i zmienna wysokość skoku
 	if velocity.y < 0.0 and not _is_jump_pressed():
 		velocity.y += gravity * delta * (1.0 / jump_cut_multiplier)
@@ -319,6 +340,8 @@ func _state_air(delta: float) -> void:
 			
 	# Detekcja lądowania
 	if is_on_floor():
+		is_tricking = false
+		trick_point_buffer = 0.0
 		if jump_buffer_timer > 0.0:
 			_execute_jump()
 		else:
@@ -334,6 +357,8 @@ func _state_air(delta: float) -> void:
 			
 			# Chwytamy ścianę jeśli naciskamy w jej stronę LUB chcemy się wspinać
 			if pushing_into_wall or climbing_up:
+				is_tricking = false
+				trick_point_buffer = 0.0
 				last_wall_normal = wall_norm
 				facing_direction = -sign(wall_norm.x)
 				_change_state(State.WALL_CLIMB if climbing_up else State.WALL_SLIDE)
@@ -353,6 +378,8 @@ func _state_dash(delta: float) -> void:
 			_change_state(State.FALL)
 
 func _start_dash(input_x: float) -> void:
+	is_tricking = false
+	trick_point_buffer = 0.0
 	dash_direction = input_x if input_x != 0.0 else facing_direction
 	facing_direction = dash_direction
 	dash_timer = dash_duration
@@ -535,8 +562,14 @@ func _update_visuals() -> void:
 	if not anim_sprite:
 		return
 		
-	# Jeśli postać odgrywa animację pojawienia lub triku, pozwólmy jej dokończyć
-	if (anim_sprite.animation == "appear" or anim_sprite.animation == "trick") and anim_sprite.is_playing():
+	# Jeśli postać odgrywa animację pojawienia, pozwólmy jej dokończyć
+	if anim_sprite.animation == "appear" and anim_sprite.is_playing():
+		return
+		
+	# Priorytet dla tricku w powietrzu
+	if is_tricking:
+		if anim_sprite.animation != "trick":
+			anim_sprite.play("trick")
 		return
 		
 	# Wybór animacji na podstawie maszyny stanów
@@ -558,5 +591,8 @@ func _update_visuals() -> void:
 			anim_sprite.play("slide")
 		State.WALL_SLIDE:
 			anim_sprite.play("wall_slide")
+			# W klatce wspinaczki ręce sięgają w lewo, więc odwracamy w stronę normalnej ściany
+			visuals.scale.x = sign(last_wall_normal.x) if last_wall_normal.x != 0.0 else -facing_direction
 		State.WALL_CLIMB:
 			anim_sprite.play("wall_climb")
+			visuals.scale.x = sign(last_wall_normal.x) if last_wall_normal.x != 0.0 else -facing_direction

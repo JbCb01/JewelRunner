@@ -39,6 +39,12 @@ func generate_session_id() -> String:
 	session_started.emit(session_id)
 	return session_id
 
+func complete_level(level_id: int) -> void:
+	completed_levels[level_id] = true
+	level_completed.emit()
+
+func is_level_completed(level_id: int) -> bool:
+	return completed_levels.get(level_id, false)
 
 func _enter_tree() -> void:
 	_setup_default_inputs()

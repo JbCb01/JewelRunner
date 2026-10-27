@@ -93,3 +93,63 @@ func _process(delta: float) -> void:
 		elapsed_time += delta
 		_update_time_hud()
 
+func _format_time(seconds: float) -> String:
+	var mins := int(seconds) / 60
+	var secs := int(seconds) % 60
+	var tenths := int((seconds - int(seconds)) * 10)
+	return "%02d:%02d.%d" % [mins, secs, tenths]
+
+func _update_time_hud() -> void:
+	if hud_time_label:
+		hud_time_label.text = " TIME: %s " % _format_time(elapsed_time)
+
+func _on_player_stamina_changed(current: float, max_stamina: float) -> void:
+	if hud_stamina_bar:
+		hud_stamina_bar.max_value = max_stamina
+		hud_stamina_bar.value = current
+
+func _on_jewel_collected(val: int, _pos: Vector2) -> void:
+	collected_jewels += 1
+	total_score += val
+	_update_score_hud()
+	if audio_pickup:
+		audio_pickup.play()
+
+func _on_score_added(amount: int) -> void:
+	total_score += amount
+	_update_score_hud()
+
+func _update_score_hud() -> void:
+	if hud_score_label:
+		hud_score_label.text = " SCORE: %d " % total_score
+
+func _on_goal_entered(body: Node2D) -> void:
+	if body.is_in_group("player") and not is_game_over and not is_stage_cleared:
+		is_stage_cleared = true
+		is_timer_running = false
+		get_tree().paused = true
+		Events.complete_level(1)
+		
+		if music_level:
+			music_level.stop()
+			
+		if win_score_label:
+			win_score_label.text = "SCORE: %d PTS" % total_score
+			
+		if win_time_label:
+			win_time_label.text = "TIME: %s" % _format_time(elapsed_time)
+			
+		if win_session_label:
+			win_session_label.text = "SESSION: %s" % session_id
+			
+		if win_screen:
+			win_screen.visible = true
+			
+		if audio_win:
+			audio_win.play()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if is_stage_cleared or is_game_over:
+		if event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and (event.keycode == KEY_R or event.keycode == KEY_SPACE)):
+			_restart_game()
+		elif event.is_action_pressed("ui_cancel"):

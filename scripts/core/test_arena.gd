@@ -153,3 +153,28 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and (event.keycode == KEY_R or event.keycode == KEY_SPACE)):
 			_restart_game()
 		elif event.is_action_pressed("ui_cancel"):
+			_quit_or_menu()
+		return
+		
+	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and event.keycode == KEY_P):
+		_toggle_pause()
+	elif not get_tree().paused and event is InputEventKey and event.pressed and event.keycode == KEY_R:
+		_restart_game()
+
+func _toggle_pause() -> void:
+	if is_game_over or is_stage_cleared:
+		return
+		
+	var paused = not get_tree().paused
+	get_tree().paused = paused
+	if pause_menu:
+		pause_menu.visible = paused
+		
+	if paused and audio_pause:
+		audio_pause.play()
+
+func _restart_game() -> void:
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+func _quit_or_menu() -> void:

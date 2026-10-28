@@ -25,3 +25,6 @@ mono_crash.*.json
 # *.pck
 
 PROJECT.md
+
+# Editor / IDE
+.vscode/

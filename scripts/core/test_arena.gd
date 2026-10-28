@@ -178,3 +178,21 @@ func _restart_game() -> void:
 	get_tree().reload_current_scene()
 
 func _quit_or_menu() -> void:
+	get_tree().paused = false
+	if ResourceLoader.exists("res://scenes/main_menu.tscn"):
+		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+	else:
+		get_tree().quit()
+
+func _on_player_died() -> void:
+	if is_game_over or is_stage_cleared:
+		return
+	is_game_over = true
+	get_tree().paused = true
+	if music_level:
+		music_level.stop()
+	if game_over_menu:
+		game_over_menu.visible = true
+
+func _on_player_hit(_damage: int) -> void:
+	Events.player_died.emit()

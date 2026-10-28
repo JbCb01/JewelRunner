@@ -1,10 +1,13 @@
-[gd_scene format=3 uid="uid://iivxn17ei4mu"]
+[gd_scene load_steps=10 format=3 uid="uid://iivxn17ei4mu"]
 
 [ext_resource type="Script" uid="uid://jy7r17uxay3w" path="res://scripts/actors/player/player_controller.gd" id="1_controller"]
-[ext_resource type="Texture2D" uid="uid://ypehx44tox5f" path="res://icon.svg" id="2_icon"]
+[ext_resource type="SpriteFrames" path="res://scenes/player/player_sprite_frames.tres" id="2_sprite_frames"]
+[ext_resource type="AudioStream" path="res://audio/sfx/jump.wav" id="3_audio_jump"]
+[ext_resource type="AudioStream" path="res://audio/sfx/stardash.wav" id="4_audio_dash"]
+[ext_resource type="AudioStream" path="res://audio/sfx/star_appear.wav" id="5_audio_appear"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
-size = Vector2(30, 30)
+size = Vector2(18, 30)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ceiling"]
 size = Vector2(14, 14)
@@ -34,15 +37,11 @@ shape = SubResource("RectangleShape2D_player")
 
 [node name="Visuals" type="Node2D" parent="." unique_id=1644744034]
 
-[node name="Sprite2D" type="Sprite2D" parent="Visuals" unique_id=1105480945]
-scale = Vector2(0.24, 0.24)
-texture = ExtResource("2_icon")
-
-[node name="EyeIndicator" type="ColorRect" parent="Visuals" unique_id=1830844214]
-offset_left = 3.0
-offset_top = -8.0
-offset_right = 8.0
-offset_bottom = -3.0
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visuals"]
+scale = Vector2(0.5, 0.5)
+sprite_frames = ExtResource("2_sprite_frames")
+animation = &"idle"
+autoplay = "idle"
 
 [node name="CeilingChecker" type="ShapeCast2D" parent="." unique_id=1334325966]
 position = Vector2(0, -1)
@@ -69,3 +68,12 @@ position_smoothing_enabled = true
 position_smoothing_speed = 7.0
 drag_horizontal_enabled = true
 drag_vertical_enabled = true
+
+[node name="AudioJump" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("3_audio_jump")
+
+[node name="AudioDash" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("4_audio_dash")
+
+[node name="AudioAppear" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("5_audio_appear")

@@ -59,7 +59,11 @@ var current_state: State = State.IDLE
 @onready var ceiling_checker: ShapeCast2D = $CeilingChecker
 @onready var stamina_bar: ProgressBar = $StaminaBar
 @onready var visuals: Node2D = $Visuals
-@onready var sprite: Sprite2D = $Visuals/Sprite2D
+@onready var anim_sprite: AnimatedSprite2D = $Visuals/AnimatedSprite2D
+
+@onready var audio_jump: AudioStreamPlayer2D = $AudioJump
+@onready var audio_dash: AudioStreamPlayer2D = $AudioDash
+@onready var audio_appear: AudioStreamPlayer2D = $AudioAppear
 
 # --- Zmienne Wewnętrzne / Timery ---
 var facing_direction: float = 1.0
@@ -77,19 +81,37 @@ var slide_direction: float = 1.0
 
 var wall_stamina: float = 0.0
 var last_wall_normal: Vector2 = Vector2.ZERO
+var idle_trick_timer: float = 0.0
 
 # Domyślne rozmiary collidera (stojący vs kucający/wślizg)
-var standing_shape_size: Vector2 = Vector2(16, 30)
+var standing_shape_size: Vector2 = Vector2(18, 30)
 var standing_shape_position: Vector2 = Vector2(0, 0)
-var crouch_shape_size: Vector2 = Vector2(16, 16)
+var crouch_shape_size: Vector2 = Vector2(18, 16)
 var crouch_shape_position: Vector2 = Vector2(0, 7)
 
 func _ready() -> void:
 	add_to_group("player")
 	wall_stamina = wall_climb_max_stamina
+	_set_collider_crouched(false)
 	_update_stamina_bar()
 	Events.player_spawned.emit(self)
 	Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
+	
+	if anim_sprite:
+		anim_sprite.animation_finished.connect(_on_animation_finished)
+		anim_sprite.play("appear")
+	_play_sfx(audio_appear)
+
+func _on_animation_finished() -> void:
+	if anim_sprite and (anim_sprite.animation == "appear" or anim_sprite.animation == "trick"):
+		anim_sprite.play("idle")
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		if ResourceLoader.exists("res://scenes/main_menu.tscn"):
+			get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_R:
+		get_tree().reload_current_scene()
 
 func _physics_process(delta: float) -> void:
 	_update_timers(delta)
@@ -185,6 +207,10 @@ func _can_stand_up() -> bool:
 		return not ceiling_checker.is_colliding()
 	return true
 
+func _play_sfx(audio: AudioStreamPlayer2D) -> void:
+	if audio and audio.stream:
+		audio.play()
+
 # --- Zmiana Stanu ---
 func _change_state(new_state: State) -> void:
 	if current_state == new_state:
@@ -243,17 +269,23 @@ func _state_ground(delta: float) -> void:
 		
 	# Ruch poziomy
 	if input_x != 0.0:
+		idle_trick_timer = 0.0
 		facing_direction = input_x
 		velocity.x = move_toward(velocity.x, input_x * speed, acceleration * delta)
 		_change_state(State.RUN)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 		_change_state(State.IDLE)
+		idle_trick_timer += delta
+		if idle_trick_timer > 5.0 and anim_sprite and anim_sprite.animation == "idle":
+			idle_trick_timer = 0.0
+			anim_sprite.play("trick")
 		
 	velocity.y = 0.0
 
 # 2. Powietrze (JUMP & FALL)
 func _state_air(delta: float) -> void:
+	idle_trick_timer = 0.0
 	var input_x = _get_input_direction()
 	
 	if input_x != 0.0:
@@ -309,6 +341,7 @@ func _state_air(delta: float) -> void:
 
 # 3. Dash (Zryw poziomy)
 func _state_dash(delta: float) -> void:
+	idle_trick_timer = 0.0
 	dash_timer -= delta
 	velocity.x = dash_direction * dash_speed
 	velocity.y = 0.0
@@ -325,10 +358,14 @@ func _start_dash(input_x: float) -> void:
 	dash_timer = dash_duration
 	dash_cooldown_timer = dash_cooldown
 	_change_state(State.DASH)
+	if anim_sprite:
+		anim_sprite.play("dash")
+	_play_sfx(audio_dash)
 	Events.player_dashed.emit(Vector2(dash_direction, 0.0))
 
 # 4. Kucanie (CROUCH)
 func _state_crouch(delta: float) -> void:
+	idle_trick_timer = 0.0
 	var input_x = _get_input_direction()
 	
 	# Jeśli puszcza klawisz kucania i sufit jest wolny -> wstaje płynnie
@@ -365,6 +402,7 @@ func _state_crouch(delta: float) -> void:
 
 # 5. Wślizg (SLIDE)
 func _state_slide(delta: float) -> void:
+	idle_trick_timer = 0.0
 	# Wyhamowywanie wślizgu
 	velocity.x = move_toward(velocity.x, 0.0, slide_friction * delta)
 	velocity.y = 0.0
@@ -396,10 +434,13 @@ func _start_slide() -> void:
 	velocity.x = slide_direction * slide_initial_speed
 	_set_collider_crouched(true)
 	_change_state(State.SLIDE)
+	if anim_sprite:
+		anim_sprite.play("slide")
 	Events.player_slid.emit()
 
 # 6. Ściany (WALL SLIDE & WALL CLIMB)
 func _state_wall(delta: float) -> void:
+	idle_trick_timer = 0.0
 	if is_on_floor():
 		_change_state(State.RUN if _get_input_direction() != 0.0 else State.IDLE)
 		return
@@ -445,6 +486,9 @@ func _execute_jump() -> void:
 	coyote_timer = 0.0
 	jump_buffer_timer = 0.0
 	_change_state(State.JUMP)
+	if anim_sprite:
+		anim_sprite.play("jump")
+	_play_sfx(audio_jump)
 	Events.player_jumped.emit(false)
 
 func _execute_double_jump() -> void:
@@ -452,6 +496,9 @@ func _execute_double_jump() -> void:
 	can_double_jump = false
 	jump_buffer_timer = 0.0
 	_change_state(State.JUMP)
+	if anim_sprite:
+		anim_sprite.play("double_jump")
+	_play_sfx(audio_jump)
 	Events.player_jumped.emit(true)
 
 func _execute_wall_jump() -> void:
@@ -462,6 +509,9 @@ func _execute_wall_jump() -> void:
 	can_air_dash = true
 	jump_buffer_timer = 0.0
 	_change_state(State.JUMP)
+	if anim_sprite:
+		anim_sprite.play("jump")
+	_play_sfx(audio_jump)
 	Events.player_jumped.emit(false)
 
 # --- Pomocnicze funkcje Hitboxa i Wizualiów ---
@@ -479,21 +529,34 @@ func _set_collider_crouched(crouched: bool) -> void:
 func _update_visuals() -> void:
 	# Zwrot postaci
 	visuals.scale.x = facing_direction
+	visuals.scale.y = 1.0
+	visuals.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	
-	# Modyfikacja wizualna makiety zależnie od stanu
+	if not anim_sprite:
+		return
+		
+	# Jeśli postać odgrywa animację pojawienia lub triku, pozwólmy jej dokończyć
+	if (anim_sprite.animation == "appear" or anim_sprite.animation == "trick") and anim_sprite.is_playing():
+		return
+		
+	# Wybór animacji na podstawie maszyny stanów
 	match current_state:
+		State.IDLE:
+			anim_sprite.play("idle")
+		State.RUN:
+			anim_sprite.play("run")
+		State.JUMP:
+			if anim_sprite.animation != "double_jump" or not anim_sprite.is_playing():
+				anim_sprite.play("jump")
+		State.FALL:
+			anim_sprite.play("fall")
 		State.DASH:
-			visuals.modulate = Color(1.5, 1.5, 0.4, 1.0) # Błysk złotego dasha
-			visuals.scale.y = 0.8
+			anim_sprite.play("dash")
 		State.CROUCH:
-			visuals.modulate = Color(0.6, 0.8, 1.0, 1.0)
-			visuals.scale.y = 0.55
+			anim_sprite.play("crouch")
 		State.SLIDE:
-			visuals.modulate = Color(0.4, 1.0, 0.9, 1.0)
-			visuals.scale.y = 0.5
-		State.WALL_CLIMB, State.WALL_SLIDE:
-			visuals.modulate = Color(1.0, 0.6, 0.8, 1.0)
-			visuals.scale.y = 1.0
-		_:
-			visuals.modulate = Color(0.35, 0.75, 1.0, 1.0) # Domyślny niebieski
-			visuals.scale.y = 1.0
+			anim_sprite.play("slide")
+		State.WALL_SLIDE:
+			anim_sprite.play("wall_slide")
+		State.WALL_CLIMB:
+			anim_sprite.play("wall_climb")

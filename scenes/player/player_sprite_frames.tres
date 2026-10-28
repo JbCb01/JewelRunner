@@ -1,0 +1,420 @@
+﻿[gd_resource type="SpriteFrames" load_steps=86 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear1.png" id="1_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear2.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear3.png" id="3_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear4.png" id="4_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear5.png" id="5_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear6.png" id="6_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear7.png" id="7_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear8.png" id="8_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear9.png" id="9_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear10.png" id="10_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear11.png" id="11_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear12.png" id="12_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear13.png" id="13_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear14.png" id="14_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear15.png" id="15_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear16.png" id="16_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear17.png" id="17_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear18.png" id="18_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear19.png" id="19_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear20.png" id="20_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear21.png" id="21_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear22.png" id="22_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear23.png" id="23_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear24.png" id="24_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear25.png" id="25_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/climb/StellyWspinaczka1.png" id="26_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/climb/StellyWspinaczka2.png" id="27_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/climb/StellyWspinaczka3.png" id="28_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/climb/StellyWspinaczka4.png" id="29_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/climb/StellyWspinaczka5.png" id="30_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/climb/StellyWspinaczka6.png" id="31_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/slide/Stellywslizg4.png" id="32_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash1.png" id="33_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash2.png" id="34_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash3.png" id="35_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash4.png" id="36_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash5.png" id="37_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash6.png" id="38_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash7.png" id="39_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash8.png" id="40_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash9.png" id="41_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash10.png" id="42_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash11.png" id="43_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash12.png" id="44_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash13.png" id="45_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash14.png" id="46_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash15.png" id="47_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash16.png" id="48_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash17.png" id="49_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash18.png" id="50_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash19.png" id="51_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash20.png" id="52_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash21.png" id="53_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/dash/Stellydash22.png" id="54_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/double_jump/Stellydoublejump1.png" id="55_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/double_jump/Stellydoublejump2.png" id="56_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/double_jump/Stellydoublejump3.png" id="57_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/double_jump/Stellydoublejump4.png" id="58_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/double_jump/Stellydoublejump5.png" id="59_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/double_jump/Stellydoublejump6.png" id="60_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/double_jump/Stellydoublejump7.png" id="61_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/double_jump/Stellydoublejump8.png" id="62_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/jump/Stellyjump4.png" id="63_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/jump/Stellyjump5.png" id="64_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/jump/Stellyjump1.png" id="65_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/jump/Stellyjump2.png" id="66_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/jump/Stellyjump3.png" id="67_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/run/Stellyrun1.png" id="68_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/run/Stellyrun2.png" id="69_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/run/Stellyrun3.png" id="70_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/run/Stellyrun4.png" id="71_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/run/Stellyrun5.png" id="72_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/slide/Stellywslizg1.png" id="73_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/slide/Stellywslizg2.png" id="74_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/slide/Stellywslizg3.png" id="75_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/trick/Stellysiadanabutliodvanisha1.png" id="76_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/trick/Stellysiadanabutliodvanisha2.png" id="77_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/trick/Stellysiadanabutliodvanisha3.png" id="78_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/trick/Stellysiadanabutliodvanisha4.png" id="79_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/trick/Stellysiadanabutliodvanisha5.png" id="80_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/trick/Stellysiadanabutliodvanisha6.png" id="81_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/trick/Stellysiadanabutliodvanisha7.png" id="82_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/trick/Stellysiadanabutliodvanisha8.png" id="83_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/trick/Stellysiadanabutliodvanisha9.png" id="84_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/trick/Stellysiadanabutliodvanisha10.png" id="85_tex"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("19_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("21_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("25_tex")
+}],
+"loop": false,
+"name": &"appear",
+"speed": 16
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("26_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("27_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("29_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("30_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("31_tex")
+}],
+"loop": true,
+"name": &"climb",
+"speed": 10
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("32_tex")
+}],
+"loop": true,
+"name": &"crouch",
+"speed": 5
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("33_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("34_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("35_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("36_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("37_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("38_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("39_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("40_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("41_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("42_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("43_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("44_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("45_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("46_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("47_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("48_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("49_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("50_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("51_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("52_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("53_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("54_tex")
+}],
+"loop": false,
+"name": &"dash",
+"speed": 28
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("55_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("56_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("57_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("58_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("59_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("60_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("61_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("62_tex")
+}],
+"loop": false,
+"name": &"double_jump",
+"speed": 14
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("63_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("64_tex")
+}],
+"loop": true,
+"name": &"fall",
+"speed": 8
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("25_tex")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 5
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("65_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("66_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("67_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("63_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("64_tex")
+}],
+"loop": false,
+"name": &"jump",
+"speed": 10
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("68_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("69_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("70_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("71_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("72_tex")
+}],
+"loop": true,
+"name": &"run",
+"speed": 10
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("73_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("74_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("75_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("32_tex")
+}],
+"loop": false,
+"name": &"slide",
+"speed": 12
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("76_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("77_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("78_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("79_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("80_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("81_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("82_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("83_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("84_tex")
+}, {
+"duration": 1.0,
+"texture": ExtResource("85_tex")
+}],
+"loop": false,
+"name": &"trick",
+"speed": 10
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("26_tex")
+}],
+"loop": true,
+"name": &"wall_slide",
+"speed": 5
+}]

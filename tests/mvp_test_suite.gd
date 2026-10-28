@@ -123,7 +123,112 @@ func utPlayerCoyoteAndCooldownTimers() -> void:
 	plr.free()
 
 # ==============================================================================
+# 2. TESTY INTEGRACYJNE (Frontend UI/HUD <-> Event Bus <-> Backend Logiki)
+# ==============================================================================
 
+func itJewelPickupUpdatesHudScore() -> void:
+	var arena = _createMockArena()
+	var jwl = JewelScript.new()
+	jwl.pointVal = 150
+	var spr = Sprite2D.new()
+	spr.name = "Sprite2D"
+	jwl.add_child(spr)
+	add_child(jwl)
+	
+	var plr = _createMockPlayer()
+	jwl._onBodyEntered(plr) # Symulacja wejścia gracza w klejnot (Backend -> Events -> HUD)
+	
+	var scoreOk: bool = (arena.total_score == 150) and (arena.collected_jewels == 1)
+	var hudOk: bool = (arena.hud_score_label.text == " SCORE: 150 ")
+	assertCond(scoreOk and hudOk, "IT-01", "Zebranie klejnotu aktualizuje stan punktów w Backendzie i tekst na HUDzie")
+	
+	plr.free()
+	jwl.free()
+	arena.free()
+
+func itPlayerTrickAddsScoreToHud() -> void:
+	var arena = _createMockArena()
+	# Symulacja naliczenia paczki punktów z tricku powietrznego przez szynę Events
+	Events.score_added.emit(20)
+	
+	var hudOk: bool = (arena.total_score == 20) and (arena.hud_score_label.text == " SCORE: 20 ")
+	assertCond(hudOk, "IT-02", "Punkty za trick z kontrolera gracza aktualizują licznik na HUDzie Areny")
+	arena.free()
+
+func itPlayerStaminaSyncsWithHudBar() -> void:
+	var arena = _createMockArena()
+	var plr = _createMockPlayer()
+	
+	plr._update_stamina(0.8, true) # Zmniejsza staminę z 2.0 do 1.2 i emituje sygnał do HUD
+	var barSynced: bool = is_equal_approx(arena.hud_stamina_bar.value, 1.2) and is_equal_approx(arena.hud_stamina_bar.max_value, 2.0)
+	assertCond(barSynced, "IT-03", "Zmiana staminy w PlayerController aktualizuje pasek ProgressBar w HUDzie")
+	
+	plr.free()
+	arena.free()
+
+func itHazardHitTriggersGameOverUi() -> void:
+	var arena = _createMockArena()
+	var hzrd = HazardScript.new()
+	add_child(hzrd)
+	var plr = _createMockPlayer()
+	
+	hzrd._on_body_entered(plr) # Gracz wpada na kolce -> Hazard -> Events.player_hit -> Arena -> GameOverMenu
+	
+	var isGameOver: bool = arena.is_game_over and arena.game_over_menu.visible
+	get_tree().paused = false # Odblokowanie drzewa po teście
+	assertCond(isGameOver, "IT-04", "Kolizja z Hazardem wywołuje stan śmierci i otwiera ekran Game Over w UI")
+	
+	plr.free()
+	hzrd.free()
+	arena.free()
+
+func itGoalEnteredCompletesLevelAndUpdatesMenuBadge() -> void:
+	Events.completed_levels.clear()
+	var arena = _createMockArena()
+	var plr = _createMockPlayer()
+	arena.total_score = 350
+	
+	# Gracz wchodzi w metę na arenie
+	arena._on_goal_entered(plr)
+	get_tree().paused = false
+	
+	# Inicjalizacja MainMenu i sprawdzenie czy Frontend odczytał ukończenie poziomu z Events
+	var menu = _createMockMainMenu()
+	menu._update_level_select()
+	
+	var winUiOk: bool = arena.is_stage_cleared and arena.win_screen.visible and (arena.win_score_label.text == "SCORE: 350 PTS")
+	var badgeOk: bool = menu.lvl1CompletedBadge.visible and menu.lvl1CheckmarkIcon.visible
+	assertCond(winUiOk and badgeOk, "IT-05", "Wejście w FinishGoal wyświetla WinScreen oraz odblokowuje odznakę w MainMenu")
+	
+	menu.free()
+	plr.free()
+	arena.free()
+
+func itMainMenuViewNavigation() -> void:
+	var menu = _createMockMainMenu()
+	menu._showView(menu.setView)
+	var setVis: bool = menu.setView.visible and not menu.homeView.visible
+	menu._showView(menu.lvlView)
+	var lvlVis: bool = menu.lvlView.visible and not menu.setView.visible
+	
+	assertCond(setVis and lvlVis, "IT-06", "Nawigacja w MainMenu poprawnie przełącza widoczność kontenerów widoków")
+	menu.free()
+
+func itMainMenuSfxMuteSync() -> void:
+	var menu = _createMockMainMenu()
+	menu.isMusicMuted = false
+	menu.isSfxMuted = false
+	
+	menu._toggleSfx() # Przełącza isSfxMuted na true
+	var sfxBusIdx: int = AudioServer.get_bus_index("SFX")
+	var stateOk: bool = (menu.isSfxMuted == true)
+	if sfxBusIdx != -1:
+		stateOk = stateOk and AudioServer.is_bus_mute(sfxBusIdx)
+		
+	assertCond(stateOk, "IT-07", "Przełącznik SFX w ustawieniach wycisza szynę SFX w AudioServer")
+	menu.free()
+
+# ==============================================================================
 # FUNKCJE POMOCNICZE (Tworzenie struktur węzłów w pamięci dla testów)
 # ==============================================================================
 

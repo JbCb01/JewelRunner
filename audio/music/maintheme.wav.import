@@ -12,13 +12,13 @@ dest_files=["res://.godot/imported/maintheme.wav-40f8a2f82d1603abbb153e86f828cbb
 
 [params]
 
-force/8_bit=true
+force/8_bit=false
 force/mono=false
 force/max_rate=false
 force/max_rate_hz=44100
 edit/trim=false
 edit/normalize=false
-edit/loop_mode=2
+edit/loop_mode=0
 edit/loop_begin=0
 edit/loop_end=-1
 compress/mode=2

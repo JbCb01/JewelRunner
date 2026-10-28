@@ -552,7 +552,13 @@ func _set_collider_crouched(crouched: bool) -> void:
 	else:
 		shape.size = standing_shape_size
 		collision_shape.position = standing_shape_position
-
+		
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_R:
+		get_tree().reload_current_scene()
+		
 func _update_visuals() -> void:
 	# Zwrot postaci
 	visuals.scale.x = facing_direction

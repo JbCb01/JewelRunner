@@ -15,16 +15,36 @@ signal player_stamina_changed(current: float, max_stamina: float)
 
 # --- Zdarzenia Świata i Zbieractwa (Gameplay Events) ---
 signal jewel_collected(value: int, position: Vector2)
+signal score_added(amount: int)
 signal score_updated(total_score: int)
+signal trick_performed(points: int)
 signal multiplier_changed(multiplier: float)
 
 # --- Zdarzenia Poziomu i Pętli Gry (Game Loop Events) ---
 signal level_started()
 signal level_completed()
 signal run_restarted()
+signal session_started(session_id: String)
 
 # --- Zdarzenia Adaptacyjnego AI (Metrics / Director Events) ---
 signal playstyle_metric_recorded(metric_name: String, value: float)
+
+var session_id: String = ""
+var completed_levels: Dictionary = {}
+
+func generate_session_id() -> String:
+	var timestamp := int(Time.get_unix_time_from_system())
+	var rand_part := randi() % 9000 + 1000
+	session_id = "SES-%d-%04d" % [timestamp, rand_part]
+	session_started.emit(session_id)
+	return session_id
+
+func complete_level(level_id: int) -> void:
+	completed_levels[level_id] = true
+	level_completed.emit()
+
+func is_level_completed(level_id: int) -> bool:
+	return completed_levels.get(level_id, false)
 
 func _enter_tree() -> void:
 	_setup_default_inputs()
@@ -39,6 +59,7 @@ func _setup_default_inputs() -> void:
 	_ensure_action("jump", [KEY_SPACE])
 	_ensure_action("dash", [KEY_SHIFT])
 	_ensure_action("crouch_slide", [KEY_S, KEY_DOWN, KEY_CTRL])
+	_ensure_action("trick", [KEY_C])
 
 func _ensure_action(action_name: String, keys: Array) -> void:
 	if not InputMap.has_action(action_name):

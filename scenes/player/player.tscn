@@ -62,7 +62,7 @@ show_percentage = false
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1815433639]
 limit_left = -150
 limit_top = -200
-limit_right = 1250
+limit_right = 1850
 limit_bottom = 450
 position_smoothing_enabled = true
 position_smoothing_speed = 7.0

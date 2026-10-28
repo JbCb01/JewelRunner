@@ -1,4 +1,4 @@
-﻿[gd_resource type="SpriteFrames" load_steps=86 format=3]
+[gd_resource type="SpriteFrames" load_steps=86 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear1.png" id="1_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/appear/Stellyappear2.png" id="2_tex"]
@@ -188,7 +188,7 @@ animations = [{
 "texture": ExtResource("31_tex")
 }],
 "loop": true,
-"name": &"climb",
+"name": &"wall_climb",
 "speed": 10
 }, {
 "frames": [{
@@ -406,7 +406,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("85_tex")
 }],
-"loop": false,
+"loop": true,
 "name": &"trick",
 "speed": 10
 }, {

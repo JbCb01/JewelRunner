@@ -15,6 +15,8 @@ extends Control
 @onready var exitBtn: Button = get_node_or_null("HomeView/MenuBtns/ExitBtn")
 
 @onready var lvl1Btn: Button = get_node_or_null("LevelSelectView/Lvl1Btn")
+@onready var lvl1CompletedBadge: Control = get_node_or_null("LevelSelectView/Lvl1Btn/CompletedBadge")
+@onready var lvl1CheckmarkIcon: Control = get_node_or_null("LevelSelectView/Lvl1Btn/CheckmarkIcon")
 @onready var musicBtn: Button = get_node_or_null("SettingsView/MusicBtn")
 @onready var sfxBtn: Button = get_node_or_null("SettingsView/SfxBtn")
 @onready var fullBtn: Button = get_node_or_null("SettingsView/FullBtn")
@@ -24,6 +26,7 @@ var isSfxMuted: bool = false
 
 func _ready() -> void:
 	_showView(homeView)
+	_update_level_select()
 	
 	if playBtn: playBtn.pressed.connect(_startGame)
 	if lvlBtn and lvlView: lvlBtn.pressed.connect(func(): _showView(lvlView))
@@ -51,10 +54,19 @@ func _showView(targetView: Control) -> void:
 	
 	if targetView == homeView and playBtn:
 		playBtn.grab_focus()
-	elif targetView == lvlView and lvl1Btn:
-		lvl1Btn.grab_focus()
+	elif targetView == lvlView:
+		_update_level_select()
+		if lvl1Btn:
+			lvl1Btn.grab_focus()
 	elif targetView == setView and musicBtn:
 		musicBtn.grab_focus()
+
+func _update_level_select() -> void:
+	var is_lvl1_done = Events.is_level_completed(1)
+	if lvl1CompletedBadge:
+		lvl1CompletedBadge.visible = is_lvl1_done
+	if lvl1CheckmarkIcon:
+		lvl1CheckmarkIcon.visible = is_lvl1_done
 
 func _startGame() -> void:
 	if not ResourceLoader.exists(arenaScenePath):

@@ -93,3 +93,186 @@ erDiagram
         UUID gracz_id FK
         TEXT skrot_wartosci
         TIMESTAMPTZ data_utworzenia
+        TIMESTAMPTZ data_waznosci
+        BOOLEAN czy_uzyty
+    }
+    token_zmiany_emaila {
+        BIGINT id PK
+        UUID gracz_id FK
+        TEXT nowy_email
+        TEXT skrot_wartosci
+        TIMESTAMPTZ data_utworzenia
+        TIMESTAMPTZ data_waznosci
+        BOOLEAN czy_uzyty
+    }
+    ustawienia_gracza {
+        UUID gracz_id PK, FK
+        INTEGER glosnosc_muzyki
+        INTEGER glosnosc_efektow
+        TEXT rozdzielczosc
+        TEXT jakosc_tekstur
+        TEXT poziom_efektow
+        TEXT profil_graficzny
+        TEXT jezyk
+        TEXT domyslny_filtr_rankingu
+        TIMESTAMPTZ data_modyfikacji
+    }
+    przypisanie_klawisza {
+        UUID gracz_id PK, FK
+        TEXT akcja_sterowania PK
+        TEXT klawisz
+    }
+    znajomy {
+        UUID gracz_id PK, FK
+        UUID znajomy_id PK, FK
+        TIMESTAMPTZ data_dodania
+    }
+    statystyki_gracza {
+        UUID gracz_id PK, FK
+        BIGINT laczny_czas_gry_s
+        INTEGER liczba_ukonczonych_poziomow
+        INTEGER liczba_pokonanych_wrogow
+        INTEGER liczba_porazek
+        INTEGER najdluzsze_combo
+        BOOLEAN czy_samouczek_ukonczony
+    }
+    portfel_gracza {
+        UUID gracz_id PK, FK
+        INTEGER liczba_klejnotow
+        INTEGER liczba_specjalnych_klejnotow
+    }
+    posiadany_element {
+        UUID gracz_id PK, FK
+        BIGINT element_id PK, FK
+        TIMESTAMPTZ data_odblokowania
+        BOOLEAN czy_nowy
+    }
+    wyglad_postaci {
+        UUID gracz_id PK, FK
+        BIGINT skorka_id FK
+        BIGINT kolor_id FK
+        TIMESTAMPTZ data_modyfikacji
+    }
+    wyglad_akcesorium {
+        UUID gracz_id PK, FK
+        TEXT punkt_mocowania PK
+        BIGINT akcesorium_id FK
+        BIGINT kolor_id FK
+    }
+    postep_poziomu {
+        UUID gracz_id PK, FK
+        BIGINT poziom_id PK, FK
+        BOOLEAN czy_odblokowany
+        INTEGER najlepszy_wynik
+        INTEGER liczba_prob
+    }
+    ukonczenie_poziomu {
+        BIGINT id PK
+        UUID gracz_id FK
+        BIGINT poziom_id FK
+        TEXT identyfikator_sesji_gry
+        INTEGER wynik
+        INTEGER liczba_klejnotow
+        TIMESTAMPTZ data_ukonczenia
+    }
+    zapis_gry {
+        BIGINT id PK
+        UUID gracz_id FK
+        BIGINT poziom_id FK
+        TEXT punkt_kontrolny
+        INTEGER zebrane_klejnoty
+        TIMESTAMPTZ data_zapisu
+        TEXT wersja_gry
+        TEXT suma_kontrolna
+    }
+    kolekcja_gracza {
+        UUID gracz_id PK, FK
+        BIGINT specjalny_klejnot_id PK, FK
+        TIMESTAMPTZ data_zdobycia
+    }
+    uczestnictwo_w_wyzwaniu {
+        BIGINT id PK
+        UUID gracz_id FK
+        BIGINT wyzwanie_id FK
+        TEXT status
+        INTEGER postep_procent
+        INTEGER najlepszy_wynik
+        TIMESTAMPTZ data_przyjecia
+        TEXT status_nagrody
+        TIMESTAMPTZ data_odebrania_nagrody
+    }
+    proba_wyzwania {
+        BIGINT id PK
+        BIGINT uczestnictwo_id FK
+        INTEGER wynik
+        TIMESTAMPTZ data_proby
+        BOOLEAN czy_zaliczona
+    }
+    wpis_rankingu {
+        UUID gracz_id PK, FK
+        TEXT okres PK
+        DATE poczatek_okresu PK
+        INTEGER wynik
+        TIMESTAMPTZ data_uzyskania_wyniku
+    }
+    posiadane_wzmocnienie {
+        UUID gracz_id PK, FK
+        BIGINT wzmocnienie_id PK, FK
+        INTEGER liczba
+    }
+    transakcja {
+        BIGINT id PK
+        UUID gracz_id FK
+        TEXT typ
+        INTEGER kwota_klejnotow
+        BIGINT wzmocnienie_id FK
+        BIGINT uczestnictwo_id FK
+        TEXT klucz_idempotencji
+        TIMESTAMPTZ data_transakcji
+    }
+    nagroda_dzienna {
+        UUID gracz_id PK, FK
+        DATE data_ostatniej_nagrody
+        INTEGER dlugosc_serii
+    }
+    wzmocnienie ||--o| oferta_sklepu : "wzmocnienie_id"
+    poziom ||--o{ specjalny_klejnot : "poziom_id"
+    element_personalizacji |o--o{ nagroda : "element_id"
+    wzmocnienie |o--o{ nagroda : "wzmocnienie_id"
+    poziom ||--o{ wyzwanie : "poziom_id"
+    nagroda ||--o{ wyzwanie : "nagroda_id"
+    gracz ||--o{ sesja_logowania : "gracz_id"
+    gracz ||--o{ token_resetu_hasla : "gracz_id"
+    gracz ||--o{ token_zmiany_emaila : "gracz_id"
+    gracz ||--o| ustawienia_gracza : "gracz_id"
+    gracz ||--o{ przypisanie_klawisza : "gracz_id"
+    gracz ||--o{ znajomy : "gracz_id"
+    gracz ||--o{ znajomy : "znajomy_id"
+    gracz ||--o| statystyki_gracza : "gracz_id"
+    gracz ||--o| portfel_gracza : "gracz_id"
+    gracz ||--o{ posiadany_element : "gracz_id"
+    element_personalizacji ||--o{ posiadany_element : "element_id"
+    gracz ||--o| wyglad_postaci : "gracz_id"
+    element_personalizacji ||--o{ wyglad_postaci : "skorka_id"
+    element_personalizacji ||--o{ wyglad_postaci : "kolor_id"
+    wyglad_postaci ||--o{ wyglad_akcesorium : "gracz_id"
+    element_personalizacji ||--o{ wyglad_akcesorium : "akcesorium_id"
+    element_personalizacji |o--o{ wyglad_akcesorium : "kolor_id"
+    gracz ||--o{ postep_poziomu : "gracz_id"
+    poziom ||--o{ postep_poziomu : "poziom_id"
+    gracz ||--o{ ukonczenie_poziomu : "gracz_id"
+    poziom ||--o{ ukonczenie_poziomu : "poziom_id"
+    gracz ||--o{ zapis_gry : "gracz_id"
+    poziom ||--o{ zapis_gry : "poziom_id"
+    gracz ||--o{ kolekcja_gracza : "gracz_id"
+    specjalny_klejnot ||--o{ kolekcja_gracza : "specjalny_klejnot_id"
+    gracz ||--o{ uczestnictwo_w_wyzwaniu : "gracz_id"
+    wyzwanie ||--o{ uczestnictwo_w_wyzwaniu : "wyzwanie_id"
+    uczestnictwo_w_wyzwaniu ||--o{ proba_wyzwania : "uczestnictwo_id"
+    gracz ||--o{ wpis_rankingu : "gracz_id"
+    gracz ||--o{ posiadane_wzmocnienie : "gracz_id"
+    wzmocnienie ||--o{ posiadane_wzmocnienie : "wzmocnienie_id"
+    gracz ||--o{ transakcja : "gracz_id"
+    wzmocnienie |o--o{ transakcja : "wzmocnienie_id"
+    uczestnictwo_w_wyzwaniu |o--o{ transakcja : "uczestnictwo_id"
+    gracz ||--o| nagroda_dzienna : "gracz_id"

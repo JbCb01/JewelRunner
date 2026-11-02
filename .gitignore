@@ -28,3 +28,6 @@ PROJECT.md
 
 # Editor / IDE
 .vscode/
+
+# Paczka wdrożeniowa budowana przez CI
+/jewelrunner.zip

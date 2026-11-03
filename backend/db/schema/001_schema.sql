@@ -95,3 +95,128 @@ CREATE TABLE autor (
     kolejnosc           INTEGER NOT NULL UNIQUE -- kolejność na liście autorów
 );
 
+-- ============================================================
+-- KONTO
+-- ============================================================
+
+CREATE TABLE gracz (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- identyfikator gracza
+    nazwa_uzytkownika   TEXT NOT NULL CHECK (length(nazwa_uzytkownika) BETWEEN 3 AND 32), -- nazwa widoczna dla innych
+    email               TEXT NOT NULL, -- adres e-mail
+    skrot_hasla         TEXT NOT NULL, -- skrót hasła (argon2id lub bcrypt), nigdy samo hasło
+    status_konta        TEXT NOT NULL DEFAULT 'aktywne' CHECK (status_konta IN ('aktywne', 'zablokowane')), -- stan konta
+    liczba_nieudanych_logowan INTEGER NOT NULL DEFAULT 0 CHECK (liczba_nieudanych_logowan >= 0), -- licznik do blokady po 5 próbach
+    zablokowany_do      TIMESTAMPTZ, -- koniec czasowej blokady logowania
+    data_rejestracji    TIMESTAMPTZ NOT NULL DEFAULT now(), -- data utworzenia konta
+    data_ostatniego_logowania TIMESTAMPTZ, -- data ostatniego logowania
+    data_ostatniej_synchronizacji TIMESTAMPTZ, -- data ostatniej synchronizacji z grą
+    data_modyfikacji    TIMESTAMPTZ NOT NULL DEFAULT now() -- data ostatniej zmiany danych
+);
+CREATE UNIQUE INDEX ux_gracz_nazwa ON gracz (lower(nazwa_uzytkownika));
+CREATE UNIQUE INDEX ux_gracz_email ON gracz (lower(email));
+
+CREATE TABLE sesja_logowania (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- identyfikator sesji
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- właściciel sesji
+    skrot_tokenu        TEXT NOT NULL UNIQUE, -- skrót tokenu z cookie; token nie jest przechowywany
+    urzadzenie          TEXT NOT NULL CHECK (urzadzenie IN ('gra', 'przeglądarka')), -- skąd zalogowano
+    data_utworzenia     TIMESTAMPTZ NOT NULL DEFAULT now(), -- początek sesji
+    data_wygasniecia    TIMESTAMPTZ NOT NULL, -- koniec ważności
+    data_uniewaznienia  TIMESTAMPTZ -- data wylogowania lub unieważnienia
+);
+CREATE INDEX ix_sesja_gracz ON sesja_logowania (gracz_id);
+
+CREATE TABLE token_resetu_hasla (
+    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- identyfikator tokenu
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- właściciel konta
+    skrot_wartosci      TEXT NOT NULL UNIQUE, -- skrót tokenu wysłanego e-mailem
+    data_utworzenia     TIMESTAMPTZ NOT NULL DEFAULT now(), -- data wysłania; służy też do limitu wysyłek
+    data_waznosci       TIMESTAMPTZ NOT NULL, -- koniec ważności (30 minut)
+    czy_uzyty           BOOLEAN NOT NULL DEFAULT FALSE -- czy token wykorzystano
+);
+CREATE INDEX ix_token_resetu_gracz ON token_resetu_hasla (gracz_id, data_utworzenia);
+
+CREATE TABLE token_zmiany_emaila (
+    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- identyfikator tokenu
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- właściciel konta
+    nowy_email          TEXT NOT NULL, -- adres czekający na potwierdzenie
+    skrot_wartosci      TEXT NOT NULL UNIQUE, -- skrót tokenu z linku potwierdzającego
+    data_utworzenia     TIMESTAMPTZ NOT NULL DEFAULT now(), -- data wysłania linku
+    data_waznosci       TIMESTAMPTZ NOT NULL, -- koniec ważności linku
+    czy_uzyty           BOOLEAN NOT NULL DEFAULT FALSE -- czy link wykorzystano
+);
+CREATE INDEX ix_token_emaila_gracz ON token_zmiany_emaila (gracz_id);
+
+CREATE TABLE ustawienia_gracza (
+    gracz_id            UUID PRIMARY KEY REFERENCES gracz (id) ON DELETE CASCADE, -- właściciel ustawień
+    glosnosc_muzyki     INTEGER NOT NULL DEFAULT 100 CHECK (glosnosc_muzyki BETWEEN 0 AND 100), -- głośność muzyki w procentach
+    glosnosc_efektow    INTEGER NOT NULL DEFAULT 100 CHECK (glosnosc_efektow BETWEEN 0 AND 100), -- głośność efektów w procentach
+    rozdzielczosc       TEXT, -- rozdzielczość ekranu
+    jakosc_tekstur      TEXT, -- jakość tekstur
+    poziom_efektow      TEXT, -- poziom efektów graficznych
+    profil_graficzny    TEXT CHECK (profil_graficzny IN ('Niski', 'Średni', 'Wysoki')), -- wybrany profil graficzny
+    jezyk               TEXT NOT NULL DEFAULT 'pl', -- język interfejsu
+    domyslny_filtr_rankingu TEXT NOT NULL DEFAULT 'ogółem', -- ostatnio wybrany filtr rankingu
+    data_modyfikacji    TIMESTAMPTZ NOT NULL DEFAULT now() -- data ostatniej zmiany
+);
+
+CREATE TABLE przypisanie_klawisza (
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- właściciel przypisania
+    akcja_sterowania    TEXT NOT NULL, -- nazwa akcji w grze
+    klawisz             TEXT NOT NULL, -- przypisany klawisz
+    PRIMARY KEY (gracz_id, akcja_sterowania),
+    UNIQUE (gracz_id, klawisz)
+);
+
+CREATE TABLE znajomy (
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- gracz
+    znajomy_id          UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- dodany znajomy
+    data_dodania        TIMESTAMPTZ NOT NULL DEFAULT now(), -- data dodania
+    PRIMARY KEY (gracz_id, znajomy_id),
+    CHECK (gracz_id <> znajomy_id)
+);
+CREATE INDEX ix_znajomy_znajomy ON znajomy (znajomy_id);
+
+-- ============================================================
+-- PROFIL
+-- ============================================================
+
+CREATE TABLE statystyki_gracza (
+    gracz_id            UUID PRIMARY KEY REFERENCES gracz (id) ON DELETE CASCADE, -- właściciel statystyk
+    laczny_czas_gry_s   BIGINT NOT NULL DEFAULT 0 CHECK (laczny_czas_gry_s >= 0), -- łączny czas gry w sekundach
+    liczba_ukonczonych_poziomow INTEGER NOT NULL DEFAULT 0 CHECK (liczba_ukonczonych_poziomow >= 0), -- ukończone poziomy
+    liczba_pokonanych_wrogow INTEGER NOT NULL DEFAULT 0 CHECK (liczba_pokonanych_wrogow >= 0), -- pokonani wrogowie
+    liczba_porazek      INTEGER NOT NULL DEFAULT 0 CHECK (liczba_porazek >= 0), -- liczba porażek
+    najdluzsze_combo    INTEGER NOT NULL DEFAULT 0 CHECK (najdluzsze_combo >= 0), -- najdłuższe combo
+    czy_samouczek_ukonczony BOOLEAN NOT NULL DEFAULT FALSE -- czy samouczek został ukończony
+);
+
+CREATE TABLE portfel_gracza (
+    gracz_id            UUID PRIMARY KEY REFERENCES gracz (id) ON DELETE CASCADE, -- właściciel portfela
+    liczba_klejnotow    INTEGER NOT NULL DEFAULT 0 CHECK (liczba_klejnotow >= 0), -- saldo klejnotów
+    liczba_specjalnych_klejnotow INTEGER NOT NULL DEFAULT 0 CHECK (liczba_specjalnych_klejnotow >= 0) -- saldo specjalnych klejnotów
+);
+
+CREATE TABLE posiadany_element (
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- właściciel
+    element_id          BIGINT NOT NULL REFERENCES element_personalizacji (id), -- posiadany element
+    data_odblokowania   TIMESTAMPTZ NOT NULL DEFAULT now(), -- data odblokowania
+    czy_nowy            BOOLEAN NOT NULL DEFAULT TRUE, -- oznaczenie „nowy” w menu
+    PRIMARY KEY (gracz_id, element_id)
+);
+
+CREATE TABLE wyglad_postaci (
+    gracz_id            UUID PRIMARY KEY REFERENCES gracz (id) ON DELETE CASCADE, -- właściciel
+    skorka_id           BIGINT NOT NULL REFERENCES element_personalizacji (id), -- aktywna skórka
+    kolor_id            BIGINT NOT NULL REFERENCES element_personalizacji (id), -- aktywny kolor postaci
+    data_modyfikacji    TIMESTAMPTZ NOT NULL DEFAULT now() -- data ostatniej zmiany
+);
+
+CREATE TABLE wyglad_akcesorium (
+    gracz_id            UUID NOT NULL REFERENCES wyglad_postaci (gracz_id) ON DELETE CASCADE, -- właściciel
+    punkt_mocowania     TEXT NOT NULL, -- miejsce na postaci; maksymalnie jedno akcesorium
+    akcesorium_id       BIGINT NOT NULL REFERENCES element_personalizacji (id), -- założone akcesorium
+    kolor_id            BIGINT REFERENCES element_personalizacji (id), -- kolor akcesorium
+    PRIMARY KEY (gracz_id, punkt_mocowania)
+);
+

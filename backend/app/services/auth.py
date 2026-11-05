@@ -108,3 +108,27 @@ def register(db: Session, data: RegisterRequest) -> tuple[Gracz, str, datetime]:
     db.commit()
     return gracz, token, expires_at
 
+
+def login(db: Session, data: LoginRequest) -> tuple[Gracz, str, datetime]:
+    invalid = AppError(401, "invalid_credentials", "Nieprawidłowy login lub hasło.")
+    gracz = db.scalar(select(Gracz).where(func.lower(Gracz.email) == data.email.lower()).with_for_update())
+    if gracz is None:
+        verify_dummy_password(data.password)
+        raise invalid
+
+    if not check_password_with_lock(db, gracz, data.password):
+        raise invalid
+
+    # Po poprawnym haśle, żeby bez niego nie dało się sprawdzić stanu konta.
+    if gracz.status_konta != "aktywne":
+        raise AppError(403, "account_blocked", "Konto zostało zablokowane.")
+
+    if password_needs_rehash(gracz.skrot_hasla):
+        gracz.skrot_hasla = hash_password(data.password)
+    gracz.liczba_nieudanych_logowan = 0
+    gracz.zablokowany_do = None
+    gracz.data_ostatniego_logowania = datetime.now(UTC)
+    token, expires_at = _create_session(db, gracz)
+    db.commit()
+    return gracz, token, expires_at
+

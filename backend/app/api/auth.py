@@ -30,3 +30,8 @@ def _start_session(response: Response, gracz: Gracz, token: str, expires_at: dat
 def register(data: RegisterRequest, response: Response, db: DbSession) -> MeResponse:
     return _start_session(response, *auth_service.register(db, data))
 
+
+@router.post("/login")
+def login(data: LoginRequest, response: Response, db: DbSession) -> MeResponse:
+    return _start_session(response, *auth_service.login(db, data))
+

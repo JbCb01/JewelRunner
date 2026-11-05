@@ -35,3 +35,8 @@ def register(data: RegisterRequest, response: Response, db: DbSession) -> MeResp
 def login(data: LoginRequest, response: Response, db: DbSession) -> MeResponse:
     return _start_session(response, *auth_service.login(db, data))
 
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(response: Response, db: DbSession, token: SessionToken = None) -> None:
+    auth_service.logout(db, token)
+    response.delete_cookie(SESSION_COOKIE, **_cookie_options())

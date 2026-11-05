@@ -132,3 +132,26 @@ def login(db: Session, data: LoginRequest) -> tuple[Gracz, str, datetime]:
     db.commit()
     return gracz, token, expires_at
 
+
+def logout(db: Session, token: str | None) -> None:
+    if not token:
+        return
+    session = db.scalar(select(SesjaLogowania).where(SesjaLogowania.skrot_tokenu == token_hash(token)))
+    if session and session.data_uniewaznienia is None:
+        session.data_uniewaznienia = datetime.now(UTC)
+        db.commit()
+
+
+def player_from_token(db: Session, token: str | None) -> Gracz | None:
+    if not token:
+        return None
+    return db.scalar(
+        select(Gracz)
+        .join(SesjaLogowania, SesjaLogowania.gracz_id == Gracz.id)
+        .where(
+            SesjaLogowania.skrot_tokenu == token_hash(token),
+            SesjaLogowania.data_uniewaznienia.is_(None),
+            SesjaLogowania.data_wygasniecia > datetime.now(UTC),
+            Gracz.status_konta == "aktywne",
+        )
+    )

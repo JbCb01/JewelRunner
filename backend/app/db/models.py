@@ -89,3 +89,53 @@ class TokenZmianyEmaila(Base):
     czy_uzyty: Mapped[bool] = mapped_column(server_default="false")
 
 
+class Poziom(Base):
+    __tablename__ = "poziom"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    nazwa: Mapped[str] = mapped_column(Text)
+    kolejnosc: Mapped[int] = mapped_column()
+    warunek_odblokowania: Mapped[dict | None] = mapped_column(JSONB)
+
+
+class PostepPoziomu(Base):
+    __tablename__ = "postep_poziomu"
+
+    gracz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gracz.id"), primary_key=True)
+    poziom_id: Mapped[int] = mapped_column(ForeignKey("poziom.id"), primary_key=True)
+    czy_odblokowany: Mapped[bool] = mapped_column(server_default="false")
+
+
+class Wzmocnienie(Base):
+    __tablename__ = "wzmocnienie"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    typ: Mapped[str] = mapped_column(Text)
+
+
+class Nagroda(Base):
+    __tablename__ = "nagroda"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    typ: Mapped[str] = mapped_column(Text)
+    liczba_klejnotow: Mapped[int | None] = mapped_column()
+    element_id: Mapped[int | None] = mapped_column(ForeignKey("element_personalizacji.id"))
+    wzmocnienie_id: Mapped[int | None] = mapped_column(ForeignKey("wzmocnienie.id"))
+
+
+class Wyzwanie(Base):
+    __tablename__ = "wyzwanie"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    nazwa: Mapped[str] = mapped_column(Text)
+    opis: Mapped[str] = mapped_column(Text)
+    poziom_trudnosci: Mapped[str] = mapped_column(Text)
+    poziom_id: Mapped[int] = mapped_column(ForeignKey("poziom.id"))
+    warunki_udzialu: Mapped[dict] = mapped_column(JSONB)
+    warunki_ukonczenia: Mapped[dict] = mapped_column(JSONB)
+    nagroda_id: Mapped[int] = mapped_column(ForeignKey("nagroda.id"))
+    data_rozpoczecia: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    data_zakonczenia: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(Text)
+
+

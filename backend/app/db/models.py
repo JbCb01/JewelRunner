@@ -139,3 +139,23 @@ class Wyzwanie(Base):
     status: Mapped[str] = mapped_column(Text)
 
 
+class UczestnictwoWWyzwaniu(Base):
+    __tablename__ = "uczestnictwo_w_wyzwaniu"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    gracz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gracz.id"))
+    wyzwanie_id: Mapped[int] = mapped_column(ForeignKey("wyzwanie.id"))
+    status: Mapped[str] = mapped_column(Text, server_default="Aktywne")
+    postep_procent: Mapped[int] = mapped_column(server_default="0")
+    najlepszy_wynik: Mapped[int | None] = mapped_column()
+    data_przyjecia: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+
+class ProbaWyzwania(Base):
+    __tablename__ = "proba_wyzwania"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    uczestnictwo_id: Mapped[int] = mapped_column(ForeignKey("uczestnictwo_w_wyzwaniu.id"))
+    wynik: Mapped[int] = mapped_column()
+    data_proby: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    czy_zaliczona: Mapped[bool] = mapped_column()

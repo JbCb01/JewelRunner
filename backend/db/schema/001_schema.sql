@@ -220,3 +220,79 @@ CREATE TABLE wyglad_akcesorium (
     PRIMARY KEY (gracz_id, punkt_mocowania)
 );
 
+-- ============================================================
+-- ROZGRYWKA
+-- ============================================================
+
+CREATE TABLE postep_poziomu (
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- gracz
+    poziom_id           BIGINT NOT NULL REFERENCES poziom (id), -- poziom
+    czy_odblokowany     BOOLEAN NOT NULL DEFAULT FALSE, -- czy gracz może uruchomić poziom
+    najlepszy_wynik     INTEGER CHECK (najlepszy_wynik >= 0), -- najlepszy wynik; NULL przed ukończeniem
+    najlepszy_czas_s    NUMERIC(8,1) CHECK (najlepszy_czas_s >= 0), -- najlepszy czas w sekundach
+    liczba_prob         INTEGER NOT NULL DEFAULT 0 CHECK (liczba_prob >= 0), -- liczba prób
+    PRIMARY KEY (gracz_id, poziom_id)
+);
+
+CREATE TABLE ukonczenie_poziomu (
+    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- identyfikator ukończenia
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- gracz
+    poziom_id           BIGINT NOT NULL REFERENCES poziom (id), -- ukończony poziom
+    identyfikator_sesji_gry TEXT NOT NULL CHECK (identyfikator_sesji_gry ~ '^SES-[0-9]+-[0-9]{4}$'), -- ID sesji wygenerowane przez grę
+    wynik               INTEGER NOT NULL CHECK (wynik >= 0), -- wynik punktowy
+    czas_s              NUMERIC(8,1) NOT NULL CHECK (czas_s >= 0), -- czas przejścia w sekundach
+    liczba_klejnotow    INTEGER NOT NULL DEFAULT 0 CHECK (liczba_klejnotow >= 0), -- zebrane klejnoty
+    data_ukonczenia     TIMESTAMPTZ NOT NULL DEFAULT now(), -- data ukończenia
+    UNIQUE (gracz_id, identyfikator_sesji_gry)
+);
+CREATE INDEX ix_ukonczenie_gracz_poziom ON ukonczenie_poziomu (gracz_id, poziom_id, data_ukonczenia DESC);
+
+CREATE TABLE zapis_gry (
+    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- identyfikator zapisu
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- gracz
+    poziom_id           BIGINT NOT NULL REFERENCES poziom (id), -- zapisany poziom
+    punkt_kontrolny     TEXT, -- ostatni punkt kontrolny
+    zebrane_klejnoty    INTEGER NOT NULL DEFAULT 0 CHECK (zebrane_klejnoty >= 0), -- klejnoty w zapisie
+    data_zapisu         TIMESTAMPTZ NOT NULL DEFAULT now(), -- data zapisu; wygrywa późniejsza
+    wersja_gry          TEXT NOT NULL, -- wersja gry
+    suma_kontrolna      TEXT NOT NULL -- suma kontrolna do wykrycia uszkodzenia
+);
+CREATE INDEX ix_zapis_gracz_data ON zapis_gry (gracz_id, data_zapisu DESC);
+
+CREATE TABLE kolekcja_gracza (
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- właściciel
+    specjalny_klejnot_id BIGINT NOT NULL REFERENCES specjalny_klejnot (id), -- zdobyty klejnot
+    data_zdobycia       TIMESTAMPTZ NOT NULL DEFAULT now(), -- data zdobycia
+    PRIMARY KEY (gracz_id, specjalny_klejnot_id)
+);
+
+-- ============================================================
+-- WYZWANIA
+-- ============================================================
+
+CREATE TABLE uczestnictwo_w_wyzwaniu (
+    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- identyfikator uczestnictwa
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- gracz
+    wyzwanie_id         BIGINT NOT NULL REFERENCES wyzwanie (id), -- wyzwanie
+    status              TEXT NOT NULL DEFAULT 'Aktywne' CHECK (status IN ('Aktywne', 'Ukończone', 'Wygasłe')), -- stan uczestnictwa
+    postep_procent      INTEGER NOT NULL DEFAULT 0 CHECK (postep_procent BETWEEN 0 AND 100), -- postęp w procentach
+    najlepszy_wynik     INTEGER CHECK (najlepszy_wynik >= 0), -- najlepszy wynik w wyzwaniu
+    data_przyjecia      TIMESTAMPTZ NOT NULL DEFAULT now(), -- data przyjęcia
+    status_nagrody      TEXT CHECK (status_nagrody IN ('Do odebrania', 'Odebrana')), -- stan nagrody; NULL przed ukończeniem
+    data_odebrania_nagrody TIMESTAMPTZ, -- data odebrania nagrody
+    UNIQUE (gracz_id, wyzwanie_id),
+    CHECK ((status_nagrody IS NULL) OR (status = 'Ukończone')),
+    CHECK ((status_nagrody IS NOT DISTINCT FROM 'Odebrana') = (data_odebrania_nagrody IS NOT NULL))
+);
+CREATE INDEX ix_uczestnictwo_wyzwanie ON uczestnictwo_w_wyzwaniu (wyzwanie_id);
+CREATE INDEX ix_uczestnictwo_gracz_status ON uczestnictwo_w_wyzwaniu (gracz_id, status);
+
+CREATE TABLE proba_wyzwania (
+    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- identyfikator próby
+    uczestnictwo_id     BIGINT NOT NULL REFERENCES uczestnictwo_w_wyzwaniu (id) ON DELETE CASCADE, -- uczestnictwo
+    wynik               INTEGER NOT NULL CHECK (wynik >= 0), -- wynik próby
+    data_proby          TIMESTAMPTZ NOT NULL DEFAULT now(), -- data próby
+    czy_zaliczona       BOOLEAN NOT NULL DEFAULT FALSE -- czy spełniła warunki wyzwania
+);
+CREATE INDEX ix_proba_uczestnictwo ON proba_wyzwania (uczestnictwo_id, data_proby DESC);
+

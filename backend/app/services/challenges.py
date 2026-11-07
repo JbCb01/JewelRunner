@@ -75,3 +75,33 @@ def list_active(db: Session, gracz_id: uuid.UUID) -> list[dict]:
         for wyzwanie, nagroda, element_name, booster_type, status in rows
     ]
 
+
+def get_details(db: Session, challenge_id: int, gracz_id: uuid.UUID) -> dict:
+    row = db.execute(
+        _challenge_query()
+        .add_columns(Poziom.nazwa)
+        .join(Poziom, Poziom.id == Wyzwanie.poziom_id)
+        .where(Wyzwanie.id == challenge_id, *_is_available(datetime.now(UTC)))
+    ).first()
+    if row is None:
+        raise _unavailable()
+    wyzwanie, nagroda, element_name, booster_type, level = row
+    participation = db.scalar(
+        select(UczestnictwoWWyzwaniu).where(
+            UczestnictwoWWyzwaniu.wyzwanie_id == challenge_id, UczestnictwoWWyzwaniu.gracz_id == gracz_id
+        )
+    )
+    return {
+        "id": wyzwanie.id,
+        "name": wyzwanie.nazwa,
+        "description": wyzwanie.opis,
+        "difficulty": wyzwanie.poziom_trudnosci,
+        "level": level,
+        "completion_conditions": wyzwanie.warunki_ukonczenia,
+        "reward": _reward(nagroda, element_name, booster_type),
+        "starts_at": wyzwanie.data_rozpoczecia,
+        "ends_at": wyzwanie.data_zakonczenia,
+        "participation": participation
+        and {"status": participation.status, "progress_percent": participation.postep_procent},
+    }
+

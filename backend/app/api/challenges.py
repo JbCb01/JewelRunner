@@ -15,3 +15,10 @@ def list_challenges(gracz: CurrentPlayer, db: DbSession) -> dict:
 def read_challenge(challenge_id: ChallengeId, gracz: CurrentPlayer, db: DbSession) -> dict:
     return service.get_details(db, challenge_id, gracz.id)
 
+
+@router.post("/{challenge_id}/accept", status_code=status.HTTP_201_CREATED)
+def accept_challenge(challenge_id: ChallengeId, response: Response, gracz: CurrentPlayer, db: DbSession) -> dict:
+    participation, created = service.accept(db, challenge_id, gracz.id)
+    if not created:
+        response.status_code = status.HTTP_200_OK
+    return participation

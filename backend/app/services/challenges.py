@@ -105,3 +105,68 @@ def get_details(db: Session, challenge_id: int, gracz_id: uuid.UUID) -> dict:
         and {"status": participation.status, "progress_percent": participation.postep_procent},
     }
 
+
+def _level_unlocked(db: Session, gracz_id: uuid.UUID, order: int) -> bool:
+    poziom = db.scalar(select(Poziom).where(Poziom.kolejnosc == order))
+    if poziom is None:
+        return False
+    if poziom.warunek_odblokowania is None:
+        return True
+    return bool(
+        db.scalar(
+            select(PostepPoziomu.czy_odblokowany).where(
+                PostepPoziomu.gracz_id == gracz_id, PostepPoziomu.poziom_id == poziom.id
+            )
+        )
+    )
+
+
+def _check_requirements(db: Session, gracz_id: uuid.UUID, requirements: dict) -> None:
+    for key, value in requirements.items():
+        if key == "poziom_odblokowany":
+            met = _level_unlocked(db, gracz_id, value)
+        else:
+            # Nieznany warunek odrzucamy, żeby nie przepuścić gracza przez błąd w danych.
+            logger.error("Nieznany warunek udziału w wyzwaniu: %s", key)
+            met = False
+        if not met:
+            raise AppError(
+                409,
+                "participation_requirements_not_met",
+                "Nie spełniasz warunków udziału w tym wyzwaniu.",
+                {key: value},
+            )
+
+
+def accept(db: Session, challenge_id: int, gracz_id: uuid.UUID) -> tuple[dict, bool]:
+    """Zwraca dane uczestnictwa oraz informację, czy powstało nowe."""
+    wyzwanie = db.scalar(select(Wyzwanie).where(Wyzwanie.id == challenge_id, *_is_available(datetime.now(UTC))))
+    if wyzwanie is None:
+        raise _unavailable()
+
+    query = select(UczestnictwoWWyzwaniu).where(
+        UczestnictwoWWyzwaniu.wyzwanie_id == challenge_id, UczestnictwoWWyzwaniu.gracz_id == gracz_id
+    )
+    created = False
+    participation = db.scalar(query)
+    if participation is None:
+        _check_requirements(db, gracz_id, wyzwanie.warunki_udzialu)
+        # ON CONFLICT obsługuje dwa równoczesne kliknięcia bez błędu.
+        result = db.execute(
+            insert(UczestnictwoWWyzwaniu)
+            .values(gracz_id=gracz_id, wyzwanie_id=challenge_id)
+            .on_conflict_do_nothing(index_elements=["gracz_id", "wyzwanie_id"])
+            .returning(UczestnictwoWWyzwaniu.id)
+        )
+        created = result.scalar() is not None
+        db.commit()
+        participation = db.scalar(query)
+    return (
+        {
+            "status": participation.status,
+            "accepted_at": participation.data_przyjecia,
+            "completion_conditions": wyzwanie.warunki_ukonczenia,
+        },
+        created,
+    )
+

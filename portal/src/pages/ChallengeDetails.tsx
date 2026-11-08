@@ -24,6 +24,18 @@ export function ChallengeDetails() {
   const [acceptMessage, setAcceptMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  async function accept() {
+    setBusy(true);
+    setAcceptMessage(null);
+    try {
+      setAccepted(await api<AcceptedChallenge>(`/challenges/${id}/accept`, { method: "POST" }));
+      reload();
+    } catch (caught) {
+      setAcceptMessage(acceptError(caught as ApiError));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (error?.code === "challenge_unavailable" || error?.code === "validation_error") {
     return <ErrorBox message="Wyzwanie jest niedostępne.">{BACK}</ErrorBox>;
@@ -57,6 +69,18 @@ export function ChallengeDetails() {
         </dd>
       </dl>
 
+      {accepted && (
+        <div className="notice success" role="status">
+          <p>Wyzwanie przyjęte. Warunki ukończenia:</p>
+          <ul>
+            {formatConditions(accepted.completion_conditions).map((condition) => (
+              <li key={condition}>{condition}</li>
+            ))}
+          </ul>
+          <p>Poziom uruchomisz w grze po jej połączeniu z kontem.</p>
+        </div>
+      )}
+      {acceptMessage && <ErrorBox message={acceptMessage} />}
 
       {data.participation ? (
         <div className="participation">
@@ -66,7 +90,10 @@ export function ChallengeDetails() {
           <ProgressBar value={data.participation.progress_percent} />
         </div>
       ) : (
-
+        <button className="button primary" onClick={accept} disabled={busy}>
+          Przyjmij wyzwanie
+        </button>
+      )}
       <p>{BACK}</p>
     </section>
   );

@@ -18,6 +18,7 @@ export function Challenges() {
           <Link key={challenge.id} to={`/wyzwania/${challenge.id}`} className="card">
             <div className="card-title">
               <h2>{challenge.name}</h2>
+              {challenge.participation_status && <span className="badge">Przyjęte</span>}
             </div>
             <dl>
               <dt>Poziom trudności</dt>

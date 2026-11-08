@@ -10,6 +10,9 @@ export function Challenges() {
   return (
     <section>
       <h1>Wyzwania</h1>
+      {loading && <Loading />}
+      {error && <ErrorBox message="Nie można pobrać wyzwań." onRetry={reload} />}
+      {data?.items.length === 0 && <p className="notice info">Brak dostępnych wyzwań.</p>}
       <div className="card-grid">
         {data?.items.map((challenge) => (
           <Link key={challenge.id} to={`/wyzwania/${challenge.id}`} className="card">

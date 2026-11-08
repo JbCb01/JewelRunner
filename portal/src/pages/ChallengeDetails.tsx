@@ -25,6 +25,17 @@ export function ChallengeDetails() {
   const [busy, setBusy] = useState(false);
 
 
+  if (error?.code === "challenge_unavailable" || error?.code === "validation_error") {
+    return <ErrorBox message="Wyzwanie jest niedostępne.">{BACK}</ErrorBox>;
+  }
+  if (error) {
+    return (
+      <ErrorBox message="Nie można pobrać szczegółów wyzwania." onRetry={reload}>
+        {BACK}
+      </ErrorBox>
+    );
+  }
+  if (loading && !data) return <Loading />;
   if (!data) return null;
 
   return (
@@ -46,6 +57,15 @@ export function ChallengeDetails() {
         </dd>
       </dl>
 
+
+      {data.participation ? (
+        <div className="participation">
+          <p>
+            Twój postęp: {data.participation.progress_percent}% ({data.participation.status})
+          </p>
+          <ProgressBar value={data.participation.progress_percent} />
+        </div>
+      ) : (
 
       <p>{BACK}</p>
     </section>

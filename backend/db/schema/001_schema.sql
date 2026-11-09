@@ -296,3 +296,68 @@ CREATE TABLE proba_wyzwania (
 );
 CREATE INDEX ix_proba_uczestnictwo ON proba_wyzwania (uczestnictwo_id, data_proby DESC);
 
+-- ============================================================
+-- RANKING
+-- ============================================================
+
+CREATE TABLE wpis_rankingu (
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- gracz
+    okres               TEXT NOT NULL CHECK (okres IN ('tydzień', 'miesiąc', 'ogółem')), -- rodzaj okresu
+    poczatek_okresu     DATE NOT NULL DEFAULT DATE '1970-01-01', -- początek okresu; dla „ogółem” stała data
+    wynik               INTEGER NOT NULL CHECK (wynik >= 0), -- wynik w okresie
+    data_uzyskania_wyniku TIMESTAMPTZ NOT NULL, -- decyduje o kolejności przy remisie
+    PRIMARY KEY (gracz_id, okres, poczatek_okresu),
+    CHECK (okres <> 'ogółem' OR poczatek_okresu = DATE '1970-01-01')
+);
+CREATE INDEX ix_ranking_kolejnosc ON wpis_rankingu (okres, poczatek_okresu, wynik DESC, data_uzyskania_wyniku);
+
+-- Pozycja jest wyliczana. Przy równym wyniku wyżej jest gracz, który uzyskał go wcześniej.
+CREATE VIEW v_ranking AS
+SELECT
+    ROW_NUMBER() OVER (
+        PARTITION BY w.okres, w.poczatek_okresu
+        ORDER BY w.wynik DESC, w.data_uzyskania_wyniku ASC, w.gracz_id
+    ) AS pozycja,
+    w.okres,
+    w.poczatek_okresu,
+    w.gracz_id,
+    g.nazwa_uzytkownika,
+    w.wynik,
+    w.data_uzyskania_wyniku
+FROM wpis_rankingu w
+JOIN gracz g ON g.id = w.gracz_id
+WHERE g.status_konta = 'aktywne';
+
+-- ============================================================
+-- EKONOMIA
+-- ============================================================
+
+CREATE TABLE posiadane_wzmocnienie (
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- właściciel
+    wzmocnienie_id      BIGINT NOT NULL REFERENCES wzmocnienie (id), -- wzmocnienie
+    liczba              INTEGER NOT NULL DEFAULT 0 CHECK (liczba >= 0), -- posiadana liczba
+    PRIMARY KEY (gracz_id, wzmocnienie_id)
+);
+
+CREATE TABLE transakcja (
+    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- identyfikator transakcji
+    gracz_id            UUID NOT NULL REFERENCES gracz (id) ON DELETE CASCADE, -- gracz
+    typ                 TEXT NOT NULL CHECK (typ IN ('zakup w sklepie', 'odbiór nagrody', 'zmiana stanu konta')), -- rodzaj operacji
+    kwota_klejnotow     INTEGER NOT NULL, -- zmiana salda: ujemna przy zakupie; 0, gdy nagroda to element
+    wzmocnienie_id      BIGINT REFERENCES wzmocnienie (id), -- kupione wzmocnienie
+    uczestnictwo_id     BIGINT REFERENCES uczestnictwo_w_wyzwaniu (id), -- uczestnictwo, za które odebrano nagrodę
+    klucz_idempotencji  TEXT NOT NULL UNIQUE, -- chroni przed podwójnym rozliczeniem przy powtórzeniu żądania
+    data_transakcji     TIMESTAMPTZ NOT NULL DEFAULT now(), -- data transakcji
+    CHECK (typ <> 'zakup w sklepie' OR (wzmocnienie_id IS NOT NULL AND kwota_klejnotow < 0)),
+    CHECK (typ <> 'odbiór nagrody' OR (uczestnictwo_id IS NOT NULL AND kwota_klejnotow >= 0))
+);
+CREATE INDEX ix_transakcja_gracz_data ON transakcja (gracz_id, data_transakcji DESC);
+-- Nagroda za jedno uczestnictwo może zostać rozliczona tylko raz.
+CREATE UNIQUE INDEX ux_transakcja_nagroda ON transakcja (uczestnictwo_id) WHERE typ = 'odbiór nagrody';
+
+CREATE TABLE nagroda_dzienna (
+    gracz_id            UUID PRIMARY KEY REFERENCES gracz (id) ON DELETE CASCADE, -- gracz
+    data_ostatniej_nagrody DATE, -- data według czasu serwera
+    dlugosc_serii       INTEGER NOT NULL DEFAULT 0 CHECK (dlugosc_serii BETWEEN 0 AND 7) -- dni z rzędu; po 7 seria zaczyna się od nowa
+);
+

@@ -5,6 +5,7 @@ import type { Ranking as RankingData } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorBox, Loading } from "../components/Status";
 import { formatDate } from "../lib/format";
+import { loadRanking, saveRanking } from "../lib/rankingCache";
 
 export function Ranking() {
   const { user } = useAuth();
@@ -21,12 +22,16 @@ export function Ranking() {
     api<RankingData>("/ranking")
       .then((ranking) => {
         if (!active) return;
+        saveRanking(ranking);
         setData(ranking);
         setStale(false);
       })
       .catch((caught: ApiError) => {
         if (!active || !caught.isUnavailable) return;
-        setFailed(true);
+        const cached = loadRanking();
+        setData(cached);
+        setStale(cached !== null);
+        setFailed(cached === null);
       })
       .finally(() => {
         if (active) setLoading(false);

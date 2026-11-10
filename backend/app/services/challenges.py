@@ -170,3 +170,34 @@ def accept(db: Session, challenge_id: int, gracz_id: uuid.UUID) -> tuple[dict, b
         created,
     )
 
+
+def list_mine(db: Session, gracz_id: uuid.UUID) -> list[dict]:
+    expired = select(Wyzwanie.id).where(Wyzwanie.data_zakonczenia <= datetime.now(UTC))
+    db.execute(
+        update(UczestnictwoWWyzwaniu)
+        .where(
+            UczestnictwoWWyzwaniu.gracz_id == gracz_id,
+            UczestnictwoWWyzwaniu.status == "Aktywne",
+            UczestnictwoWWyzwaniu.wyzwanie_id.in_(expired),
+        )
+        .values(status="Wygasłe")
+    )
+    db.commit()
+    rows = db.execute(
+        select(UczestnictwoWWyzwaniu, Wyzwanie)
+        .join(Wyzwanie, Wyzwanie.id == UczestnictwoWWyzwaniu.wyzwanie_id)
+        .where(UczestnictwoWWyzwaniu.gracz_id == gracz_id)
+        .order_by(UczestnictwoWWyzwaniu.data_przyjecia.desc(), UczestnictwoWWyzwaniu.id.desc())
+    ).all()
+    return [
+        {
+            "challenge_id": wyzwanie.id,
+            "name": wyzwanie.nazwa,
+            "status": participation.status,
+            "progress_percent": participation.postep_procent,
+            "ends_at": wyzwanie.data_zakonczenia,
+            "best_score": participation.najlepszy_wynik,
+        }
+        for participation, wyzwanie in rows
+    ]
+

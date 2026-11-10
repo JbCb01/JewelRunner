@@ -201,3 +201,21 @@ def list_mine(db: Session, gracz_id: uuid.UUID) -> list[dict]:
         for participation, wyzwanie in rows
     ]
 
+
+def attempts(db: Session, challenge_id: int, gracz: Gracz) -> dict:
+    participation = db.scalar(
+        select(UczestnictwoWWyzwaniu).where(
+            UczestnictwoWWyzwaniu.wyzwanie_id == challenge_id, UczestnictwoWWyzwaniu.gracz_id == gracz.id
+        )
+    )
+    if participation is None:
+        raise AppError(404, "not_found", "Nie znaleziono uczestnictwa w tym wyzwaniu.")
+    rows = db.scalars(
+        select(ProbaWyzwania)
+        .where(ProbaWyzwania.uczestnictwo_id == participation.id)
+        .order_by(ProbaWyzwania.data_proby.desc(), ProbaWyzwania.id.desc())
+    ).all()
+    return {
+        "best_score": participation.najlepszy_wynik,
+        "items": [{"score": r.wynik, "attempted_at": r.data_proby, "passed": r.czy_zaliczona} for r in rows],
+    }

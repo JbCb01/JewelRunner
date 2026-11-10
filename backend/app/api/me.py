@@ -28,3 +28,7 @@ def read_me(gracz: CurrentPlayer) -> MeResponse:
 def my_challenges(gracz: CurrentPlayer, db: DbSession) -> dict:
     return {"items": challenges.list_mine(db, gracz.id)}
 
+
+@router.get("/challenges/{challenge_id}/attempts", tags=["wyzwania"])
+def my_attempts(challenge_id: ChallengeId, gracz: CurrentPlayer, db: DbSession) -> dict:
+    return challenges.attempts(db, challenge_id, gracz)

@@ -29,6 +29,22 @@ def update_me(data: UpdateMeRequest, gracz: CurrentPlayer, db: DbSession) -> MeR
     return _me(gracz)
 
 
+@router.post("/email", status_code=status.HTTP_202_ACCEPTED)
+def request_email_change(data: ChangeEmailRequest, gracz: CurrentPlayer, db: DbSession) -> dict:
+    account.request_email_change(db, gracz, data.new_email, data.current_password)
+    return {"status": "confirmation_sent"}
+
+
+@router.post("/email/confirm")
+def confirm_email_change(data: ConfirmEmailRequest, gracz: CurrentPlayer, db: DbSession) -> MeResponse:
+    account.confirm_email_change(db, gracz, data.token)
+    return _me(gracz)
+
+
+@router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(data: ChangePasswordRequest, gracz: CurrentPlayer, db: DbSession) -> None:
+    account.change_password(db, gracz, data.current_password, data.new_password)
+
 
 @router.get("/challenges", tags=["wyzwania"])
 def my_challenges(gracz: CurrentPlayer, db: DbSession) -> dict:

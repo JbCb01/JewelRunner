@@ -42,3 +42,56 @@ def change_username(db: Session, gracz: Gracz, username: str) -> None:
     gracz.data_modyfikacji = datetime.now(UTC)
     _commit_unique(db, "ux_gracz_nazwa", AppError(409, "username_taken", "Nazwa jest zajęta."))
 
+
+def request_email_change(db: Session, gracz: Gracz, new_email: str, password: str) -> None:
+    _require_password(db, gracz, password)
+    new_email = new_email.lower()
+    if db.scalar(select(Gracz.id).where(func.lower(Gracz.email) == new_email)):
+        raise AppError(409, "email_taken", "Adres e-mail jest już zarejestrowany.")
+
+    # Ważny jest tylko ostatnio wysłany link.
+    db.execute(
+        update(TokenZmianyEmaila)
+        .where(TokenZmianyEmaila.gracz_id == gracz.id, TokenZmianyEmaila.czy_uzyty.is_(False))
+        .values(czy_uzyty=True)
+    )
+    token = new_session_token()
+    db.add(
+        TokenZmianyEmaila(
+            gracz_id=gracz.id,
+            nowy_email=new_email,
+            skrot_wartosci=token_hash(token),
+            data_waznosci=datetime.now(UTC) + EMAIL_TOKEN_TTL,
+        )
+    )
+    link = f"{get_settings().portal_url}/potwierdz-email?token={token}"
+    mailer.send_email(new_email, "Potwierdź zmianę adresu e-mail", f"Aby potwierdzić nowy adres, otwórz link:\n{link}")
+    db.commit()
+
+
+def confirm_email_change(db: Session, gracz: Gracz, token: str) -> None:
+    record = db.scalar(
+        select(TokenZmianyEmaila)
+        .where(
+            TokenZmianyEmaila.skrot_wartosci == token_hash(token),
+            TokenZmianyEmaila.gracz_id == gracz.id,
+            TokenZmianyEmaila.czy_uzyty.is_(False),
+            TokenZmianyEmaila.data_waznosci > datetime.now(UTC),
+        )
+        .with_for_update()
+    )
+    if record is None:
+        raise AppError(400, "invalid_token", "Link jest nieprawidłowy lub wygasł.")
+    record.czy_uzyty = True
+    gracz.email = record.nowy_email
+    gracz.data_modyfikacji = datetime.now(UTC)
+    _commit_unique(db, "ux_gracz_email", AppError(409, "email_taken", "Adres e-mail jest już zarejestrowany."))
+
+
+def change_password(db: Session, gracz: Gracz, current_password: str, new_password: str) -> None:
+    _require_password(db, gracz, current_password)
+    if not is_strong_password(new_password):
+        raise AppError(422, "weak_password", "Hasło musi mieć co najmniej 8 znaków, literę i cyfrę.")
+    gracz.skrot_hasla = hash_password(new_password)
+    gracz.data_modyfikacji = datetime.now(UTC)
+    db.commit()

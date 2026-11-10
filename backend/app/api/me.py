@@ -23,6 +23,12 @@ def read_me(gracz: CurrentPlayer) -> MeResponse:
     return _me(gracz)
 
 
+@router.patch("")
+def update_me(data: UpdateMeRequest, gracz: CurrentPlayer, db: DbSession) -> MeResponse:
+    account.change_username(db, gracz, data.username)
+    return _me(gracz)
+
+
 
 @router.get("/challenges", tags=["wyzwania"])
 def my_challenges(gracz: CurrentPlayer, db: DbSession) -> dict:

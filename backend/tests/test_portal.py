@@ -137,3 +137,60 @@ def test_a2_details_show_progress_after_accept(client, engine):
     assert client.get(f"/api/challenges/{wid}").json()["participation"] == {"status": "Aktywne", "progress_percent": 0}
 
 
+# 2.2
+def test_accept_returns_conditions(client, engine):
+    signup(client)
+    response = client.post(f"/api/challenges/{challenge_id(engine, 'Pierwsze kroki')}/accept")
+    assert response.status_code == 201
+    assert response.json()["status"] == "Aktywne"
+    assert response.json()["completion_conditions"] == {"ukoncz_poziom": True}
+
+
+def test_a1_accept_twice_keeps_one_participation(client, engine):
+    signup(client)
+    wid = challenge_id(engine, "Pierwsze kroki")
+    first = client.post(f"/api/challenges/{wid}/accept")
+    second = client.post(f"/api/challenges/{wid}/accept")
+    assert second.status_code == 200
+    assert second.json()["accepted_at"] == first.json()["accepted_at"]
+    assert execute(engine, "SELECT count(*) FROM uczestnictwo_w_wyzwaniu").scalar() == 1
+
+
+@pytest.mark.parametrize("name", ["Akrobata", "Wyzwanie testowe"])
+def test_a2_accept_unavailable_challenge(client, engine, name):
+    signup(client)
+    response = client.post(f"/api/challenges/{challenge_id(engine, name)}/accept")
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "challenge_unavailable"
+    assert execute(engine, "SELECT count(*) FROM uczestnictwo_w_wyzwaniu").scalar() == 0
+
+
+def test_a3_accept_requires_unlocked_level(client, engine):
+    gracz = signup(client)
+    execute(
+        engine,
+        """INSERT INTO poziom (nazwa, kolejnosc, warunek_odblokowania, punkt_startowy)
+           VALUES ('Poziom 2', 2, '{"poziom": 1}', '{}') ON CONFLICT (kolejnosc) DO NOTHING""",
+    )
+    wid = make_challenge(engine, "Wymagające", requirements='{"poziom_odblokowany": 2}')
+    response = client.post(f"/api/challenges/{wid}/accept")
+    assert response.status_code == 409
+    error = response.json()["error"]
+    assert error["code"] == "participation_requirements_not_met"
+    assert error["details"] == {"poziom_odblokowany": 2}
+
+    execute(
+        engine,
+        """INSERT INTO postep_poziomu (gracz_id, poziom_id, czy_odblokowany)
+           SELECT :g, id, TRUE FROM poziom WHERE kolejnosc = 2""",
+        g=gracz,
+    )
+    assert client.post(f"/api/challenges/{wid}/accept").status_code == 201
+
+
+def test_a3_unknown_requirement_is_rejected(client, engine):
+    signup(client)
+    wid = make_challenge(engine, "Dziwne", requirements='{"cos_nowego": 1}')
+    assert client.post(f"/api/challenges/{wid}/accept").status_code == 409
+
+

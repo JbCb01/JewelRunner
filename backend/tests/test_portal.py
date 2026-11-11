@@ -250,3 +250,63 @@ def test_attempts_of_another_player_are_hidden(client, engine):
     assert other.get(f"/api/me/challenges/{wid}/attempts").status_code == 404
 
 
+# 2.3
+def add_score(engine, gracz, score, when):
+    execute(
+        engine,
+        "INSERT INTO wpis_rankingu (gracz_id, okres, wynik, data_uzyskania_wyniku) VALUES (:g, 'ogółem', :w, CAST(:d AS timestamptz))",
+        g=gracz, w=score, d=when,
+    )
+
+
+def test_ranking_order_and_tie_break(client, engine):
+    kubas = signup(client)
+    other = other_client()
+    basia = signup(other, "Basia")
+    add_score(engine, kubas, 500, "2026-11-02")
+    add_score(engine, basia, 500, "2026-11-01")
+    body = client.get("/api/ranking").json()
+    assert [(i["position"], i["username"]) for i in body["items"]] == [(1, "Basia"), (2, "Kubas")]
+    assert body["me"] == {"position": 2, "score": 500}
+
+
+def test_a2_ranking_me_is_null_without_score(client):
+    signup(client)
+    assert client.get("/api/ranking").json()["me"] is None
+
+
+def test_a1_ranking_limits_to_100_and_reports_me_outside(client, engine):
+    kubas = signup(client)
+    execute(
+        engine,
+        """WITH nowi AS (
+             INSERT INTO gracz (nazwa_uzytkownika, email, skrot_hasla)
+             SELECT 'gracz' || n, 'g' || n || '@example.com', 'x' FROM generate_series(1, 120) n RETURNING id)
+           INSERT INTO wpis_rankingu (gracz_id, okres, wynik, data_uzyskania_wyniku)
+           SELECT id, 'ogółem', 1000, now() FROM nowi""",
+    )
+    add_score(engine, kubas, 1, "2026-11-01")
+    body = client.get("/api/ranking").json()
+    assert len(body["items"]) == 100
+    assert kubas not in {i["player_id"] for i in body["items"]}
+    assert body["me"] == {"position": 121, "score": 1}
+
+
+# Profil publiczny
+def test_public_profile_hides_private_data(client):
+    signup(client)
+    other = other_client()
+    basia = signup(other, "Basia")
+    response = client.get(f"/api/players/{basia}")
+    assert response.status_code == 200
+    assert response.json()["username"] == "Basia"
+    assert response.json()["statistics"]["levels_completed"] == 0
+    assert "email" not in response.text and "skrot" not in response.text
+
+
+def test_public_profile_missing_or_malformed(client):
+    signup(client)
+    assert client.get(f"/api/players/{uuid.uuid4()}").status_code == 404
+    assert client.get("/api/players/nie-uuid").status_code == 422
+
+

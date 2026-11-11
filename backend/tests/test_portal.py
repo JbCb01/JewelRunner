@@ -310,3 +310,200 @@ def test_public_profile_missing_or_malformed(client):
     assert client.get("/api/players/nie-uuid").status_code == 422
 
 
+# 8.6
+def test_change_username_visible_in_ranking(client, engine):
+    kubas = signup(client)
+    add_score(engine, kubas, 10, "2026-11-01")
+    response = client.patch("/api/me", json={"username": "NowaNazwa"})
+    assert response.status_code == 200 and response.json()["username"] == "NowaNazwa"
+    assert client.get("/api/ranking").json()["items"][0]["username"] == "NowaNazwa"
+    assert client.get("/api/me").json()["username"] == "NowaNazwa"
+
+
+@pytest.mark.parametrize("name,status,code", [("BASIA", 409, "username_taken"), ("ab", 422, "validation_error")])
+def test_a1_change_username_rejected(client, engine, name, status, code):
+    signup(client)
+    other = other_client()
+    signup(other, "Basia")
+    response = client.patch("/api/me", json={"username": name})
+    assert response.status_code == status
+    assert response.json()["error"]["code"] == code
+    assert client.get("/api/me").json()["username"] == "Kubas"
+
+
+def test_keep_own_username_is_allowed(client):
+    signup(client)
+    assert client.patch("/api/me", json={"username": "kubas"}).status_code == 200
+
+
+def test_a4_expired_session_cannot_change_data(client, engine):
+    signup(client)
+    execute(engine, "UPDATE sesja_logowania SET data_wygasniecia = now() - interval '1 second'")
+    assert client.patch("/api/me", json={"username": "Nowa"}).status_code == 401
+    assert execute(engine, "SELECT nazwa_uzytkownika FROM gracz").scalar() == "Kubas"
+
+
+@pytest.fixture
+def sent(monkeypatch):
+    messages = []
+    monkeypatch.setattr(mailer, "send_email", lambda to, subject, body: messages.append((to, body)))
+    return messages
+
+
+def token_from(messages):
+    return re.search(r"token=(\S+)", messages[-1][1]).group(1)
+
+
+def request_email(client, email="nowy@example.com", password=PASSWORD):
+    return client.post("/api/me/email", json={"new_email": email, "current_password": password})
+
+
+def test_a2_change_email_after_confirmation(client, engine, sent):
+    signup(client)
+    assert request_email(client).status_code == 202
+    assert sent[0][0] == "nowy@example.com"
+    assert client.get("/api/me").json()["email"] == "kubas@example.com"
+    token = token_from(sent)
+    assert execute(engine, "SELECT skrot_wartosci FROM token_zmiany_emaila").scalar() != token
+    response = client.post("/api/me/email/confirm", json={"token": token})
+    assert response.status_code == 200 and response.json()["email"] == "nowy@example.com"
+    client.post("/api/auth/logout")
+    assert client.post("/api/auth/login", json={"email": "nowy@example.com", "password": PASSWORD}).status_code == 200
+
+
+def test_change_email_wrong_password(client, sent):
+    signup(client)
+    response = request_email(client, password="Zle12345")
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "invalid_password"
+    assert sent == []
+
+
+def test_change_email_taken(client, sent):
+    signup(client)
+    other = other_client()
+    signup(other, "Basia")
+    assert request_email(client, "BASIA@example.com").json()["error"]["code"] == "email_taken"
+
+
+def test_email_token_single_use_and_latest_only(client, sent):
+    signup(client)
+    request_email(client, "pierwszy@example.com")
+    old = token_from(sent)
+    request_email(client, "drugi@example.com")
+    new = token_from(sent)
+    assert client.post("/api/me/email/confirm", json={"token": old}).status_code == 400
+    assert client.post("/api/me/email/confirm", json={"token": new}).json()["email"] == "drugi@example.com"
+    assert client.post("/api/me/email/confirm", json={"token": new}).json()["error"]["code"] == "invalid_token"
+
+
+def test_email_token_expired(client, engine, sent):
+    signup(client)
+    request_email(client)
+    execute(engine, "UPDATE token_zmiany_emaila SET data_waznosci = now() - interval '1 second'")
+    assert client.post("/api/me/email/confirm", json={"token": token_from(sent)}).status_code == 400
+
+
+def test_email_token_of_another_player(client, sent):
+    signup(client)
+    request_email(client)
+    other = other_client()
+    signup(other, "Basia")
+    assert other.post("/api/me/email/confirm", json={"token": token_from(sent)}).status_code == 400
+
+
+def test_email_confirm_conflict_when_address_was_taken_meanwhile(client, sent):
+    signup(client)
+    request_email(client, "wspolny@example.com")
+    other = other_client()
+    other.post("/api/auth/register", json={"username": "Basia", "email": "wspolny@example.com", "password": PASSWORD})
+    response = client.post("/api/me/email/confirm", json={"token": token_from(sent)})
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "email_taken"
+    assert client.get("/api/me").json()["email"] == "kubas@example.com"
+
+
+def test_email_failure_returns_503_and_keeps_old_link(client, engine, monkeypatch):
+    signup(client)
+    monkeypatch.setenv("EMAIL_BACKEND", "none")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    response = request_email(client)
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "email_unavailable"
+    assert execute(engine, "SELECT count(*) FROM token_zmiany_emaila").scalar() == 0
+
+
+def test_change_password(client):
+    signup(client)
+    payload = {"current_password": PASSWORD, "new_password": "NoweHaslo99"}
+    assert client.post("/api/me/password", json=payload).status_code == 204
+    client.post("/api/auth/logout")
+    assert client.post("/api/auth/login", json={"email": "kubas@example.com", "password": PASSWORD}).status_code == 401
+    assert client.post("/api/auth/login", json={"email": "kubas@example.com", "password": "NoweHaslo99"}).status_code == 200
+
+
+@pytest.mark.parametrize(
+    "payload,status,code",
+    [
+        ({"current_password": "Zle12345", "new_password": "NoweHaslo99"}, 403, "invalid_password"),
+        ({"current_password": PASSWORD, "new_password": "krotkie"}, 422, "weak_password"),
+    ],
+)
+def test_change_password_rejected(client, payload, status, code):
+    signup(client)
+    response = client.post("/api/me/password", json=payload)
+    assert response.status_code == status
+    assert response.json()["error"]["code"] == code
+
+
+# Przegląd bezpieczeństwa
+@pytest.mark.parametrize("path", ["/api/challenges/99999999999999999999", "/api/challenges/0", "/api/me/challenges/99999999999999999999/attempts"])
+def test_out_of_range_id_returns_validation_error(client, path):
+    signup(client)
+    response = client.get(path)
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "validation_error"
+
+
+@pytest.mark.parametrize("name", ["ab\x00cd", "ab\ncd"])
+def test_control_characters_in_username_are_rejected(client, name):
+    response = client.post(
+        "/api/auth/register", json={"username": name, "email": "a@example.com", "password": PASSWORD}
+    )
+    assert response.status_code == 422
+    signup(client)
+    assert client.patch("/api/me", json={"username": name}).status_code == 422
+
+
+def test_dates_are_returned_in_utc(client, engine):
+    signup(client)
+    wid = challenge_id(engine, "Pierwsze kroki")
+    assert client.get(f"/api/challenges/{wid}").json()["ends_at"].endswith(("Z", "+00:00"))
+
+
+def test_portal_origin_can_post(client):
+    response = client.post("/api/auth/logout", headers={"Origin": "http://localhost:5173"})
+    assert response.status_code == 204
+
+
+def test_password_change_attempts_are_limited(client, engine):
+    signup(client)
+    bad = {"current_password": "Zle12345", "new_password": "NoweHaslo99"}
+    for _ in range(5):
+        assert client.post("/api/me/password", json=bad).status_code == 403
+    good = {"current_password": PASSWORD, "new_password": "NoweHaslo99"}
+    response = client.post("/api/me/password", json=good)
+    assert response.status_code == 429
+    assert response.json()["error"]["code"] == "login_locked"
+    execute(engine, "UPDATE gracz SET zablokowany_do = now() - interval '1 second'")
+    assert client.post("/api/me/password", json=good).status_code == 204
+
+
+def test_correct_password_resets_counter_on_email_change(client, engine, sent):
+    signup(client)
+    request_email(client, password="Zle12345")
+    assert execute(engine, "SELECT liczba_nieudanych_logowan FROM gracz").scalar() == 1
+    assert request_email(client).status_code == 202
+    assert execute(engine, "SELECT liczba_nieudanych_logowan FROM gracz").scalar() == 0

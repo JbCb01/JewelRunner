@@ -194,3 +194,59 @@ def test_a3_unknown_requirement_is_rejected(client, engine):
     assert client.post(f"/api/challenges/{wid}/accept").status_code == 409
 
 
+# 2.4
+def test_my_challenges_are_private(client, engine):
+    signup(client)
+    client.post(f"/api/challenges/{challenge_id(engine, 'Pierwsze kroki')}/accept")
+    item = client.get("/api/me/challenges").json()["items"][0]
+    assert item["name"] == "Pierwsze kroki" and item["status"] == "Aktywne" and item["progress_percent"] == 0
+    other = other_client()
+    signup(other, "Basia")
+    assert other.get("/api/me/challenges").json()["items"] == []
+
+
+def test_a2_expired_participation_is_marked(client, engine):
+    signup(client)
+    wid = make_challenge(engine, "Krótkie")
+    client.post(f"/api/challenges/{wid}/accept")
+    execute(engine, "UPDATE wyzwanie SET data_zakonczenia = now() - interval '1 minute' WHERE id = :i", i=wid)
+    assert client.get("/api/me/challenges").json()["items"][0]["status"] == "Wygasłe"
+    assert execute(engine, "SELECT status FROM uczestnictwo_w_wyzwaniu").scalar() == "Wygasłe"
+
+
+def test_a3_completed_stays_completed_after_end_date(client, engine):
+    signup(client)
+    wid = make_challenge(engine, "Ukończone")
+    client.post(f"/api/challenges/{wid}/accept")
+    execute(engine, "UPDATE uczestnictwo_w_wyzwaniu SET status = 'Ukończone', postep_procent = 100")
+    execute(engine, "UPDATE wyzwanie SET data_zakonczenia = now() - interval '1 minute' WHERE id = :i", i=wid)
+    assert client.get("/api/me/challenges").json()["items"][0]["status"] == "Ukończone"
+
+
+def test_attempts_and_best_score(client, engine):
+    signup(client)
+    wid = challenge_id(engine, "Pierwsze kroki")
+    client.post(f"/api/challenges/{wid}/accept")
+    assert client.get(f"/api/me/challenges/{wid}/attempts").json() == {"best_score": None, "items": []}
+    execute(engine, "UPDATE uczestnictwo_w_wyzwaniu SET najlepszy_wynik = 90")
+    for score, when in ((50, "2026-01-01"), (90, "2026-01-02")):
+        execute(
+            engine,
+            """INSERT INTO proba_wyzwania (uczestnictwo_id, wynik, data_proby, czy_zaliczona)
+               SELECT id, :s, CAST(:d AS timestamptz), :s > 80 FROM uczestnictwo_w_wyzwaniu""",
+            s=score, d=when,
+        )
+    body = client.get(f"/api/me/challenges/{wid}/attempts").json()
+    assert body["best_score"] == 90
+    assert [(i["score"], i["passed"]) for i in body["items"]] == [(90, True), (50, False)]
+
+
+def test_attempts_of_another_player_are_hidden(client, engine):
+    signup(client)
+    wid = challenge_id(engine, "Pierwsze kroki")
+    client.post(f"/api/challenges/{wid}/accept")
+    other = other_client()
+    signup(other, "Basia")
+    assert other.get(f"/api/me/challenges/{wid}/attempts").status_code == 404
+
+

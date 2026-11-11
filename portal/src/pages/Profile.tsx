@@ -85,6 +85,108 @@ function UsernameForm({ user }: { user: Me }) {
   );
 }
 
+function EmailForm({ user }: { user: Me }) {
+  const [newEmail, setNewEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState<Message>(null);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    try {
+      await api("/me/email", { method: "POST", body: { new_email: newEmail, current_password: password } });
+      setMessage({ kind: "success", text: `Wysłaliśmy link potwierdzający na adres ${newEmail}.` });
+      setNewEmail("");
+      setPassword("");
+    } catch (caught) {
+      setMessage({ kind: "error", text: accountError(caught as ApiError) });
+    }
+  }
+
+  return (
+    <form onSubmit={submit} aria-label="Zmiana e-maila">
+      <h2>Adres e-mail</h2>
+      <p>Obecny adres: {user.email}</p>
+      <label>
+        Nowy adres e-mail
+        <input type="email" required value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+      </label>
+      <label>
+        Aktualne hasło
+        <input
+          type="password"
+          required
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </label>
+      <MessageLine message={message} />
+      <button className="button primary">Zmień e-mail</button>
+    </form>
+  );
+}
+
+function PasswordForm() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [repeat, setRepeat] = useState("");
+  const [message, setMessage] = useState<Message>(null);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const invalid = validatePassword(next);
+    if (invalid) {
+      setMessage({ kind: "error", text: invalid });
+      return;
+    }
+    if (next !== repeat) {
+      setMessage({ kind: "error", text: "Hasła nie są takie same." });
+      return;
+    }
+    try {
+      await api("/me/password", { method: "POST", body: { current_password: current, new_password: next } });
+      setMessage({ kind: "success", text: "Hasło zostało zmienione." });
+      setCurrent("");
+      setNext("");
+      setRepeat("");
+    } catch (caught) {
+      setMessage({ kind: "error", text: accountError(caught as ApiError) });
+    }
+  }
+
+  return (
+    <form onSubmit={submit} aria-label="Zmiana hasła">
+      <h2>Hasło</h2>
+      <label>
+        Aktualne hasło
+        <input
+          type="password"
+          required
+          autoComplete="current-password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+        />
+      </label>
+      <label>
+        Nowe hasło
+        <input type="password" required autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
+      </label>
+      <label>
+        Powtórz nowe hasło
+        <input
+          type="password"
+          required
+          autoComplete="new-password"
+          value={repeat}
+          onChange={(e) => setRepeat(e.target.value)}
+        />
+      </label>
+      <MessageLine message={message} />
+      <button className="button primary">Zmień hasło</button>
+    </form>
+  );
+}
+
 export function Profile() {
   const { user } = useAuth();
   if (!user) return null;
@@ -94,6 +196,12 @@ export function Profile() {
       <div className="profile-grid">
         <div className="panel">
           <UsernameForm key={user.username} user={user} />
+        </div>
+        <div className="panel">
+          <EmailForm user={user} />
+        </div>
+        <div className="panel">
+          <PasswordForm />
         </div>
       </div>
     </section>

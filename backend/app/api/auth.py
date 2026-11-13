@@ -5,8 +5,9 @@ from fastapi import APIRouter, Response, status
 from app.api.deps import SESSION_COOKIE, DbSession, SessionToken
 from app.core.config import get_settings
 from app.db.models import Gracz
-from app.schemas.auth import LoginRequest, MeResponse, RegisterRequest
+from app.schemas.auth import GameSessionResponse, LoginRequest, MeResponse, PairRequest, RegisterRequest
 from app.services import auth as auth_service
+from app.services import pairing
 
 router = APIRouter(prefix="/auth", tags=["konto"])
 
@@ -37,6 +38,17 @@ def login(data: LoginRequest, response: Response, db: DbSession) -> MeResponse:
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(response: Response, db: DbSession, token: SessionToken = None) -> None:
+def logout(response: Response, db: DbSession, token: SessionToken) -> None:
     auth_service.logout(db, token)
     response.delete_cookie(SESSION_COOKIE, **_cookie_options())
+
+
+@router.post("/pair")
+def pair(data: PairRequest, db: DbSession) -> GameSessionResponse:
+    """Gra wymienia kod z portalu na sesję. Odpowiedź nie ustawia cookie."""
+    gracz, token, expires_at = pairing.redeem_code(db, data.code)
+    return GameSessionResponse(
+        token=token,
+        expires_at=expires_at,
+        player=MeResponse(id=gracz.id, username=gracz.nazwa_uzytkownika, email=gracz.email),
+    )

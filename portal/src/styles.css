@@ -365,3 +365,70 @@ tfoot td {
     transition: none;
   }
 }
+
+.pairing-code {
+  margin: 4px 0;
+  font-family: var(--heading);
+  font-size: 2.2rem;
+  letter-spacing: 0.35em;
+  color: var(--accent);
+  text-align: center;
+  user-select: all;
+}
+
+.game-link {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.game-link-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.badge.badge-linked {
+  color: var(--success);
+  background: var(--success-bg);
+  border: 1px solid var(--success);
+}
+
+.badge.badge-pending {
+  color: #1d1033;
+  background: var(--accent);
+}
+
+.badge.badge-unlinked {
+  color: var(--text);
+  background: var(--line);
+}
+
+.game-link-description,
+.game-link-sync {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.pairing-code-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+}
+
+.pairing-countdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pairing-countdown p {
+  margin: 0;
+  font-size: 14px;
+}

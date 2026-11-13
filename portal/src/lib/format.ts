@@ -61,3 +61,14 @@ export function validatePassword(password: string): string | null {
   const strong = password.length >= 8 && /\p{L}/u.test(password) && /\p{N}/u.test(password);
   return strong ? null : "Hasło musi mieć co najmniej 8 znaków, literę i cyfrę.";
 }
+
+export const PAIRING_CODE_TTL_SECONDS = 300;
+
+export function secondsLeft(expiresAt: string, nowMs: number = Date.now()): number {
+  return Math.max(0, Math.round((new Date(expiresAt).getTime() - nowMs) / 1000));
+}
+
+export function formatCountdown(seconds: number): string {
+  const clamped = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(clamped / 60)}:${String(clamped % 60).padStart(2, "0")}`;
+}

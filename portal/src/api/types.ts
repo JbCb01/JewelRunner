@@ -2,6 +2,13 @@ export interface Me {
   id: string;
   username: string;
   email: string;
+  game_linked?: boolean;
+  last_synced_at?: string | null;
+}
+
+export interface PairingCode {
+  code: string;
+  expires_at: string;
 }
 
 export interface Reward {

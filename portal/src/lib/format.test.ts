@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatConditions, formatRemaining, formatReward, validatePassword } from "./format";
+import {
+  formatConditions,
+  formatCountdown,
+  formatRemaining,
+  formatReward,
+  secondsLeft,
+  validatePassword,
+} from "./format";
 
 describe("formatReward", () => {
   it("opisuje każdy typ nagrody", () => {
@@ -36,5 +43,20 @@ describe("validatePassword", () => {
     expect(validatePassword("Krótk1")).not.toBeNull();
     expect(validatePassword("samelitery")).not.toBeNull();
     expect(validatePassword("12345678")).not.toBeNull();
+  });
+});
+
+describe("formatCountdown i secondsLeft", () => {
+  it("formatuje licznik ważności kodu parowania", () => {
+    expect(formatCountdown(300)).toBe("5:00");
+    expect(formatCountdown(299)).toBe("4:59");
+    expect(formatCountdown(9)).toBe("0:09");
+    expect(formatCountdown(0)).toBe("0:00");
+  });
+
+  it("wylicza pozostałe sekundy do wygaśnięcia kodu", () => {
+    const now = new Date("2026-11-13T10:00:00Z").getTime();
+    expect(secondsLeft("2026-11-13T10:05:00Z", now)).toBe(300);
+    expect(secondsLeft("2026-11-13T09:59:00Z", now)).toBe(0);
   });
 });

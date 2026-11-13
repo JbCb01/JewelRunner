@@ -7,8 +7,9 @@ Wersja robocza do uzgodnienia z frontendem. Wszystkie endpointy poniżej są zai
 - Adres bazowy: `/api`. Dane w JSON, daty w ISO 8601 UTC.
 - Klucze JSON po angielsku w `snake_case`. Wartości statusów bez zmian z bazy, np. `Aktywne`. Etykietę `Przyjęte` wyświetla portal.
 - Sesja: cookie `jr_session` (HttpOnly, Secure, SameSite). Frontend wysyła zapytania z `credentials: "include"` i nie ma dostępu do tokenu.
+- Gra (Sprint 3): ten sam token sesji w nagłówku `Authorization: Bearer <token>`. Token gra dostaje z `POST /auth/pair`. Nagłówek ma pierwszeństwo przed cookie.
 - Lista zwraca `{"items": [...]}`.
-- Bez sesji lub po jej wygaśnięciu: `401 unauthorized`. Dotyczy wszystkich endpointów poza rejestracją, logowaniem, wylogowaniem i `health`.
+- Bez sesji lub po jej wygaśnięciu: `401 unauthorized`. Dotyczy wszystkich endpointów poza rejestracją, logowaniem, parowaniem gry, wylogowaniem i `health`.
 
 ## Błędy
 
@@ -25,6 +26,9 @@ Każdy błąd ma ten sam format. Portal wybiera komunikat na podstawie `code`.
 | 422 | `validation_error` | błędne dane; `details`: lista `{field, message}` |
 | 403 | `forbidden` | operacja zmieniająca dane z niedozwolonego adresu (`Origin`) |
 | 429 | `login_locked` | 5 błędnych haseł (także przy zmianie e-maila lub hasła); blokada na 15 minut |
+| 400 | `invalid_pairing_code` | kod parowania błędny, wygasły lub już użyty |
+| 429 | `pairing_locked` | zbyt wiele błędnych kodów parowania na serwerze; spróbować po minucie |
+| 409 | `daily_reward_claimed` | nagroda dzienna już dziś odebrana |
 | 500 | `internal_error` | błąd serwera |
 | 503 | `database_unavailable` | baza niedostępna;; na stronie rankingu portal pokazuje zapamiętane dane (2.3 A3) |
 
@@ -46,6 +50,34 @@ Błędy: `401 invalid_credentials`, `403 account_blocked` (konto zablokowane prz
 ### GET /me (propozycja)
 Sprawdza stan zalogowania po odświeżeniu strony.
 `200`: `{"id", "username", "email"}`.
+
+## Parowanie gry z kontem (Sprint 3, integracja gry z portalem)
+
+Gracz loguje się w portalu, generuje kod i wpisuje go w grze. Gra nie prosi o hasło.
+
+### POST /me/pairing-code
+Wymaga sesji portalu. Bez treści.
+`201`: `{"code": "K7P2QX", "expires_at": "..."}`. Kod ma 6 znaków z alfabetu `A-Z` i `2-9` bez `I`, `L`, `O`, jest ważny 5 minut i działa raz. Nowy kod unieważnia poprzedni. W bazie zapisany jest tylko skrót kodu.
+
+### POST /auth/pair
+Wywołuje gra, bez sesji. Wejście: `{"code": "K7P2QX"}`; wielkość liter, spacje i myślniki nie mają znaczenia.
+`200`: `{"token": "...", "expires_at": "...", "player": {"id", "username", "email"}}`. Tworzy sesję z urządzeniem `gra`; cookie nie jest ustawiane. Gra zapisuje token lokalnie i wysyła go w `Authorization: Bearer`.
+Błędy: `400 invalid_pairing_code`, `403 account_blocked`, `429 pairing_locked` (30 błędnych kodów na minutę dla całego serwera).
+
+### POST /auth/logout z grą
+Gra wylogowuje się tym samym endpointem, wysyłając nagłówek `Authorization: Bearer <token>`. Sesja jest unieważniana na serwerze.
+
+## Nagroda dzienna (7.5, Sprint 3)
+
+Dzień ustala serwer według strefy `GAME_TIMEZONE` (domyślnie `Europe/Warsaw`), a nie zegar gracza. Tabela nagród: dzień 1 – 10, 2 – 15, 3 – 20, 4 – 25, 5 – 30, 6 – 40, 7 – 100 klejnotów (nagroda specjalna). Po dniu 7 seria zaczyna się od nowa, a przerwa dłuższa niż jeden dzień resetuje ją do dnia 1.
+
+### GET /me/daily-reward
+`200`: `{"today": "2026-11-14", "available": true, "streak_day": 3, "gems": 20, "special": false, "last_claimed": "2026-11-13", "rewards": [{"day": 1, "gems": 10, "special": false}, ...]}`.
+`available: true` oznacza, że gra lub portal pokazuje powiadomienie; `streak_day` i `gems` to wtedy nagroda do odebrania. Przy `available: false` to nagroda już odebrana dziś. Odczyt niczego nie zapisuje, więc zamknięte powiadomienie można otworzyć ponownie do końca dnia.
+
+### POST /me/daily-reward/claim
+Bez treści. `200`: to samo co `GET` plus `"balance"` (nowe saldo klejnotów). Dodaje klejnoty do portfela, zapisuje datę i serię oraz transakcję typu `zmiana stanu konta`.
+Błędy: `409 daily_reward_claimed`. Równoczesne kliknięcia dają jedną wypłatę.
 
 ## Wyzwania (2.1, 2.6, 2.2)
 

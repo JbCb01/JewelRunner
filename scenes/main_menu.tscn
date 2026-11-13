@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cu0bwfp0csmc7"]
 
-[ext_resource type="Script" uid="uid://c764hyhdbx716" path="res://scripts/menu.gd" id="1_bqqt6"]
+[ext_resource type="Script" path="res://scripts/menu.gd" id="1_bqqt6"]
 [ext_resource type="Texture2D" uid="uid://bxcweaicbmia" path="res://assets/HomeScreen.png" id="1_ekxnf"]
 [ext_resource type="Texture2D" uid="uid://xtyidye288j0" path="res://assets/LevelSelect.png" id="2_bqqt6"]
 [ext_resource type="Texture2D" uid="uid://12setjx3hnyl" path="res://assets/SettingsScreen.png" id="4_wu84c"]
@@ -160,32 +160,342 @@ offset_right = 592.0
 offset_bottom = 224.0
 theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
 
-[node name="SettingsView" type="ColorRect" parent="." unique_id=935969948]
+[node name="SettingsView" type="Control" parent="." unique_id=935969948]
 visible = false
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="Bg" type="TextureRect" parent="SettingsView" unique_id=2010892120]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 texture = ExtResource("4_wu84c")
 
-[node name="MusicBtn" type="Button" parent="SettingsView" unique_id=1816024265]
+[node name="DarkOverlay" type="ColorRect" parent="SettingsView"]
 layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+offset_left = 35.0
+offset_top = 20.0
+offset_right = 605.0
+offset_bottom = 340.0
+color = Color(0.06, 0.08, 0.13, 0.9)
 
-[node name="SfxBtn" type="Button" parent="SettingsView" unique_id=785954658]
-layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+[node name="SettingsContent" type="VBoxContainer" parent="SettingsView/DarkOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 10.0
+offset_right = -16.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
 
-[node name="FullBtn" type="Button" parent="SettingsView" unique_id=1310514334]
-layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+[node name="HeaderBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/HeaderBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "USTAWIENIA (MOCKUP)"
+
+[node name="TabBar" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TabAudioBtn" type="Button" parent="SettingsView/DarkOverlay/SettingsContent/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "[ Dźwięk ]"
+
+[node name="TabGraphicsBtn" type="Button" parent="SettingsView/DarkOverlay/SettingsContent/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Grafika"
+
+[node name="TabControlsBtn" type="Button" parent="SettingsView/DarkOverlay/SettingsContent/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Sterowanie"
+
+[node name="TabLanguageBtn" type="Button" parent="SettingsView/DarkOverlay/SettingsContent/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Język"
+
+[node name="SepTop" type="HSeparator" parent="SettingsView/DarkOverlay/SettingsContent"]
+layout_mode = 2
+
+[node name="Panels" type="MarginContainer" parent="SettingsView/DarkOverlay/SettingsContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="AudioPanel" type="VBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="MasterBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MasterBox"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Głośność ogólna:"
+
+[node name="MasterSlider" type="HSlider" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MasterBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 80.0
+
+[node name="Value" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MasterBox"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "80%"
+horizontal_alignment = 2
+
+[node name="MusicBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MusicBox"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Głośność muzyki:"
+
+[node name="MusicSlider" type="HSlider" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MusicBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 50.0
+
+[node name="Value" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MusicBox"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "50%"
+horizontal_alignment = 2
+
+[node name="SfxBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/SfxBox"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Efekty dźwiękowe (SFX):"
+
+[node name="SfxSlider" type="HSlider" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/SfxBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 100.0
+
+[node name="Value" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/SfxBox"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "100%"
+horizontal_alignment = 2
+
+[node name="MuteCheck" type="CheckBox" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Wycisz wszystkie dźwięki (Mute All)"
+
+[node name="GraphicsPanel" type="VBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ModeBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/ModeBox"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Tryb wyświetlania:"
+
+[node name="DisplayModeOpt" type="OptionButton" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/ModeBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+
+[node name="ResBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/ResBox"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Rozdzielczość okna:"
+
+[node name="ResolutionOpt" type="OptionButton" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/ResBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+
+[node name="VsyncCheck" type="CheckBox" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+button_pressed = true
+text = "Synchronizacja pionowa (V-Sync)"
+
+[node name="FpsBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/FpsBox"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Limit klatek (FPS):"
+
+[node name="FpsLimitOpt" type="OptionButton" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/FpsBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+
+[node name="ControlsPanel" type="VBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Grid" type="GridContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel"]
+layout_mode = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 3
+columns = 2
+
+[node name="Action1" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Ruch poziomy (Lewo / Prawo):"
+
+[node name="Key1" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "A / D  (lub Strzałki)"
+
+[node name="Action2" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Skok / Podwójny skok:"
+
+[node name="Key2" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "Spacja"
+
+[node name="Action3" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Zryw (Dash):"
+
+[node name="Key3" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "Shift"
+
+[node name="Action4" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Kucanie / Wślizg:"
+
+[node name="Key4" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "S"
+
+[node name="Action5" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Wspinaczka (przy ścianie):"
+
+[node name="Key5" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "W"
+
+[node name="Action6" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Trick (w powietrzu):"
+
+[node name="Key6" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "C (przytrzymaj w locie)"
+
+[node name="Action7" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Pauza:"
+
+[node name="Key7" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "Esc / P"
+
+[node name="LanguagePanel" type="VBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LangBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel/LangBox"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Język gry (Language):"
+
+[node name="LanguageOpt" type="OptionButton" parent="SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel/LangBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+
+[node name="SubtitlesCheck" type="CheckBox" parent="SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+button_pressed = true
+text = "Wyświetlaj napisy dialogowe (Subtitles)"
+
+[node name="SepBottom" type="HSeparator" parent="SettingsView/DarkOverlay/SettingsContent"]
+layout_mode = 2
+
+[node name="FooterBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent"]
+layout_mode = 2
+
+[node name="NavTip" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/FooterBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.65, 0.7, 0.8, 0.8)
+theme_override_font_sizes/font_size = 10
+text = "Zakładki: Mysz lub [Q] / [E] / [1-4] | [Esc]: Powrót"
+
+[node name="SettingsBackBtn" type="Button" parent="SettingsView/DarkOverlay/SettingsContent/FooterBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "◀ Powrót do menu"
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=1094510268]
 stream = ExtResource("5_8ln24")

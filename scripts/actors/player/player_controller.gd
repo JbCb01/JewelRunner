@@ -57,6 +57,10 @@ var current_state: State = State.IDLE
 @export_group("Tricki w Powietrzu")
 @export var trick_points_per_second: float = 120.0
 
+@export_group("Punkty Życia (HP) i Odporność")
+@export var max_health: int = 3
+@export var invulnerability_duration: float = 1.0
+
 # --- Referencje do Węzłów ---
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var ceiling_checker: ShapeCast2D = $CeilingChecker
@@ -89,6 +93,10 @@ var idle_trick_timer: float = 0.0
 var is_tricking: bool = false
 var trick_point_buffer: float = 0.0
 
+var current_health: int = 3
+var is_invulnerable: bool = false
+var invulnerability_timer: float = 0.0
+
 # Domyślne rozmiary collidera (stojący vs kucający/wślizg)
 var standing_shape_size: Vector2 = Vector2(18, 30)
 var standing_shape_position: Vector2 = Vector2(0, 0)
@@ -97,11 +105,14 @@ var crouch_shape_position: Vector2 = Vector2(0, 7)
 
 func _ready() -> void:
 	add_to_group("player")
+	current_health = max_health
 	wall_stamina = wall_climb_max_stamina
 	_set_collider_crouched(false)
 	_update_stamina_bar()
+	_update_hp_indicator()
 	Events.player_spawned.emit(self)
 	Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
+	Events.player_health_changed.emit(current_health, max_health)
 	
 	if anim_sprite:
 		anim_sprite.animation_finished.connect(_on_animation_finished)
@@ -151,6 +162,93 @@ func _update_timers(delta: float) -> void:
 		
 	if dash_cooldown_timer > 0.0:
 		dash_cooldown_timer = max(0.0, dash_cooldown_timer - delta)
+
+	if invulnerability_timer > 0.0:
+		invulnerability_timer = max(0.0, invulnerability_timer - delta)
+		if invulnerability_timer <= 0.0:
+			is_invulnerable = false
+
+func take_damage(amount: int, source_position: Vector2 = Vector2.ZERO) -> void:
+	if is_invulnerable or current_health <= 0:
+		return
+		
+	current_health = max(0, current_health - amount)
+	is_invulnerable = true
+	invulnerability_timer = invulnerability_duration
+	
+	# Odrzut gracza (Knockback) od źródła obrażeń
+	if source_position != Vector2.ZERO:
+		var knock_dir = sign(global_position.x - source_position.x)
+		if knock_dir == 0.0:
+			knock_dir = -facing_direction
+		velocity.x = knock_dir * 180.0
+		velocity.y = -160.0
+	
+	_update_hp_indicator()
+	Events.player_hit.emit(amount)
+	Events.player_health_changed.emit(current_health, max_health)
+	
+	if current_health <= 0:
+		Events.player_died.emit()
+
+func heal(amount: int) -> void:
+	if current_health <= 0:
+		return
+	current_health = clampi(current_health + amount, 0, max_health)
+	_update_hp_indicator()
+	Events.player_health_changed.emit(current_health, max_health)
+
+func set_max_health(new_max: int, refill: bool = false) -> void:
+	max_health = max(1, new_max)
+	if refill:
+		current_health = max_health
+	else:
+		current_health = clampi(current_health, 1, max_health)
+	_update_hp_indicator()
+	Events.player_health_changed.emit(current_health, max_health)
+
+func _update_hp_indicator() -> void:
+	var hp_container: Node2D = get_node_or_null("HpSquares")
+	if not hp_container:
+		return
+		
+	var existing = hp_container.get_children()
+	# Jeśli liczba kwadracików nie odpowiada max_health, zrekonstruuj je dynamicznie
+	if existing.size() != max_health:
+		for child in existing:
+			child.queue_free()
+		
+		var sq_w = 5.0
+		var sq_h = 4.0
+		var spacing = 2.0
+		var total_w = max_health * sq_w + (max_health - 1) * spacing
+		var start_x = -total_w / 2.0
+		
+		for i in range(max_health):
+			var rect = ColorRect.new()
+			rect.name = "Square%d" % (i + 1)
+			rect.size = Vector2(sq_w, sq_h)
+			rect.position = Vector2(start_x + i * (sq_w + spacing), 0)
+			rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			hp_container.add_child(rect)
+		# Zwróć i pozwól Godotowi dokończyć dodawanie węzłów w tej klatce
+		call_deferred("_apply_hp_colors", current_health)
+		return
+		
+	_apply_hp_colors(current_health)
+
+func _apply_hp_colors(health: int) -> void:
+	var hp_container: Node2D = get_node_or_null("HpSquares")
+	if not hp_container:
+		return
+	var children = hp_container.get_children()
+	for i in range(children.size()):
+		var sq = children[i] as ColorRect
+		if sq:
+			if i < health:
+				sq.color = Color(0.9, 0.2, 0.2, 1.0)
+			else:
+				sq.color = Color(0.2, 0.2, 0.2, 0.35)
 
 func _update_stamina(delta: float, is_draining: bool) -> void:
 	if is_draining:
@@ -563,7 +661,10 @@ func _update_visuals() -> void:
 	# Zwrot postaci
 	visuals.scale.x = facing_direction
 	visuals.scale.y = 1.0
-	visuals.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	if is_invulnerable:
+		visuals.modulate = Color(1.0, 1.0, 1.0, 0.35 if fmod(invulnerability_timer, 0.2) > 0.1 else 1.0)
+	else:
+		visuals.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	
 	if not anim_sprite:
 		return

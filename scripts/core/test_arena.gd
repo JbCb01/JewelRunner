@@ -195,4 +195,5 @@ func _on_player_died() -> void:
 		game_over_menu.visible = true
 
 func _on_player_hit(_damage: int) -> void:
-	Events.player_died.emit()
+	# Gracz posiada system HP (PlayerController emituje player_died, gdy HP spadnie do 0)
+	pass

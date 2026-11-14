@@ -33,6 +33,18 @@ offset_bottom = 40.0
 texture = ExtResource("1_ekxnf")
 stretch_mode = 6
 
+[node name="ProfileBtn" type="Button" parent="HomeView" unique_id=1948273645]
+layout_mode = 0
+offset_left = 564.0
+offset_top = 4.0
+offset_right = 608.0
+offset_bottom = 44.0
+tooltip_text = "Otwórz Profil Gracza na stronie internetowej i synchronizuj dane"
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_gs2jv")
+
 [node name="MenuBtns" type="VBoxContainer" parent="HomeView" unique_id=26689241]
 layout_mode = 1
 offset_left = 417.0

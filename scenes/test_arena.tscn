@@ -387,7 +387,7 @@ offset_bottom = 38.0
 
 [node name="ControlsLabel" type="Label" parent="HUD/ControlsPanel" unique_id=263129487]
 layout_mode = 2
-text = "A/D: Ruch | Spacja: Skok / Double Jump | Shift: Dash | S: Kucanie / Slide | W: Wspinaczka | C: Trick (w locie) | Esc/P: Pauza | R: Restart"
+text = "A/D: Ruch | Spacja: Skok / Double Jump (Stamina) | Shift: Dash (Stamina) | W: Wspinaczka (Stamina) | C w locie: Trick (Regen Staminy!) | R: Restart"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -420,7 +420,7 @@ offset_bottom = 68.0
 
 [node name="ScoreText" type="Label" parent="HUD/ScorePanel" unique_id=1926785231]
 layout_mode = 2
-text = " SCORE: 0 "
+text = " JEWELS: 0/5 "
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -559,7 +559,7 @@ offset_left = 200.0
 offset_top = 148.0
 offset_right = 440.0
 offset_bottom = 170.0
-text = "SCORE: 0 PTS"
+text = "JEWELS: 5 / 5"
 horizontal_alignment = 1
 vertical_alignment = 1
 

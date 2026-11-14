@@ -13,9 +13,13 @@ signal player_hit(damage: int)
 signal player_health_changed(current: int, max_health: int)
 signal player_died()
 signal player_stamina_changed(current: float, max_stamina: float)
+signal stamina_action_rejected(move_name: String, required_stamina: float, current_stamina: float)
 
 # --- Zdarzenia Świata i Zbieractwa (Gameplay Events) ---
 signal jewel_collected(value: int, position: Vector2)
+signal jewels_progress_updated(collected: int, total: int)
+signal all_jewels_collected()
+signal cursed_jewel_triggered(mechanic_name: String, duration: float)
 signal score_added(amount: int)
 signal score_updated(total_score: int)
 signal trick_performed(points: int)

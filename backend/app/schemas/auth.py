@@ -1,4 +1,5 @@
 import uuid
+from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import BaseModel, EmailStr, Field, StringConstraints
@@ -43,3 +44,42 @@ class ConfirmEmailRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: Password
     new_password: Password
+
+
+class PairingCodeResponse(BaseModel):
+    code: str
+    expires_at: datetime
+
+
+class PairRequest(BaseModel):
+    code: Annotated[str, Field(max_length=32)]
+
+
+class GameSessionResponse(BaseModel):
+    """Gra trzyma token u siebie i wysyła go w nagłówku Authorization: Bearer."""
+
+    token: str
+    expires_at: datetime
+    player: MeResponse
+
+
+class DailyRewardDay(BaseModel):
+    day: int
+    gems: int
+    special: bool
+
+
+class DailyRewardResponse(BaseModel):
+    """Stan nagrody dziennej. `available` mówi, czy pokazać powiadomienie."""
+
+    today: date
+    available: bool
+    streak_day: int
+    gems: int
+    special: bool
+    last_claimed: date | None
+    rewards: list[DailyRewardDay]
+
+
+class DailyRewardClaimResponse(DailyRewardResponse):
+    balance: int

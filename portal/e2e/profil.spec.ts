@@ -102,3 +102,14 @@ test.describe("8.6 Zmiana danych zalogowanego użytkownika", () => {
     await expect(page.getByText("Sesja wygasła. Zaloguj się ponownie.")).toBeVisible();
   });
 });
+
+test.describe("Połącz grę", () => {
+  test("generuje kod parowania z odliczaniem", async ({ page }) => {
+    await register(page);
+    await page.goto("/profil");
+    await page.getByRole("button", { name: "Wygeneruj kod" }).click();
+    await expect(page.getByLabel("Kod parowania")).toHaveText(/^[A-Z2-9]{6}$/);
+    await expect(page.getByRole("timer")).toContainText("Kod wygaśnie za 4:");
+    await expect(page.getByRole("button", { name: "Wygeneruj nowy kod" })).toBeVisible();
+  });
+});

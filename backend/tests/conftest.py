@@ -31,7 +31,8 @@ def engine():
     with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
         connection.execute(text("DROP SCHEMA public CASCADE"))
         connection.execute(text("CREATE SCHEMA public"))
-        connection.exec_driver_sql((ROOT / "db/schema/001_schema.sql").read_text(encoding="utf-8"))
+        for schema in sorted((ROOT / "db/schema").glob("*.sql")):
+            connection.exec_driver_sql(schema.read_text(encoding="utf-8"))
         connection.exec_driver_sql((ROOT / "db/seeds/001_dane_startowe.sql").read_text(encoding="utf-8"))
     yield engine
     engine.dispose()

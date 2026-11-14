@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     acs_connection_string: str = ""
     email_sender: str = ""
     session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    # Strefa czasu, według której serwer ustala „dzień” nagrody dziennej.
+    game_timezone: str = "Europe/Warsaw"
 
     @field_validator("cors_origins")
     @classmethod

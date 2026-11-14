@@ -1,6 +1,6 @@
 """Modele ORM odwzorowują tabele z migracji. Schemat zmieniamy tylko migracjami Alembica."""
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import BigInteger, ForeignKey, Text, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -37,6 +37,17 @@ class SesjaLogowania(Base):
     data_uniewaznienia: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class KodParowania(Base):
+    __tablename__ = "kod_parowania"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    gracz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gracz.id"))
+    skrot_kodu: Mapped[str] = mapped_column(Text)
+    data_utworzenia: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    data_wygasniecia: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    data_uzycia: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class StatystykiGracza(Base):
     __tablename__ = "statystyki_gracza"
 
@@ -52,6 +63,28 @@ class PortfelGracza(Base):
     __tablename__ = "portfel_gracza"
 
     gracz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gracz.id"), primary_key=True)
+    liczba_klejnotow: Mapped[int] = mapped_column(server_default="0")
+
+
+class NagrodaDzienna(Base):
+    __tablename__ = "nagroda_dzienna"
+
+    gracz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gracz.id"), primary_key=True)
+    data_ostatniej_nagrody: Mapped[date | None]
+    dlugosc_serii: Mapped[int] = mapped_column(server_default="0")
+
+
+class Transakcja(Base):
+    __tablename__ = "transakcja"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    gracz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gracz.id"))
+    typ: Mapped[str] = mapped_column(Text)
+    kwota_klejnotow: Mapped[int]
+    wzmocnienie_id: Mapped[int | None] = mapped_column(BigInteger)
+    uczestnictwo_id: Mapped[int | None] = mapped_column(BigInteger)
+    klucz_idempotencji: Mapped[str] = mapped_column(Text)
+    data_transakcji: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
 
 
 class ElementPersonalizacji(Base):

@@ -29,16 +29,17 @@ from app.schemas.auth import LoginRequest, RegisterRequest
 MAX_FAILED_LOGINS = 5
 LOCK_DURATION = timedelta(minutes=15)
 DEVICE_BROWSER = "przeglądarka"
+DEVICE_GAME = "gra"
 
 
-def _create_session(db: Session, gracz: Gracz) -> tuple[str, datetime]:
+def create_session(db: Session, gracz: Gracz, device: str = DEVICE_BROWSER) -> tuple[str, datetime]:
     token = new_session_token()
     expires_at = datetime.now(UTC) + timedelta(hours=get_settings().session_ttl_hours)
     db.add(
         SesjaLogowania(
             gracz_id=gracz.id,
             skrot_tokenu=token_hash(token),
-            urzadzenie=DEVICE_BROWSER,
+            urzadzenie=device,
             data_wygasniecia=expires_at,
         )
     )
@@ -104,7 +105,7 @@ def register(db: Session, data: RegisterRequest) -> tuple[Gracz, str, datetime]:
             WygladPostaci(gracz_id=gracz.id, skorka_id=skin_id, kolor_id=color_id),
         ]
     )
-    token, expires_at = _create_session(db, gracz)
+    token, expires_at = create_session(db, gracz)
     db.commit()
     return gracz, token, expires_at
 
@@ -128,7 +129,7 @@ def login(db: Session, data: LoginRequest) -> tuple[Gracz, str, datetime]:
     gracz.liczba_nieudanych_logowan = 0
     gracz.zablokowany_do = None
     gracz.data_ostatniego_logowania = datetime.now(UTC)
-    token, expires_at = _create_session(db, gracz)
+    token, expires_at = create_session(db, gracz)
     db.commit()
     return gracz, token, expires_at
 

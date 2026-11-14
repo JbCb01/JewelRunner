@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "../api/client";
 import type { Me } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
@@ -187,6 +187,68 @@ function PasswordForm() {
   );
 }
 
+type PairingCode = { code: string; expires_at: string };
+
+function secondsLeft(expiresAt: string): number {
+  return Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000));
+}
+
+function formatCountdown(seconds: number): string {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function GamePairing() {
+  const [pairing, setPairing] = useState<PairingCode | null>(null);
+  const [left, setLeft] = useState(0);
+  const [message, setMessage] = useState<Message>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!pairing) return;
+    setLeft(secondsLeft(pairing.expires_at));
+    const timer = window.setInterval(() => setLeft(secondsLeft(pairing.expires_at)), 1000);
+    return () => window.clearInterval(timer);
+  }, [pairing]);
+
+  async function generate() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      setPairing(await api<PairingCode>("/me/pairing-code", { method: "POST" }));
+    } catch (caught) {
+      const error = caught as ApiError;
+      setMessage({
+        kind: "error",
+        text: error.isUnavailable ? "Brak połączenia z serwerem. Spróbuj ponownie." : "Nie udało się wygenerować kodu.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const active = pairing !== null && left > 0;
+  return (
+    <section aria-label="Połącz grę">
+      <h2>Połącz grę</h2>
+      <p>Wygeneruj kod i wpisz go w grze na ekranie logowania, w polu „Kod z portalu”. Nie musisz podawać hasła w grze.</p>
+      {active ? (
+        <>
+          <p className="pairing-code" aria-label="Kod parowania">
+            {pairing.code}
+          </p>
+          <p role="timer">Kod wygaśnie za {formatCountdown(left)}. Działa tylko raz.</p>
+        </>
+      ) : (
+        pairing && <p role="status">Kod wygasł. Wygeneruj nowy.</p>
+      )}
+      <MessageLine message={message} />
+      <button type="button" className="button primary" onClick={generate} disabled={busy}>
+        {active ? "Wygeneruj nowy kod" : "Wygeneruj kod"}
+      </button>
+    </section>
+  );
+}
+
 export function Profile() {
   const { user } = useAuth();
   if (!user) return null;
@@ -202,6 +264,9 @@ export function Profile() {
         </div>
         <div className="panel">
           <PasswordForm />
+        </div>
+        <div className="panel">
+          <GamePairing />
         </div>
       </div>
     </section>

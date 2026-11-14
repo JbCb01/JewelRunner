@@ -33,7 +33,7 @@ def engine():
 def test_upgrade_creates_all_tables_and_view(engine):
     inspector = inspect(engine)
     tables = set(inspector.get_table_names()) - {"alembic_version"}
-    assert len(tables) == 30
+    assert len(tables) == 31
     assert "v_ranking" in inspector.get_view_names()
 
 
@@ -70,4 +70,4 @@ def test_downgrade_and_upgrade_again(engine):
     assert set(inspect(engine).get_table_names()) <= {"alembic_version"}
     up = run("alembic", "upgrade", "head")
     assert up.returncode == 0, up.stderr
-    assert len(set(inspect(engine).get_table_names()) - {"alembic_version"}) == 30
+    assert len(set(inspect(engine).get_table_names()) - {"alembic_version"}) == 31

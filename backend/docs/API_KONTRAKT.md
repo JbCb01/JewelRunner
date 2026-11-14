@@ -29,6 +29,11 @@ Każdy błąd ma ten sam format. Portal wybiera komunikat na podstawie `code`.
 | 400 | `invalid_pairing_code` | kod parowania błędny, wygasły lub już użyty |
 | 429 | `pairing_locked` | zbyt wiele błędnych kodów parowania na serwerze; spróbować po minucie |
 | 409 | `daily_reward_claimed` | nagroda dzienna już dziś odebrana |
+| 409 | `save_conflict` | na serwerze jest nowszy zapis gry; `details.server_save` to ten zapis |
+| 422 | `corrupted_save` | suma kontrolna zapisu się nie zgadza |
+| 422 | `unknown_level`, `invalid_save_time` | nieznany poziom lub data zapisu z przyszłości |
+| 422 | `too_many_gems`, `duplicate_operation` | operacje salda poza limitem lub powtórzone w jednym żądaniu |
+| 429 | `daily_gem_limit` | z gry dopisano już 10 000 klejnotów w ciągu doby |
 | 500 | `internal_error` | błąd serwera |
 | 503 | `database_unavailable` | baza niedostępna;; na stronie rankingu portal pokazuje zapamiętane dane (2.3 A3) |
 
@@ -50,6 +55,7 @@ Błędy: `401 invalid_credentials`, `403 account_blocked` (konto zablokowane prz
 ### GET /me (propozycja)
 Sprawdza stan zalogowania po odświeżeniu strony.
 `200`: `{"id", "username", "email"}`.
+Odpowiedź zawiera też `game_linked` (czy gra jest sparowana, czyli ma ważną sesję gry) i `last_synced_at` (kiedy gra ostatnio pobrała `/me/game-state`, albo `null`). Portal pokazuje z nich status „Połączone” w sekcji „Połącz z grą”.
 
 ## Parowanie gry z kontem (Sprint 3, integracja gry z portalem)
 
@@ -78,6 +84,33 @@ Dzień ustala serwer według strefy `GAME_TIMEZONE` (domyślnie `Europe/Warsaw`)
 ### POST /me/daily-reward/claim
 Bez treści. `200`: to samo co `GET` plus `"balance"` (nowe saldo klejnotów). Dodaje klejnoty do portfela, zapisuje datę i serię oraz transakcję typu `zmiana stanu konta`.
 Błędy: `409 daily_reward_claimed`. Równoczesne kliknięcia dają jedną wypłatę.
+
+## Zapis gry w chmurze (8.2, Sprint 3)
+
+Gra wysyła zapis z tokenem `Authorization: Bearer`. Poziom to jego numer (`kolejnosc` w bazie), a czas to sekundy od 1970-01-01 UTC.
+
+Suma kontrolna: SHA-256 (hex) z tekstu `level|checkpoint|gems|saved_at|game_version`; brak punktu kontrolnego to pusty tekst. W Godocie: `("%d|%s|%d|%d|%s" % [level, checkpoint, gems, saved_at, version]).sha256_text()`.
+
+### GET /me/save
+`200`: `{"save": {"level": 1, "level_name": "Poziom 1", "checkpoint": "cp-2", "gems": 12, "saved_at": 1763460000, "saved_at_iso": "...", "game_version": "0.3.0", "checksum": "..."}}` albo `{"save": null}`. Zwraca najnowszy zapis z poprawną sumą kontrolną; uszkodzony jest pomijany i gra dostaje poprzedni poprawny (A3).
+
+### PUT /me/save
+Wejście: `{"level", "checkpoint", "gems", "saved_at", "game_version", "checksum"}`. `200`: zapisany zapis (jak w `GET`).
+- Starszy zapis niż ten na serwerze: `409 save_conflict` z `details.server_save` (A2). Gra pyta gracza: wczytać zapis z serwera albo zachować swój, wtedy wysyła ponownie z `?force=true` i bieżącą datą.
+- Błędna suma kontrolna: `422 corrupted_save`, nic nie jest zapisywane (A3).
+- Ten sam zapis wysłany drugi raz nie tworzy duplikatu. Serwer przechowuje 5 ostatnich zapisów gracza.
+
+## Saldo klejnotów z gry (7.1, Sprint 3)
+
+Gra zbiera klejnoty także bez internetu i trzyma je w lokalnej kolejce (`scripts/core/wallet_sync.gd`, plik `user://wallet_queue.json`). Kolejkę wysyła, gdy ma połączenie.
+
+### GET /me/wallet
+`200`: `{"gems": 120}`.
+
+### POST /me/wallet/sync
+Wejście: `{"operations": [{"id": "SES-1763460000-1234", "gems": 15, "reason": "poziom"}]}`. `id`: 8–64 znaki `A-Z a-z 0-9 _ . : -`, stały dla danej operacji (gra używa ID sesji poziomu). `gems`: 1–500.
+`200`: `{"gems": 135, "applied": ["..."], "duplicates": ["..."]}`. Operacja wysłana ponownie trafia do `duplicates` i nie jest liczona drugi raz; gra usuwa z kolejki oba rodzaje.
+Limity: 50 operacji i 2000 klejnotów w żądaniu (`422`), 10 000 klejnotów z gry na dobę (`429 daily_gem_limit`). Każda operacja to transakcja `zmiana stanu konta`.
 
 ## Wyzwania (2.1, 2.6, 2.2)
 

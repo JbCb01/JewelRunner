@@ -1,4 +1,5 @@
 from fastapi import APIRouter, status
+from sqlalchemy.orm import Session
 
 from app.api.deps import ChallengeId, CurrentPlayer, DbSession
 from app.db.models import Gracz
@@ -13,24 +14,31 @@ from app.schemas.auth import (
     PairingCodeResponse,
     UpdateMeRequest,
 )
+from app.services import auth as auth_service
 from app.services import account, challenges, daily_reward, pairing
 
 router = APIRouter(prefix="/me", tags=["konto"])
 
 
-def _me(gracz: Gracz) -> MeResponse:
-    return MeResponse(id=gracz.id, username=gracz.nazwa_uzytkownika, email=gracz.email)
+def _me(gracz: Gracz, db: Session) -> MeResponse:
+    return MeResponse(
+        id=gracz.id,
+        username=gracz.nazwa_uzytkownika,
+        email=gracz.email,
+        game_linked=auth_service.has_game_session(db, gracz),
+        last_synced_at=gracz.data_ostatniej_synchronizacji,
+    )
 
 
 @router.get("")
-def read_me(gracz: CurrentPlayer) -> MeResponse:
-    return _me(gracz)
+def read_me(gracz: CurrentPlayer, db: DbSession) -> MeResponse:
+    return _me(gracz, db)
 
 
 @router.patch("")
 def update_me(data: UpdateMeRequest, gracz: CurrentPlayer, db: DbSession) -> MeResponse:
     account.change_username(db, gracz, data.username)
-    return _me(gracz)
+    return _me(gracz, db)
 
 
 @router.post("/email", status_code=status.HTTP_202_ACCEPTED)
@@ -42,7 +50,7 @@ def request_email_change(data: ChangeEmailRequest, gracz: CurrentPlayer, db: DbS
 @router.post("/email/confirm")
 def confirm_email_change(data: ConfirmEmailRequest, gracz: CurrentPlayer, db: DbSession) -> MeResponse:
     account.confirm_email_change(db, gracz, data.token)
-    return _me(gracz)
+    return _me(gracz, db)
 
 
 @router.post("/password", status_code=status.HTTP_204_NO_CONTENT)

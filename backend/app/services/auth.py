@@ -156,3 +156,18 @@ def player_from_token(db: Session, token: str | None) -> Gracz | None:
             Gracz.status_konta == "aktywne",
         )
     )
+
+
+def has_game_session(db: Session, gracz: Gracz) -> bool:
+    """Czy gra jest sparowana z kontem, czyli ma ważną, nieunieważnioną sesję."""
+    return (
+        db.scalar(
+            select(SesjaLogowania.id).where(
+                SesjaLogowania.gracz_id == gracz.id,
+                SesjaLogowania.urzadzenie == DEVICE_GAME,
+                SesjaLogowania.data_uniewaznienia.is_(None),
+                SesjaLogowania.data_wygasniecia > datetime.now(UTC),
+            ).limit(1)
+        )
+        is not None
+    )

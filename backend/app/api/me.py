@@ -91,3 +91,9 @@ def my_challenges(gracz: CurrentPlayer, db: DbSession) -> dict:
 @router.get("/challenges/{challenge_id}/attempts", tags=["wyzwania"])
 def my_attempts(challenge_id: ChallengeId, gracz: CurrentPlayer, db: DbSession) -> dict:
     return challenges.attempts(db, challenge_id, gracz)
+
+
+@router.get("/game-state", tags=["konto"])
+def read_game_state(gracz: CurrentPlayer, db: DbSession) -> dict:
+    """Kompletna synchronizacja profilu gracza, ustawień, skórek i wyzwań dla klienta gry."""
+    return account.get_game_state(db, gracz)

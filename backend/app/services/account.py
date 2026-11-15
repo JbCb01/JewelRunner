@@ -12,8 +12,16 @@ from app.core.security import (
     new_session_token,
     token_hash,
 )
-from app.db.models import Gracz, TokenZmianyEmaila
-from app.services import mailer
+from app.db.models import (
+    ElementPersonalizacji,
+    Gracz,
+    PortfelGracza,
+    PosiadanyElement,
+    TokenZmianyEmaila,
+    WygladPostaci,
+    Wzmocnienie,
+)
+from app.services import challenges, mailer
 from app.services.auth import check_password_with_lock
 
 EMAIL_TOKEN_TTL = timedelta(hours=24)
@@ -95,3 +103,77 @@ def change_password(db: Session, gracz: Gracz, current_password: str, new_passwo
     gracz.skrot_hasla = hash_password(new_password)
     gracz.data_modyfikacji = datetime.now(UTC)
     db.commit()
+
+
+def get_game_state(db: Session, gracz: Gracz) -> dict:
+    """Zwraca pełny stan profilu gracza dla gry (ustawienia, skórki, kolory, akcesoria, wzmocnienia i zadania)."""
+    wallet = db.get(PortfelGracza, gracz.id)
+    gems = wallet.liczba_klejnotow if wallet else 0
+
+    wyglad = db.get(WygladPostaci, gracz.id)
+    active_skin = "Skórka podstawowa"
+    active_color_name = "Fioletowy"
+    active_color_hex = "#6A3FB5"
+    if wyglad:
+        skin_el = db.get(ElementPersonalizacji, wyglad.skorka_id)
+        color_el = db.get(ElementPersonalizacji, wyglad.kolor_id)
+        if skin_el:
+            active_skin = skin_el.nazwa
+        if color_el:
+            active_color_name = color_el.nazwa
+
+    owned_rows = db.execute(
+        select(ElementPersonalizacji)
+        .join(PosiadanyElement, PosiadanyElement.element_id == ElementPersonalizacji.id)
+        .where(PosiadanyElement.gracz_id == gracz.id)
+    ).scalars().all()
+    owned_items = [{"type": el.typ, "name": el.nazwa} for el in owned_rows]
+
+    active_ch = challenges.list_mine(db, gracz.id)
+    enriched_challenges = []
+    for ch in active_ch:
+        try:
+            details = challenges.get_details(db, ch["challenge_id"], gracz.id)
+            enriched_challenges.append({
+                **ch,
+                "description": details.get("description", ""),
+                "difficulty": details.get("difficulty", "średni"),
+                "completion_conditions": details.get("completion_conditions", {}),
+                "reward": details.get("reward", {}),
+            })
+        except AppError:
+            enriched_challenges.append(ch)
+
+    return {
+        "player": {
+            "id": str(gracz.id),
+            "username": gracz.nazwa_uzytkownika,
+            "email": gracz.email,
+        },
+        "wallet": {
+            "gems": gems,
+            "special_gems": 0,
+        },
+        "settings": {
+            "music_volume": 80,
+            "sfx_volume": 100,
+            "resolution": "1280x720",
+            "graphics_profile": "Wysoki",
+            "language": "pl",
+            "keybindings": {},
+        },
+        "appearance": {
+            "active_skin": active_skin,
+            "active_color_name": active_color_name,
+            "active_color_hex": active_color_hex,
+            "equipped_accessories": {},
+            "owned_items": owned_items,
+        },
+        "boosters": {
+            "tarcza": 0,
+            "podwójne punkty": 0,
+            "dodatkowe życie": 0,
+            "magnes": 0,
+        },
+        "challenges": enriched_challenges,
+    }

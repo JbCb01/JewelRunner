@@ -1,9 +1,12 @@
 extends CharacterBody2D
 class_name PlayerController
 
-## Zaawansowany kontroler gracza 2D dla JewelRunner (Etap 1 - Makieta)
+## Zaawansowany kontroler gracza 2D dla JewelRunner
 ## Obsługuje: bieg, skok o zmiennej wysokości, podwójny skok, coyote time, jump buffer,
-## poziomy dash, kucanie, wślizg (slide) z ochroną sufitu, wspinaczkę po ścianie z limitem staminy i wall jump.
+## poziomy dash, kucanie, wślizg (slide) z ochroną sufitu, wspinaczkę po ścianie i wall jump.
+## Wszystkie ruchy specjalne (double_jump, wall_climb, dash) zużywają wspólną staminę z dynamicznymi
+## mnożnikami (zarządzanymi przez AI Director przy stałej sumie mnożników), a regeneracja staminy
+## odbywa się poprzez wykonywanie Tricków w powietrzu [C].
 
 # --- Stany Gracza ---
 enum State {
@@ -54,6 +57,19 @@ var current_state: State = State.IDLE
 @export var wall_climb_max_stamina: float = 2.0
 @export var wall_jump_velocity: Vector2 = Vector2(230.0, -310.0)
 
+@export_group("Stamina i Balans Ruchów Specjalnych")
+## Bazowy koszt staminy dla Podwójnego Skoku (modyfikowany przez mnożnik double_jump).
+@export var double_jump_base_stamina_cost: float = 0.55
+## Bazowy koszt staminy dla Dasha (modyfikowany przez mnożnik dash).
+@export var dash_base_stamina_cost: float = 0.50
+## Bazowy koszt staminy na sekundę Wspinaczki (modyfikowany przez mnożnik wall_climb).
+@export var wall_climb_base_stamina_cost: float = 1.00
+## Bazowa regeneracja staminy na sekundę wykonywania Tricku w powietrzu [C].
+## Wybalansowana tak, by wysokość/czas lotu z ruchów specjalnych nigdy nie zwróciły ich kosztu.
+@export var trick_stamina_regen_per_sec: float = 0.36
+## Indywidualny mnożnik regeneracji staminy z tricków.
+@export var trick_regen_multiplier: float = 1.00
+
 @export_group("Tricki w Powietrzu")
 @export var trick_points_per_second: float = 120.0
 
@@ -66,11 +82,11 @@ var current_state: State = State.IDLE
 @onready var ceiling_checker: ShapeCast2D = $CeilingChecker
 @onready var stamina_bar: ProgressBar = $StaminaBar
 @onready var visuals: Node2D = $Visuals
-@onready var anim_sprite: AnimatedSprite2D = $Visuals/AnimatedSprite2D
+@onready var anim_sprite: AnimatedSprite2D = get_node_or_null("Visuals/AnimatedSprite2D")
 
-@onready var audio_jump: AudioStreamPlayer2D = $AudioJump
-@onready var audio_dash: AudioStreamPlayer2D = $AudioDash
-@onready var audio_appear: AudioStreamPlayer2D = $AudioAppear
+@onready var audio_jump: AudioStreamPlayer2D = get_node_or_null("AudioJump")
+@onready var audio_dash: AudioStreamPlayer2D = get_node_or_null("AudioDash")
+@onready var audio_appear: AudioStreamPlayer2D = get_node_or_null("AudioAppear")
 
 # --- Zmienne Wewnętrzne / Timery ---
 var facing_direction: float = 1.0
@@ -86,12 +102,25 @@ var dash_direction: float = 1.0
 var slide_timer: float = 0.0
 var slide_direction: float = 1.0
 
-var wall_stamina: float = 0.0
+var wall_stamina: float = 2.0
 var last_wall_normal: Vector2 = Vector2.ZERO
 var idle_trick_timer: float = 0.0
 
 var is_tricking: bool = false
 var trick_point_buffer: float = 0.0
+
+# Lokalna kopia mnożników ruchów specjalnych (zsynchronizowana z Events.ai_director)
+var move_multipliers: Dictionary = {
+	"double_jump": 1.0,
+	"wall_climb": 1.0,
+	"dash": 1.0
+}
+
+# Zabezpieczenie anty-exploitowe przed mnożeniem staminy w powietrzu:
+# śledzi pułap staminy dostępny do odzyskania z czasu lotu wygenerowanego przez ruchy specjalne.
+var airborne_origin_y: float = 0.0
+var airborne_stamina_ceiling: float = 2.0
+var used_special_in_current_air: bool = false
 
 var current_health: int = 3
 var is_invulnerable: bool = false
@@ -107,7 +136,20 @@ func _ready() -> void:
 	add_to_group("player")
 	current_health = max_health
 	wall_stamina = wall_climb_max_stamina
+	airborne_stamina_ceiling = wall_climb_max_stamina
+	airborne_origin_y = global_position.y
 	_set_collider_crouched(false)
+	
+	if is_instance_valid(Events):
+		if not Events.stamina_multipliers_updated.is_connected(_on_stamina_multipliers_updated):
+			Events.stamina_multipliers_updated.connect(_on_stamina_multipliers_updated)
+		if not Events.portal_profile_synced.is_connected(_on_portal_profile_synced):
+			Events.portal_profile_synced.connect(_on_portal_profile_synced)
+		if is_instance_valid(Events.ai_director):
+			move_multipliers = Events.ai_director.multipliers.duplicate()
+		if is_instance_valid(Events.portal_sync):
+			Events.portal_sync.apply_cosmetics_and_boosters_to_player(self)
+			
 	_update_stamina_bar()
 	_update_hp_indicator()
 	Events.player_spawned.emit(self)
@@ -118,6 +160,14 @@ func _ready() -> void:
 		anim_sprite.animation_finished.connect(_on_animation_finished)
 		anim_sprite.play("appear")
 	_play_sfx(audio_appear)
+
+func _on_stamina_multipliers_updated(new_multipliers: Dictionary) -> void:
+	for k in new_multipliers.keys():
+		move_multipliers[k] = float(new_multipliers[k])
+
+func _on_portal_profile_synced(_profile_state: Dictionary) -> void:
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.apply_cosmetics_and_boosters_to_player(self)
 
 func _on_animation_finished() -> void:
 	if anim_sprite and anim_sprite.animation == "appear":
@@ -144,16 +194,130 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_update_visuals()
 
+# --- Obsługa Mnożników i Kosztów Staminy ---
+
+## Zwraca aktualny mnożnik kosztu staminy dla wskazanego ruchu specjalnego.
+func get_move_multiplier(move_name: String) -> float:
+	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
+		var dir_mult: float = Events.ai_director.get_multiplier(move_name)
+		move_multipliers[move_name] = dir_mult
+		return dir_mult
+	return float(move_multipliers.get(move_name, 1.0))
+
+## Ustawia mnożnik dla wskazanego ruchu (lub trick_regen).
+func set_move_multiplier(move_name: String, value: float) -> void:
+	if move_name == "trick_regen":
+		trick_regen_multiplier = max(0.1, value)
+		return
+	move_multipliers[move_name] = max(0.1, value)
+	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
+		Events.ai_director.multipliers[move_name] = move_multipliers[move_name]
+
+## Oblicza aktualny koszt staminy dla danego ruchu specjalnego z uwzględnieniem jego mnożnika.
+func get_move_stamina_cost(move_name: String) -> float:
+	var mult: float = get_move_multiplier(move_name)
+	match move_name:
+		"double_jump":
+			return double_jump_base_stamina_cost * mult
+		"dash":
+			return dash_base_stamina_cost * mult
+		"wall_climb":
+			return wall_climb_base_stamina_cost * mult
+		_:
+			return 0.0
+
+## Sprawdza, czy gracz ma wystarczająco staminy oraz czy ruch nie jest zablokowany przez AI Director.
+func can_use_special_move(move_name: String) -> bool:
+	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
+		if Events.ai_director.is_move_locked(move_name):
+			Events.stamina_action_rejected.emit(move_name, get_move_stamina_cost(move_name), wall_stamina)
+			return false
+			
+	if move_name == "wall_climb":
+		if wall_stamina <= 0.001:
+			Events.stamina_action_rejected.emit(move_name, 0.1, wall_stamina)
+			return false
+		return true
+		
+	var cost: float = get_move_stamina_cost(move_name)
+	if wall_stamina + 0.001 < cost:
+		Events.stamina_action_rejected.emit(move_name, cost, wall_stamina)
+		return false
+	return true
+
+## Zużywa staminę na dyskretny ruch specjalny (double_jump, dash) i powiadamia AI Director.
+func consume_special_move_stamina(move_name: String) -> bool:
+	if not can_use_special_move(move_name):
+		return false
+	var cost: float = get_move_stamina_cost(move_name)
+	var pre_stamina: float = wall_stamina
+	wall_stamina = max(0.0, wall_stamina - cost)
+	
+	# Zabezpieczenie przed mnożeniem staminy: użycie ruchu specjalnego obniża pułap staminy
+	# możliwy do odzyskania z samego dodatkowego czasu wznoszenia/opadania tego ruchu.
+	used_special_in_current_air = true
+	airborne_stamina_ceiling = max(wall_stamina, pre_stamina - cost * 0.25)
+	
+	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
+		Events.ai_director.record_move_use(move_name, 1.0)
+		
+	Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
+	_update_stamina_bar()
+	return true
+
+## Regeneruje staminę podczas wykonywania tricku w powietrzu [C].
+## Zwraca faktycznie zregenerowaną ilość staminy w tej klatce.
+func regenerate_stamina_from_trick(delta: float) -> float:
+	if delta <= 0.0:
+		return 0.0
+	var raw_regen: float = trick_stamina_regen_per_sec * trick_regen_multiplier * delta
+	var prev_stamina: float = wall_stamina
+	var max_allowed: float = wall_climb_max_stamina
+	
+	# Jeśli w obecnym skoku użyto ruchu specjalnego i gracz jest wciąż powyżej wysokości startowej,
+	# ograniczamy pułap regeneracji, by zdobyta wysokość ze specjalnego ruchu NIGDY nie zwróciła całego kosztu.
+	if used_special_in_current_air and global_position.y <= airborne_origin_y + 8.0:
+		max_allowed = min(wall_climb_max_stamina, airborne_stamina_ceiling)
+		
+	if wall_stamina < max_allowed:
+		wall_stamina = min(max_allowed, wall_stamina + raw_regen)
+		
+	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
+		Events.ai_director.record_air_trick(delta)
+		
+	if not is_equal_approx(prev_stamina, wall_stamina):
+		Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
+		_update_stamina_bar()
+	return wall_stamina - prev_stamina
+
+## Weryfikuje matematyczny warunek balansu: żaden ruch specjalny nie daje wystarczającej wysokości/czasu lotu,
+## aby zregenerować więcej staminy niż wynosi jego koszt.
+func get_max_possible_trick_regen_for_move(move_name: String) -> float:
+	var eff_regen_rate: float = trick_stamina_regen_per_sec * trick_regen_multiplier
+	match move_name:
+		"double_jump":
+			# Czas wznoszenia + spadania ze zdobytej wysokości h = v^2 / (2g) -> t_total = 2 * |v| / g
+			var extra_airtime: float = (2.0 * abs(double_jump_velocity)) / max(1.0, gravity)
+			return extra_airtime * eff_regen_rate
+		"wall_climb":
+			# 1 sekunda wspinaczki podnosi gracza o wall_climb_speed pikseli -> czas spadku t = sqrt(2*h/g)
+			var fall_time_per_sec_climbed: float = sqrt((2.0 * wall_climb_speed) / max(1.0, gravity))
+			return fall_time_per_sec_climbed * eff_regen_rate
+		"dash":
+			# Dash jest poziomy (nie daje wysokości, podczas samego dasha nie można robić tricku)
+			return 0.15 * eff_regen_rate
+		_:
+			return 0.0
+
 # --- Aktualizacja Timerów i Staminy ---
 func _update_timers(delta: float) -> void:
 	if is_on_floor():
 		coyote_timer = coyote_time
 		can_double_jump = true
 		can_air_dash = true
-		if wall_stamina < wall_climb_max_stamina:
-			wall_stamina = wall_climb_max_stamina
-			Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
-			_update_stamina_bar()
+		used_special_in_current_air = false
+		airborne_origin_y = global_position.y
+		airborne_stamina_ceiling = wall_climb_max_stamina
 	else:
 		coyote_timer = max(0.0, coyote_timer - delta)
 		
@@ -170,6 +334,13 @@ func _update_timers(delta: float) -> void:
 
 func take_damage(amount: int, source_position: Vector2 = Vector2.ZERO) -> void:
 	if is_invulnerable or current_health <= 0:
+		return
+		
+	# Obsługa wzmocnienia "tarcza" pobranego z profilu gracza na stronie internetowej
+	if get_meta("has_portal_shield", false):
+		set_meta("has_portal_shield", false)
+		is_invulnerable = true
+		invulnerability_timer = invulnerability_duration
 		return
 		
 	current_health = max(0, current_health - amount)
@@ -213,7 +384,6 @@ func _update_hp_indicator() -> void:
 		return
 		
 	var existing = hp_container.get_children()
-	# Jeśli liczba kwadracików nie odpowiada max_health, zrekonstruuj je dynamicznie
 	if existing.size() != max_health:
 		for child in existing:
 			child.queue_free()
@@ -231,7 +401,6 @@ func _update_hp_indicator() -> void:
 			rect.position = Vector2(start_x + i * (sq_w + spacing), 0)
 			rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			hp_container.add_child(rect)
-		# Zwróć i pozwól Godotowi dokończyć dodawanie węzłów w tej klatce
 		call_deferred("_apply_hp_colors", current_health)
 		return
 		
@@ -250,11 +419,17 @@ func _apply_hp_colors(health: int) -> void:
 			else:
 				sq.color = Color(0.2, 0.2, 0.2, 0.35)
 
+## Aktualizuje drenaż staminy podczas wspinaczki (z uwzględnieniem mnożnika wall_climb).
 func _update_stamina(delta: float, is_draining: bool) -> void:
 	if is_draining:
-		wall_stamina = max(0.0, wall_stamina - delta)
-	elif is_on_floor():
-		wall_stamina = wall_climb_max_stamina
+		var climb_cost_rate: float = get_move_stamina_cost("wall_climb")
+		var drained: float = delta * climb_cost_rate
+		var pre_stamina: float = wall_stamina
+		wall_stamina = max(0.0, wall_stamina - drained)
+		used_special_in_current_air = true
+		airborne_stamina_ceiling = max(wall_stamina, pre_stamina - drained * 0.25)
+		if is_instance_valid(Events) and is_instance_valid(Events.ai_director) and is_inside_tree():
+			Events.ai_director.record_move_use("wall_climb", delta)
 		
 	Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
 	_update_stamina_bar()
@@ -269,7 +444,7 @@ func _update_stamina_bar() -> void:
 	stamina_bar.visible = show_bar
 	
 	if show_bar:
-		var ratio = wall_stamina / wall_climb_max_stamina
+		var ratio = wall_stamina / max(0.01, wall_climb_max_stamina)
 		var fill_style = stamina_bar.get_theme_stylebox("fill") as StyleBoxFlat
 		if fill_style:
 			if ratio > 0.5:
@@ -320,7 +495,6 @@ func _change_state(new_state: State) -> void:
 	if current_state == State.CROUCH or current_state == State.SLIDE:
 		if new_state != State.CROUCH and new_state != State.SLIDE:
 			if not _can_stand_up():
-				# Nie pozwalamy wyjść ze stanu kucania jeśli sufit blokuje postać!
 				return
 			_set_collider_crouched(false)
 			
@@ -333,10 +507,11 @@ func _change_state(new_state: State) -> void:
 func _state_ground(delta: float) -> void:
 	var input_x = _get_input_direction()
 	
-	# Wejście w Dash
+	# Wejście w Dash (wymaga staminy!)
 	if _is_dash_just_pressed() and dash_cooldown_timer <= 0.0:
-		_start_dash(input_x)
-		return
+		if can_use_special_move("dash"):
+			_start_dash(input_x)
+			return
 		
 	# Wejście w Kucanie lub Wślizg
 	if _is_crouch_pressed():
@@ -348,13 +523,13 @@ func _state_ground(delta: float) -> void:
 			_set_collider_crouched(true)
 			return
 			
-	# Wejście w Skok
+	# Wejście w Skok (zwykły skok z ziemi nie zużywa staminy)
 	if _is_jump_just_pressed() or jump_buffer_timer > 0.0:
 		_execute_jump()
 		return
 		
 	# Rozpoczęcie wspinaczki bezpośrednio przy ścianie po naciśnięciu W (góra)
-	if is_on_wall() and _get_vertical_input() < 0.0 and wall_stamina > 0.0:
+	if is_on_wall() and _get_vertical_input() < 0.0 and can_use_special_move("wall_climb"):
 		var wall_norm = get_wall_normal()
 		if abs(wall_norm.x) > 0.7:
 			last_wall_normal = wall_norm
@@ -364,6 +539,7 @@ func _state_ground(delta: float) -> void:
 		
 	# Zejście z platformy
 	if not is_on_floor():
+		airborne_origin_y = global_position.y
 		_change_state(State.FALL)
 		return
 		
@@ -393,26 +569,26 @@ func _state_air(delta: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, air_friction * delta)
 		
-	# Wejście w Dash w powietrzu
+	# Wejście w Dash w powietrzu (wymaga staminy!)
 	if _is_dash_just_pressed() and can_air_dash and dash_cooldown_timer <= 0.0:
-		can_air_dash = false
-		is_tricking = false
-		trick_point_buffer = 0.0
-		_start_dash(input_x)
-		return
+		if can_use_special_move("dash"):
+			can_air_dash = false
+			is_tricking = false
+			trick_point_buffer = 0.0
+			_start_dash(input_x)
+			return
 		
-	# Obsługa tricku w powietrzu (trzymanie C podczas skoków i spadków)
+	# Obsługa tricku w powietrzu (trzymanie C podczas skoków i spadków -> regeneruje staminę!)
 	if _is_trick_pressed() and not is_on_wall():
 		if not is_tricking:
 			is_tricking = true
 			if anim_sprite:
 				anim_sprite.play("trick")
-		# Gromadzenie punktów za trzymanie klawisza C w locie
+		regenerate_stamina_from_trick(delta)
 		trick_point_buffer += trick_points_per_second * delta
 		if trick_point_buffer >= 10.0:
 			var pts: int = int(trick_point_buffer)
 			trick_point_buffer -= pts
-			Events.score_added.emit(pts)
 			Events.trick_performed.emit(pts)
 	else:
 		if is_tricking:
@@ -425,12 +601,12 @@ func _state_air(delta: float) -> void:
 	else:
 		velocity.y = min(velocity.y + gravity * delta, max_fall_speed)
 		
-	# Buforowanie skoku i podwójny skok
+	# Buforowanie skoku i podwójny skok (Double Jump wymaga staminy!)
 	if _is_jump_just_pressed():
 		if coyote_timer > 0.0:
 			_execute_jump()
 			return
-		elif can_double_jump:
+		elif can_double_jump and can_use_special_move("double_jump"):
 			_execute_double_jump()
 			return
 		else:
@@ -451,7 +627,7 @@ func _state_air(delta: float) -> void:
 		var wall_norm = get_wall_normal()
 		if abs(wall_norm.x) > 0.7:
 			var pushing_into_wall = (input_x != 0.0 and sign(input_x) == -sign(wall_norm.x))
-			var climbing_up = (_get_vertical_input() < 0.0 and wall_stamina > 0.0)
+			var climbing_up = (_get_vertical_input() < 0.0 and can_use_special_move("wall_climb"))
 			
 			# Chwytamy ścianę jeśli naciskamy w jej stronę LUB chcemy się wspinać
 			if pushing_into_wall or climbing_up:
@@ -476,6 +652,8 @@ func _state_dash(delta: float) -> void:
 			_change_state(State.FALL)
 
 func _start_dash(input_x: float) -> void:
+	if not consume_special_move_stamina("dash"):
+		return
 	is_tricking = false
 	trick_point_buffer = 0.0
 	dash_direction = input_x if input_x != 0.0 else facing_direction
@@ -493,29 +671,24 @@ func _state_crouch(delta: float) -> void:
 	idle_trick_timer = 0.0
 	var input_x = _get_input_direction()
 	
-	# Jeśli puszcza klawisz kucania i sufit jest wolny -> wstaje płynnie
 	if not _is_crouch_pressed():
 		if _can_stand_up():
 			_set_collider_crouched(false)
 			_change_state(State.RUN if input_x != 0.0 else State.IDLE)
 			return
-		# Jeśli sufit blokuje, postać POZOSTAJE w kucaniu (nie blokuje ruchu!)
 		
-	# Skok z kucania tylko gdy sufit jest wolny
 	if _is_jump_just_pressed():
 		if _can_stand_up():
 			_set_collider_crouched(false)
 			_execute_jump()
 			return
 		
-	# Poruszanie się w kucaniu (czołganie)
 	if input_x != 0.0:
 		facing_direction = input_x
 		velocity.x = move_toward(velocity.x, input_x * crouch_speed, acceleration * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 		
-	# Obsługa podłoża w kucaniu
 	if not is_on_floor():
 		velocity.y = min(velocity.y + gravity * delta, max_fall_speed)
 		if _can_stand_up():
@@ -528,17 +701,14 @@ func _state_crouch(delta: float) -> void:
 # 5. Wślizg (SLIDE)
 func _state_slide(delta: float) -> void:
 	idle_trick_timer = 0.0
-	# Wyhamowywanie wślizgu
 	velocity.x = move_toward(velocity.x, 0.0, slide_friction * delta)
 	velocity.y = 0.0
 	
-	# Możliwość wyskoczenia z wślizgu tylko gdy sufit wolny
 	if _is_jump_just_pressed() and _can_stand_up():
 		_set_collider_crouched(false)
 		_execute_jump()
 		return
 		
-	# Koniec wślizgu przy niskiej prędkości
 	if abs(velocity.x) < slide_min_speed:
 		if _is_crouch_pressed() or not _can_stand_up():
 			_change_state(State.CROUCH)
@@ -591,22 +761,23 @@ func _state_wall(delta: float) -> void:
 	# Docisk poziomy do ściany, by utrzymać kontakt z colliderem w move_and_slide
 	velocity.x = -last_wall_normal.x * 20.0
 	
-	# Wspinaczka w górę (Wall Climb) z limitem staminy
-	if vertical_input < 0.0 and wall_stamina > 0.0:
+	# Wspinaczka w górę (Wall Climb) z limitem staminy i dynamicznym mnożnikiem
+	if vertical_input < 0.0 and can_use_special_move("wall_climb"):
 		_change_state(State.WALL_CLIMB)
 		_update_stamina(delta, true)
 		velocity.y = -wall_climb_speed
 	elif vertical_input > 0.0:
-		# Szybsze zsuwanie się w dół
 		_change_state(State.WALL_SLIDE)
 		velocity.y = wall_slide_speed * 1.8
 	else:
-		# Zwykłe zsuwanie się (Wall Slide)
 		_change_state(State.WALL_SLIDE)
 		velocity.y = wall_slide_speed
 
 # --- Akcje Skoków ---
 func _execute_jump() -> void:
+	airborne_origin_y = global_position.y
+	airborne_stamina_ceiling = wall_climb_max_stamina
+	used_special_in_current_air = false
 	velocity.y = jump_velocity
 	coyote_timer = 0.0
 	jump_buffer_timer = 0.0
@@ -617,6 +788,8 @@ func _execute_jump() -> void:
 	Events.player_jumped.emit(false)
 
 func _execute_double_jump() -> void:
+	if not consume_special_move_stamina("double_jump"):
+		return
 	velocity.y = double_jump_velocity
 	can_double_jump = false
 	jump_buffer_timer = 0.0
@@ -627,6 +800,9 @@ func _execute_double_jump() -> void:
 	Events.player_jumped.emit(true)
 
 func _execute_wall_jump() -> void:
+	# Wall Jump pozwala odbić się od ściany, ale blokuje mnożenie staminy ponad pułap przed wspinaczką
+	used_special_in_current_air = true
+	airborne_stamina_ceiling = min(airborne_stamina_ceiling, wall_stamina + 0.12)
 	velocity.x = last_wall_normal.x * wall_jump_velocity.x
 	velocity.y = wall_jump_velocity.y
 	facing_direction = sign(velocity.x)
@@ -658,7 +834,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_tree().reload_current_scene()
 		
 func _update_visuals() -> void:
-	# Zwrot postaci
 	visuals.scale.x = facing_direction
 	visuals.scale.y = 1.0
 	if is_invulnerable:
@@ -669,17 +844,14 @@ func _update_visuals() -> void:
 	if not anim_sprite:
 		return
 		
-	# Jeśli postać odgrywa animację pojawienia, pozwólmy jej dokończyć
 	if anim_sprite.animation == "appear" and anim_sprite.is_playing():
 		return
 		
-	# Priorytet dla tricku w powietrzu
 	if is_tricking:
 		if anim_sprite.animation != "trick":
 			anim_sprite.play("trick")
 		return
 		
-	# Wybór animacji na podstawie maszyny stanów
 	match current_state:
 		State.IDLE:
 			anim_sprite.play("idle")
@@ -698,7 +870,6 @@ func _update_visuals() -> void:
 			anim_sprite.play("slide")
 		State.WALL_SLIDE:
 			anim_sprite.play("wall_slide")
-			# W klatce wspinaczki ręce sięgają w lewo, więc odwracamy w stronę normalnej ściany
 			visuals.scale.x = sign(last_wall_normal.x) if last_wall_normal.x != 0.0 else -facing_direction
 		State.WALL_CLIMB:
 			anim_sprite.play("wall_climb")

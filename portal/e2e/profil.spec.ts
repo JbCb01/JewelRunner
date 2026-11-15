@@ -114,4 +114,16 @@ test.describe("Połącz grę", () => {
     await expect(page.getByRole("timer")).toContainText("Kod wygaśnie za 4:");
     await expect(page.getByRole("button", { name: "Wygeneruj nowy kod" })).toBeVisible();
   });
+
+  test("po wpisaniu kodu w grze status zmienia się na Połączone", async ({ page }) => {
+    await register(page);
+    await page.goto("/profil");
+    await page.getByRole("button", { name: "Wygeneruj kod" }).click();
+    const code = (await page.getByLabel("Kod parowania").textContent())!.trim();
+    // Gra wysyła kod bez ciasteczek portalu.
+    const pair = await page.request.post("/api/auth/pair", { data: { code }, headers: { Cookie: "" } });
+    expect(pair.ok()).toBeTruthy();
+    await page.reload();
+    await expect(page.getByTestId("game-link-status")).toHaveText("Połączone");
+  });
 });

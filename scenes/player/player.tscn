@@ -77,3 +77,24 @@ stream = ExtResource("4_audio_dash")
 
 [node name="AudioAppear" type="AudioStreamPlayer2D" parent="."]
 stream = ExtResource("5_audio_appear")
+
+[node name="HpSquares" type="Node2D" parent="."]
+position = Vector2(0, 18)
+
+[node name="Square1" type="ColorRect" parent="HpSquares"]
+offset_left = -9.0
+offset_right = -4.0
+offset_bottom = 4.0
+color = Color(0.9, 0.2, 0.2, 1)
+
+[node name="Square2" type="ColorRect" parent="HpSquares"]
+offset_left = -2.5
+offset_right = 2.5
+offset_bottom = 4.0
+color = Color(0.9, 0.2, 0.2, 1)
+
+[node name="Square3" type="ColorRect" parent="HpSquares"]
+offset_left = 4.0
+offset_right = 9.0
+offset_bottom = 4.0
+color = Color(0.9, 0.2, 0.2, 1)

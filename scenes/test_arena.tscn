@@ -11,6 +11,7 @@
 [ext_resource type="AudioStream" uid="uid://blin16scncq63" path="res://audio/sfx/levelend.wav" id="9_win_audio"]
 [ext_resource type="AudioStream" uid="uid://ut8hgbiyd3bo" path="res://audio/sfx/Pickup_Jewel.ogg" id="10_pickup_audio"]
 [ext_resource type="AudioStream" uid="uid://c1eqof2o4kpv7" path="res://audio/music/yessirski.wav" id="11_level_music"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/enemy_mockup.tscn" id="12_enemy_mockup"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor_left"]
 size = Vector2(400, 32)
@@ -290,6 +291,9 @@ position = Vector2(1160, 130)
 
 [node name="Jewel5" parent="." unique_id=1918318430 instance=ExtResource("7_jewel_scene")]
 position = Vector2(1480, 135)
+
+[node name="EnemyMockup" parent="." instance=ExtResource("12_enemy_mockup")]
+position = Vector2(850, 210)
 
 [node name="FinishGoal" type="Area2D" parent="." unique_id=1701143556]
 position = Vector2(1640, 276)

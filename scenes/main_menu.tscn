@@ -6,6 +6,11 @@
 [ext_resource type="Texture2D" uid="uid://12setjx3hnyl" path="res://assets/SettingsScreen.png" id="4_wu84c"]
 [ext_resource type="AudioStream" uid="uid://bsukihweapr1a" path="res://audio/music/maintheme.wav" id="5_8ln24"]
 [ext_resource type="Texture2D" uid="uid://bgwtm2iuo5trw" path="res://assets/CreatorScreen.png" id="6_rtw2f"]
+[ext_resource type="Texture2D" uid="uid://cmcpxndaq03o" path="res://assets/UstawieniaProfilu.png" id="7_ustawienia"]
+[ext_resource type="Texture2D" uid="uid://btffs4q5urfqu" path="res://assets/SkinSelect.png" id="8_skinselect"]
+[ext_resource type="Texture2D" uid="uid://cojui1m8kkjg2" path="res://assets/Profil.png" id="9_profil"]
+[ext_resource type="Texture2D" uid="uid://c1idynuaytvw4" path="res://assets/Zadania.png" id="10_zadania"]
+[ext_resource type="AudioStream" uid="uid://dcm15w0mt2b5x" path="res://audio/sfx/menuselect.wav" id="11_menuselect"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_qwhmk"]
 
@@ -15,23 +20,70 @@
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_jm5mo"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hover"]
+bg_color = Color(1, 1, 1, 0.14)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.88, 0.35, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_hover"]
+bg_color = Color(0.2, 0.7, 1, 0.15)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.9, 1, 0.9)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_selected"]
+bg_color = Color(0.2, 0.85, 0.45, 0.2)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.3, 1, 0.55, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
 [node name="MainMenu" type="Control" unique_id=1858959376]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_bqqt6")
 arenaScenePath = "res://scenes/test_arena.tscn"
 
-[node name="HomeView" type="ColorRect" parent="." unique_id=1548176391]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="HomeView" type="Control" parent="." unique_id=1548176391]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="Bg" type="TextureRect" parent="HomeView" unique_id=1781541462]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 texture = ExtResource("1_ekxnf")
-stretch_mode = 6
+expand_mode = 1
+stretch_mode = 5
 
 [node name="ProfileBtn" type="Button" parent="HomeView" unique_id=1948273645]
 layout_mode = 0
@@ -93,17 +145,25 @@ theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxEmpty_gs2jv")
 
-[node name="LevelSelectView" type="ColorRect" parent="." unique_id=766226750]
+[node name="LevelSelectView" type="Control" parent="." unique_id=766226750]
 visible = false
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="Bg" type="TextureRect" parent="LevelSelectView" unique_id=1473531909]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 texture = ExtResource("2_bqqt6")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Lvl1Btn" type="Button" parent="LevelSelectView" unique_id=1689846324]
 layout_mode = 0
@@ -172,9 +232,20 @@ offset_right = 592.0
 offset_bottom = 224.0
 theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
 
+[node name="BackBtn" type="Button" parent="LevelSelectView"]
+layout_mode = 0
+offset_top = 328.0
+offset_right = 160.0
+offset_bottom = 360.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
 [node name="SettingsView" type="Control" parent="." unique_id=935969948]
 visible = false
-layout_mode = 3
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -189,6 +260,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("4_wu84c")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="DarkOverlay" type="ColorRect" parent="SettingsView"]
 layout_mode = 0
@@ -523,7 +596,512 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Bg" type="TextureRect" parent="CreatorsView" unique_id=1596275876]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 texture = ExtResource("6_rtw2f")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BackBtn" type="Button" parent="CreatorsView"]
+layout_mode = 0
+offset_top = 328.0
+offset_right = 160.0
+offset_bottom = 360.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="ProfileSettingsView" type="Control" parent="." unique_id=2100000001]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Bg" type="TextureRect" parent="ProfileSettingsView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("7_ustawienia")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ProfilBtn" type="Button" parent="ProfileSettingsView"]
+layout_mode = 0
+offset_left = 64.0
+offset_top = 128.0
+offset_right = 224.0
+offset_bottom = 176.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="SkinSelectBtn" type="Button" parent="ProfileSettingsView"]
+layout_mode = 0
+offset_left = 240.0
+offset_top = 128.0
+offset_right = 400.0
+offset_bottom = 176.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="ZadaniaBtn" type="Button" parent="ProfileSettingsView"]
+layout_mode = 0
+offset_left = 416.0
+offset_top = 128.0
+offset_right = 576.0
+offset_bottom = 176.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="BackBtn" type="Button" parent="ProfileSettingsView"]
+layout_mode = 0
+offset_top = 328.0
+offset_right = 160.0
+offset_bottom = 360.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="SkinSelectView" type="Control" parent="." unique_id=2100000002]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Bg" type="TextureRect" parent="SkinSelectView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("8_skinselect")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Skin0Btn" type="Button" parent="SkinSelectView"]
+layout_mode = 0
+offset_left = 32.0
+offset_top = 128.0
+offset_right = 112.0
+offset_bottom = 240.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
+
+[node name="Badge" type="Label" parent="SkinSelectView/Skin0Btn"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -18.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.4, 1, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "✔ WYBRANA"
+horizontal_alignment = 1
+
+[node name="Skin1Btn" type="Button" parent="SkinSelectView"]
+layout_mode = 0
+offset_left = 128.0
+offset_top = 128.0
+offset_right = 208.0
+offset_bottom = 240.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
+
+[node name="Badge" type="Label" parent="SkinSelectView/Skin1Btn"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -18.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.4, 1, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "✔ WYBRANA"
+horizontal_alignment = 1
+
+[node name="Skin2Btn" type="Button" parent="SkinSelectView"]
+layout_mode = 0
+offset_left = 228.0
+offset_top = 128.0
+offset_right = 308.0
+offset_bottom = 240.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
+
+[node name="Badge" type="Label" parent="SkinSelectView/Skin2Btn"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -18.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.4, 1, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "✔ WYBRANA"
+horizontal_alignment = 1
+
+[node name="Skin3Btn" type="Button" parent="SkinSelectView"]
+layout_mode = 0
+offset_left = 325.0
+offset_top = 128.0
+offset_right = 405.0
+offset_bottom = 240.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
+
+[node name="Badge" type="Label" parent="SkinSelectView/Skin3Btn"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -18.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.4, 1, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "✔ WYBRANA"
+horizontal_alignment = 1
+
+[node name="Skin4Btn" type="Button" parent="SkinSelectView"]
+layout_mode = 0
+offset_left = 426.0
+offset_top = 128.0
+offset_right = 506.0
+offset_bottom = 240.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
+
+[node name="Badge" type="Label" parent="SkinSelectView/Skin4Btn"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -18.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.4, 1, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "✔ WYBRANA"
+horizontal_alignment = 1
+
+[node name="Skin5Btn" type="Button" parent="SkinSelectView"]
+layout_mode = 0
+offset_left = 528.0
+offset_top = 128.0
+offset_right = 608.0
+offset_bottom = 240.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
+
+[node name="Badge" type="Label" parent="SkinSelectView/Skin5Btn"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -18.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.4, 1, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "✔ WYBRANA"
+horizontal_alignment = 1
+
+[node name="ActiveSkinLabel" type="Label" parent="SkinSelectView"]
+layout_mode = 0
+offset_left = 32.0
+offset_top = 250.0
+offset_right = 608.0
+offset_bottom = 278.0
+theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
+theme_override_font_sizes/font_size = 11
+text = "Aktywna skórka: Klasyczna Stelly"
+horizontal_alignment = 1
+
+[node name="BackBtn" type="Button" parent="SkinSelectView"]
+layout_mode = 0
+offset_top = 328.0
+offset_right = 160.0
+offset_bottom = 360.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="ProfileView" type="Control" parent="." unique_id=2100000003]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Bg" type="TextureRect" parent="ProfileView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("9_profil")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="StatusLabel" type="Label" parent="ProfileView"]
+layout_mode = 0
+offset_left = 128.0
+offset_top = 146.0
+offset_right = 512.0
+offset_bottom = 186.0
+theme_override_colors/font_color = Color(1, 0.94, 0.65, 1)
+theme_override_font_sizes/font_size = 10
+text = "Status: Konto niepołączone (Gość)
+Wpisz kod parowania z /profil lub otwórz portal w przeglądarce."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="PairingCodeInput" type="LineEdit" parent="ProfileView"]
+layout_mode = 0
+offset_left = 134.0
+offset_top = 196.0
+offset_right = 282.0
+offset_bottom = 222.0
+theme_override_colors/caret_color = Color(0.2, 0.1, 0.25, 1)
+theme_override_colors/font_placeholder_color = Color(0.45, 0.35, 0.45, 0.75)
+theme_override_colors/font_color = Color(0.12, 0.06, 0.16, 1)
+theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+placeholder_text = "KOD K7P2QX"
+alignment = 1
+max_length = 8
+
+[node name="PairBtn" type="Button" parent="ProfileView"]
+layout_mode = 0
+offset_left = 336.0
+offset_top = 192.0
+offset_right = 511.0
+offset_bottom = 223.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="OpenPortalBtn" type="Button" parent="ProfileView"]
+layout_mode = 0
+offset_left = 128.0
+offset_top = 240.0
+offset_right = 511.0
+offset_bottom = 287.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="BackBtn" type="Button" parent="ProfileView"]
+layout_mode = 0
+offset_top = 328.0
+offset_right = 160.0
+offset_bottom = 360.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="ZadaniaView" type="Control" parent="." unique_id=2100000004]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Bg" type="TextureRect" parent="ZadaniaView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("10_zadania")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Task1Container" type="VBoxContainer" parent="ZadaniaView"]
+layout_mode = 0
+offset_left = 36.0
+offset_top = 210.0
+offset_right = 204.0
+offset_bottom = 284.0
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="ZadaniaView/Task1Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 9
+text = "Pierwsze kroki"
+
+[node name="Desc" type="Label" parent="ZadaniaView/Task1Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 8
+text = "Ukończ pierwszy poziom."
+autowrap_mode = 2
+
+[node name="Progress" type="Label" parent="ZadaniaView/Task1Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 1, 0.65, 1)
+theme_override_font_sizes/font_size = 8
+text = "Postęp: 40%"
+
+[node name="Reward" type="Label" parent="ZadaniaView/Task1Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.75, 0.25, 1)
+theme_override_font_sizes/font_size = 8
+text = "Nagroda: +50 Klejnotów"
+
+[node name="Task2Container" type="VBoxContainer" parent="ZadaniaView"]
+layout_mode = 0
+offset_left = 237.0
+offset_top = 210.0
+offset_right = 405.0
+offset_bottom = 284.0
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="ZadaniaView/Task2Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 9
+text = "Łowca klejnotów"
+
+[node name="Desc" type="Label" parent="ZadaniaView/Task2Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 8
+text = "Zbierz wszystkie klejnoty."
+autowrap_mode = 2
+
+[node name="Progress" type="Label" parent="ZadaniaView/Task2Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 1, 0.65, 1)
+theme_override_font_sizes/font_size = 8
+text = "Postęp: 0%"
+
+[node name="Reward" type="Label" parent="ZadaniaView/Task2Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.75, 0.25, 1)
+theme_override_font_sizes/font_size = 8
+text = "Nagroda: +200 Klejnotów"
+
+[node name="Task3Container" type="VBoxContainer" parent="ZadaniaView"]
+layout_mode = 0
+offset_left = 436.0
+offset_top = 210.0
+offset_right = 604.0
+offset_bottom = 284.0
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="ZadaniaView/Task3Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 9
+text = "Mistrz czasu"
+
+[node name="Desc" type="Label" parent="ZadaniaView/Task3Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 8
+text = "Ukończ poziom poniżej 60s."
+autowrap_mode = 2
+
+[node name="Progress" type="Label" parent="ZadaniaView/Task3Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 1, 0.65, 1)
+theme_override_font_sizes/font_size = 8
+text = "Postęp: 0%"
+
+[node name="Reward" type="Label" parent="ZadaniaView/Task3Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.75, 0.25, 1)
+theme_override_font_sizes/font_size = 8
+text = "Nagroda: +200 Klejnotów"
+
+[node name="BackBtn" type="Button" parent="ZadaniaView"]
+layout_mode = 0
+offset_top = 328.0
+offset_right = 160.0
+offset_bottom = 360.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="AudioMenuSelect" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("11_menuselect")
+bus = &"SFX"

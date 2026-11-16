@@ -1,9 +1,9 @@
-[gd_scene format=3 uid="uid://cu0bwfp0csmc7"]
+﻿[gd_scene format=3 uid="uid://cu0bwfp0csmc7"]
 
 [ext_resource type="Script" path="res://scripts/menu.gd" id="1_bqqt6"]
 [ext_resource type="Texture2D" uid="uid://bxcweaicbmia" path="res://assets/HomeScreen.png" id="1_ekxnf"]
 [ext_resource type="Texture2D" uid="uid://xtyidye288j0" path="res://assets/LevelSelect.png" id="2_bqqt6"]
-[ext_resource type="Texture2D" uid="uid://12setjx3hnyl" path="res://assets/SettingsScreen.png" id="4_wu84c"]
+[ext_resource type="Texture2D" uid="uid://7awqv16hpkld" path="res://assets/UstawieniaFix.png" id="4_wu84c"]
 [ext_resource type="AudioStream" uid="uid://bsukihweapr1a" path="res://audio/music/maintheme.wav" id="5_8ln24"]
 [ext_resource type="Texture2D" uid="uid://bgwtm2iuo5trw" path="res://assets/CreatorScreen.png" id="6_rtw2f"]
 [ext_resource type="Texture2D" uid="uid://cmcpxndaq03o" path="res://assets/UstawieniaProfilu.png" id="7_ustawienia"]
@@ -27,6 +27,18 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(1, 0.88, 0.35, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tab_active"]
+bg_color = Color(1, 0.88, 0.35, 0.18)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.88, 0.35, 0.95)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3

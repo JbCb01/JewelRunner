@@ -51,3 +51,38 @@ class WalletResponse(BaseModel):
 class WalletSyncResponse(WalletResponse):
     applied: list[str]
     duplicates: list[str]
+
+
+class RunRequest(BaseModel):
+    """Wynik jednego rozegrania poziomu wysłany przez grę po mecie albo po porażce."""
+
+    session_id: Annotated[str, StringConstraints(pattern=r"^SES-[0-9]{1,20}-[0-9]{4}$")]
+    level: int = Field(ge=1, le=10_000)  # numer poziomu = kolejność w bazie
+    completed: bool  # true: dotarł do mety; false: porażka
+    score: int = Field(ge=0, le=1_000_000)
+    time_s: float = Field(ge=0, le=36_000)
+    gems: int = Field(ge=0, le=10_000)
+    enemies_defeated: int = Field(default=0, ge=0, le=10_000)
+
+
+class RunChallenge(BaseModel):
+    challenge_id: int
+    name: str
+    passed: bool | None  # wynik tej próby; null, gdy wynik był już wcześniej zapisany
+    progress_percent: int
+    status: str
+    reward_status: str | None
+
+
+class RunResponse(BaseModel):
+    duplicate: bool  # true: ten wynik (ten sam session_id) był już zapisany
+    level: int
+    completed: bool
+    best_score: int | None
+    best_time_s: float | None
+    attempts: int
+    new_best: bool
+    unlocked_levels: list[int]
+    unlocked_items: list[dict] = []  # elementy personalizacji odblokowane tym wynikiem
+    ranking: dict
+    challenges: list[RunChallenge]

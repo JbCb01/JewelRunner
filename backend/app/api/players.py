@@ -1,13 +1,23 @@
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from sqlalchemy import select
 
 from app.api.deps import CurrentPlayer, DbSession
 from app.core.errors import AppError
 from app.db.models import Gracz, StatystykiGracza
+from app.services import friends
 
 router = APIRouter(prefix="/players", tags=["ranking"])
+
+
+@router.get("")
+def search_players(
+    gracz: CurrentPlayer, db: DbSession, search: Annotated[str, Query(min_length=2, max_length=32)]
+) -> dict:
+    """Wyszukiwanie graczy po początku nazwy, np. do dodawania znajomych."""
+    return {"items": friends.search(db, gracz.id, search)}
 
 
 @router.get("/{player_id}")

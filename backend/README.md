@@ -53,7 +53,7 @@ Instrukcja jest w `deploy/AZURE.md`.
 - `app/core/`: konfiguracja i wspólny format błędów
 - `app/db/session.py`: połączenie z bazą
 - `app/api/`: endpointy
-- `alembic/versions/`: migracje; `0001` wykonuje `db/schema/001_schema.sql`, `0002` wykonuje `db/schema/002_kod_parowania.sql` (kody parowania gry)
+- `alembic/versions/`: migracje; `0001` wykonuje `db/schema/001_schema.sql`, `0002` wykonuje `db/schema/002_kod_parowania.sql` (kody parowania gry), `0003` wykonuje `db/schema/003_wyniki_gry.sql` (porażki i wrogowie w historii gier), `0004` wykonuje `db/schema/004_ustawienia.sql` (głośność muzyki w poziomie)
 - `db/seeds/`: dane startowe
 - `docs/API_KONTRAKT.md`: kontrakt API dla frontendu
 

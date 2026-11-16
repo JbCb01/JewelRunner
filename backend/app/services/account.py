@@ -21,7 +21,7 @@ from app.db.models import (
     WygladPostaci,
     Wzmocnienie,
 )
-from app.services import challenges, mailer
+from app.services import challenges, mailer, player_settings
 from app.services.auth import check_password_with_lock
 
 EMAIL_TOKEN_TTL = timedelta(hours=24)
@@ -158,14 +158,8 @@ def get_game_state(db: Session, gracz: Gracz) -> dict:
             "gems": gems,
             "special_gems": 0,
         },
-        "settings": {
-            "music_volume": 80,
-            "sfx_volume": 100,
-            "resolution": "1280x720",
-            "graphics_profile": "Wysoki",
-            "language": "pl",
-            "keybindings": {},
-        },
+        # Puste pola (gracz jeszcze ich nie ustawił) pomijamy, żeby gra została przy swoich domyślnych.
+        "settings": {k: v for k, v in player_settings.read(db, gracz.id).items() if v is not None},
         "appearance": {
             "active_skin": active_skin,
             "active_color_name": active_color_name,

@@ -1,4 +1,4 @@
-# Kontrakt API JewelRunner: Sprint 2
+# Kontrakt API JewelRunner: Sprint 2 i 3
 
 Wersja robocza do uzgodnienia z frontendem. Wszystkie endpointy poniżej są zaimplementowane lokalnie. Ścieżki nieokreślone w planie sprintu są oznaczone „propozycja”.
 
@@ -34,6 +34,12 @@ Każdy błąd ma ten sam format. Portal wybiera komunikat na podstawie `code`.
 | 422 | `unknown_level`, `invalid_save_time` | nieznany poziom lub data zapisu z przyszłości |
 | 422 | `too_many_gems`, `duplicate_operation` | operacje salda poza limitem lub powtórzone w jednym żądaniu |
 | 429 | `daily_gem_limit` | z gry dopisano już 10 000 klejnotów w ciągu doby |
+| 409 | `level_locked` | wynik z poziomu, którego gracz nie ma odblokowanego |
+| 422 | `invalid_period` | nieznany okres rankingu |
+| 404/409/422 | `player_not_found`, `already_friend`, `cannot_add_self`, `too_many_friends` | znajomi |
+| 409 | `settings_conflict`, `appearance_conflict` | na serwerze jest nowsza zmiana; `details` zawiera aktualne dane |
+| 422 | `element_not_owned`, `slot_taken` | personalizacja: element zablokowany lub dwa akcesoria w jednym miejscu |
+| 400 | `invalid_token` | link resetu hasła lub potwierdzenia e-maila wygasł albo został użyty |
 | 500 | `internal_error` | błąd serwera |
 | 503 | `database_unavailable` | baza niedostępna;; na stronie rankingu portal pokazuje zapamiętane dane (2.3 A3) |
 
@@ -48,6 +54,13 @@ Błędy: `409 username_taken`, `409 email_taken`, `422 weak_password`.
 Wejście: `{"email", "password"}`.
 `200`: dane z `GET /me` oraz cookie sesji.
 Błędy: `401 invalid_credentials`, `403 account_blocked` (konto zablokowane przez administratora), `429 login_locked` (po 5 nieudanych próbach, na 15 minut).
+
+### POST /auth/forgot (8.5, Sprint 3)
+Wejście: `{"email"}`. Zawsze `202`: `{"status": "sent_if_exists", "message": "Jeśli konto istnieje, wysłaliśmy link do ustawienia nowego hasła."}` (8.5 A1). Link `<PORTAL_URL>/nowe-haslo?token=...` jest ważny 30 minut; nowy link unieważnia poprzednie; maks. 3 wiadomości na godzinę (A4).
+
+### POST /auth/reset (8.5, Sprint 3)
+Wejście: `{"token", "new_password"}`. `204`: hasło zmienione, wszystkie sesje (portal i gra) wylogowane, blokada logowania zdjęta.
+Błędy: `400 invalid_token` → „Link wygasł” z opcją wysłania nowego (A2), `422 weak_password` (A3).
 
 ### POST /auth/logout
 `204`, cookie usunięte. Działa także bez ważnej sesji.
@@ -84,6 +97,34 @@ Dzień ustala serwer według strefy `GAME_TIMEZONE` (domyślnie `Europe/Warsaw`)
 ### POST /me/daily-reward/claim
 Bez treści. `200`: to samo co `GET` plus `"balance"` (nowe saldo klejnotów). Dodaje klejnoty do portfela, zapisuje datę i serię oraz transakcję typu `zmiana stanu konta`.
 Błędy: `409 daily_reward_claimed`. Równoczesne kliknięcia dają jedną wypłatę.
+
+## Wyniki z gry (4.3, 2.3, 2.4, 8.4, Sprint 3)
+
+### POST /game/runs
+Gra wysyła wynik po każdym rozegraniu poziomu: po mecie i po porażce. Wymaga tokenu gry (`Authorization: Bearer`).
+
+Wejście:
+```json
+{"session_id": "SES-1763500000-1234", "level": 1, "completed": true, "score": 300, "time_s": 45.5, "gems": 6, "enemies_defeated": 2}
+```
+- `session_id`: ID sesji z `Events.generate_session_id()`; ten sam wynik wysłany ponownie nie liczy się drugi raz (`duplicate: true`).
+- `level`: numer poziomu (`kolejnosc` w bazie). `completed: false` oznacza porażkę.
+
+W jednej transakcji serwer: zapisuje rozegranie (historia gier), aktualizuje postęp poziomu (liczba prób, najlepszy wynik i czas), po ukończeniu odblokowuje następny poziom (warunek `{"min_wynik": N}` wymaga wyniku N), aktualizuje statystyki (czas gry, ukończone poziomy, pokonani wrogowie, porażki), przelicza ranking i zapisuje próbę w aktywnych wyzwaniach tego poziomu.
+
+Ranking: wynik to suma najlepszych wyników ze wszystkich poziomów, osobno za bieżący tydzień (od poniedziałku), miesiąc i ogółem (strefa `GAME_TIMEZONE`). Wynik w rankingu nigdy nie spada.
+
+Wyzwania: próba zalicza wyzwanie, gdy poziom jest ukończony i spełnione są wszystkie warunki (`ukoncz_poziom`, `min_klejnotow`, `min_wynik`, `max_czas_s`). Wtedy status `Ukończone` i nagroda `Do odebrania`. Niezaliczona próba podnosi postęp do części spełnionych warunków (maks. 99%).
+
+`200`:
+```json
+{"duplicate": false, "level": 1, "completed": true, "best_score": 300, "best_time_s": 45.5, "attempts": 1,
+ "new_best": true, "unlocked_levels": [2],
+ "ranking": {"tydzień": {"position": 3, "score": 300}, "miesiąc": {"position": 5, "score": 300}, "ogółem": {"position": 12, "score": 300}},
+ "challenges": [{"challenge_id": 1, "name": "Pierwsze kroki", "passed": true, "progress_percent": 100, "status": "Ukończone", "reward_status": "Do odebrania"}]}
+```
+`ranking.<okres>` jest `null`, gdy gracz nie ma jeszcze wyniku w tym okresie. W odpowiedzi na duplikat `passed` jest `null`.
+Błędy: `422 unknown_level`, `409 level_locked`, `422 validation_error`.
 
 ## Zapis gry w chmurze (8.2, Sprint 3)
 
@@ -140,15 +181,86 @@ Status: `Aktywne`, `Ukończone` lub `Wygasłe` (portal pokazuje „Zakończone �
 `200`: `{"best_score", "items": [{"score", "attempted_at", "passed"}]}`. Pusta lista oznacza „Brak prób”.
 Błąd: `404 not_found`, także gdy to uczestnictwo innego gracza.
 
-## Ranking (2.3)
+## Ranking (2.3, 2.7)
 
-### GET /ranking
-`200`: `{"items": [{"position", "player_id", "username", "score"}], "me": {"position", "score"} | null, "generated_at"}`.
-`items` to najwyżej 100 najlepszych graczy. `me` pozwala pokazać wiersz poza setką. `null` oznacza „Ukończ poziom, aby pojawić się w rankingu”.
+### GET /ranking?period=tydzień|miesiąc|ogółem|znajomi
+Działają też `week`, `month`, `overall`, `friends`. Bez `period` serwer zwraca ostatnio wybrany filtr gracza (domyślnie `ogółem`); podany `period` jest zapamiętywany w ustawieniach (`ranking_filter`).
+`200`: `{"period": "tydzień", "period_start": "2026-11-16", "items": [{"position", "player_id", "username", "score"}], "me": {"position", "score"} | null, "empty_reason": null | "no_results" | "no_friends", "generated_at"}`.
+- Wynik to suma najlepszych wyników z poziomów w okresie; tydzień liczony od poniedziałku, `period_start` jest `null` dla `ogółem`.
+- `znajomi`: gracz i jego znajomi z rankingu ogółem, pozycje liczone tylko wśród nich.
+- `empty_reason`: `no_results` → „Brak wyników w tym okresie” (2.7 A1), `no_friends` → „Dodaj znajomych” (2.7 A2).
+- `items` to najwyżej 100 graczy; `me` pozwala pokazać wiersz gracza poza setką, `null` → „Ukończ poziom, aby pojawić się w rankingu”.
+Błąd: `422 invalid_period`.
+
+### GET /players?search=ba
+Gracze, których nazwa zaczyna się od podanego tekstu (min. 2 znaki, maks. 10 wyników, bez siebie). `200`: `{"items": [{"player_id", "username", "is_friend"}]}`.
 
 ### GET /players/{id}
 `200`: `{"id", "username", "statistics": {"play_time_seconds", "levels_completed", "enemies_defeated", "defeats", "longest_combo"}}`.
 Błąd: `404 not_found`.
+
+## Znajomi (2.7, Sprint 3)
+
+Lista jest jednostronna (jak obserwowanie), maks. 100 osób.
+
+### GET /me/friends
+`200`: `{"items": [{"player_id", "username", "added_at", "score"}]}`; `score` to wynik ogółem albo `null`.
+
+### POST /me/friends
+Wejście: `{"username": "Basia"}` (wielkość liter bez znaczenia). `201`: `{"player_id", "username"}`.
+Błędy: `404 player_not_found`, `409 already_friend`, `422 cannot_add_self`, `422 too_many_friends`.
+
+### DELETE /me/friends/{player_id}
+`204`. Błąd: `404 not_found`.
+
+## Statystyki i historia gier (8.4, Sprint 3)
+
+### GET /me/stats
+`200`:
+```json
+{"has_played": true, "last_synced_at": "...",
+ "overall": {"play_time_s": 60, "levels_completed": 1, "enemies_defeated": 3, "defeats": 1, "runs": 2,
+             "gems_collected": 7, "gems_balance": 0, "tutorial_completed": false},
+ "levels": [{"level": 1, "name": "Poziom 1", "unlocked": true, "unlock_condition": null, "best_score": 300,
+             "best_time_s": 40.0, "attempts": 2, "completed": true}]}
+```
+`has_played: false` → stan zerowy z zachętą do gry (8.4 A1). `levels` zawiera wszystkie poziomy, także zablokowane.
+
+### GET /me/runs?limit=20&before_id=123
+Historia gier od najnowszych: `{"items": [{"id", "level", "level_name", "completed", "score", "time_s", "gems", "enemies_defeated", "played_at", "session_id"}], "next_before_id": 120 | null}`. Kolejna strona: `before_id = next_before_id`. `limit` 1–100.
+
+## Ustawienia (3.2–3.5, Sprint 3)
+
+### GET /me/settings
+`200`: `{"music_volume": 100, "level_music_volume": 100, "sfx_volume": 100, "resolution": null, "texture_quality": null, "effects_level": null, "graphics_profile": null, "language": "pl", "ranking_filter": "ogółem", "keybindings": {"jump": "W"}, "updated_at": null}`.
+`null` oznacza, że gracz tego nie ustawił (gra używa wtedy swoich domyślnych). `/me/game-state` zwraca te same ustawienia bez pól `null`.
+
+### PATCH /me/settings
+Zmienia tylko podane pola. Głośności 0–100; `resolution` np. `1920x1080`; `texture_quality`, `effects_level`, `graphics_profile`: `Niski` | `Średni` | `Wysoki`; `language`: `pl` | `en`; `ranking_filter` jak `period` rankingu.
+`keybindings` zastępuje całą listę (`{}` przywraca domyślne). Ten sam klawisz nie może być przypisany dwa razy; zarezerwowane: Escape, F11, F12, PrintScreen.
+Opcjonalnie `changed_at` (sekundy UTC): zmiana starsza niż zapisana na serwerze → `409 settings_conflict` z `details.server_settings` (wygrywa późniejsza).
+`200`: aktualne ustawienia jak w `GET`. Błędy: `422 validation_error`, `409 settings_conflict`.
+
+## Personalizacja (5.1–5.4, 5.8, Sprint 3)
+
+### GET /me/appearance
+`200`:
+```json
+{"current": {"skin": {"id", "name", "asset"}, "color": {"id", "name", "hex"},
+             "accessories": [{"slot": "głowa", "accessory": {"id", "name"}, "color": {"id", "name", "hex"} | null}], "updated_at"},
+ "catalog": [{"id", "type": "skórka|kolor|akcesorium", "name", "asset", "color_hex", "slot", "owned", "is_new",
+              "unlock_condition": null | {"type": "wynik w poziomie|liczba klejnotów|wyzwanie", "value": 500, "challenge_name": null}}],
+ "new_count": 1, "newly_unlocked": [{"id", "type", "name"}]}
+```
+Przed odpowiedzią serwer odblokowuje elementy, których warunek gracz już spełnia. Warunki: „wynik w poziomie” – najlepszy wynik na dowolnym poziomie ≥ wartość; „liczba klejnotów” – łącznie zebrane klejnoty ≥ wartość; „wyzwanie” – ukończone wyzwanie o id = wartość. Nieposiadany element bez warunku można zdobyć tylko jako nagrodę.
+Odblokowanie sprawdza też `POST /game/runs` i zwraca nowe elementy w `unlocked_items`.
+
+### PUT /me/appearance
+Wejście: `{"skin_id": 3, "color_id": 2, "accessories": [{"accessory_id": 4, "color_id": 2}], "changed_at": 1763600000}` (`changed_at` opcjonalnie).
+`200`: aktualny wygląd (jak `current`). Błędy: `422 element_not_owned` (zablokowany lub zły typ, 5.3 A1), `422 slot_taken` (dwa akcesoria w jednym miejscu), `409 appearance_conflict` z `details.server_appearance` (5.3 A3).
+
+### POST /me/appearance/seen
+Wejście: `{"element_ids": [3, 4]}` albo `{}` (wszystkie). Usuwa oznaczenie „nowy”. `200`: `{"updated": 2}`.
 
 ## Profil (8.6)
 

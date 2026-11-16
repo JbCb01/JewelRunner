@@ -86,3 +86,12 @@ class DailyRewardResponse(BaseModel):
 
 class DailyRewardClaimResponse(DailyRewardResponse):
     balance: int
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: Annotated[str, Field(min_length=10, max_length=256)]
+    new_password: Password

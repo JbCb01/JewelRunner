@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 
@@ -25,16 +25,16 @@ const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 @onready var lvl1CheckmarkIcon: Control = get_node_or_null("LevelSelectView/Lvl1Btn/CheckmarkIcon")
 
 # --- Kontroler zakładek Ustawień ---
-@onready var tabAudioBtn: Button = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/TabBar/TabAudioBtn")
-@onready var tabGraphicsBtn: Button = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/TabBar/TabGraphicsBtn")
-@onready var tabControlsBtn: Button = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/TabBar/TabControlsBtn")
-@onready var tabLanguageBtn: Button = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/TabBar/TabLanguageBtn")
-@onready var settingsBackBtn: Button = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/FooterBox/SettingsBackBtn")
+@onready var tabAudioBtn: Button = get_node_or_null("SettingsView/TabBar/TabAudioBtn") if has_node("SettingsView/TabBar/TabAudioBtn") else get_node_or_null("SettingsView/DarkOverlay/SettingsContent/TabBar/TabAudioBtn")
+@onready var tabGraphicsBtn: Button = get_node_or_null("SettingsView/TabBar/TabGraphicsBtn") if has_node("SettingsView/TabBar/TabGraphicsBtn") else get_node_or_null("SettingsView/DarkOverlay/SettingsContent/TabBar/TabGraphicsBtn")
+@onready var tabControlsBtn: Button = get_node_or_null("SettingsView/TabBar/TabControlsBtn") if has_node("SettingsView/TabBar/TabControlsBtn") else get_node_or_null("SettingsView/DarkOverlay/SettingsContent/TabBar/TabControlsBtn")
+@onready var tabLanguageBtn: Button = get_node_or_null("SettingsView/TabBar/TabLanguageBtn") if has_node("SettingsView/TabBar/TabLanguageBtn") else get_node_or_null("SettingsView/DarkOverlay/SettingsContent/TabBar/TabLanguageBtn")
+@onready var settingsBackBtn: Button = get_node_or_null("SettingsView/BackBtn") if has_node("SettingsView/BackBtn") else get_node_or_null("SettingsView/DarkOverlay/SettingsContent/FooterBox/SettingsBackBtn")
 
-@onready var audioPanel: Control = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel")
-@onready var graphicsPanel: Control = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel")
-@onready var controlsPanel: Control = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel")
-@onready var languagePanel: Control = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel")
+@onready var audioPanel: Control = get_node_or_null("SettingsView/Panels/AudioPanel") if has_node("SettingsView/Panels/AudioPanel") else get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel")
+@onready var graphicsPanel: Control = get_node_or_null("SettingsView/Panels/GraphicsPanel") if has_node("SettingsView/Panels/GraphicsPanel") else get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel")
+@onready var controlsPanel: Control = get_node_or_null("SettingsView/Panels/ControlsPanel") if has_node("SettingsView/Panels/ControlsPanel") else get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel")
+@onready var languagePanel: Control = get_node_or_null("SettingsView/Panels/LanguagePanel") if has_node("SettingsView/Panels/LanguagePanel") else get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel")
 
 # --- Widoki i kontrolery Profilu (Ustawienia Profilu, SkinSelect, Profil, Zadania) ---
 @onready var profileSettingsView: Control = get_node_or_null("ProfileSettingsView")
@@ -129,8 +129,9 @@ var available_skins: Array[Dictionary] = [
 ]
 
 var currentSettingsTab: int = 0
-var tabNames: Array[String] = ["Dźwięk", "Grafika", "Sterowanie", "Język"]
+var tabNames: Array[String] = ["MUZYKA", "GRAFIKA", "STEROWANIE", "JEZYK"]
 
+var isMasterMuted: bool = false
 var isMusicMuted: bool = false
 var isSfxMuted: bool = false
 
@@ -400,117 +401,125 @@ func _on_portal_profile_synced(profile_state: Dictionary) -> void:
 	_refresh_skin_select_ui()
 	if profile_state.has("settings") and profile_state["settings"] is Dictionary:
 		var s := profile_state["settings"] as Dictionary
-		var musicSlider: HSlider = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MusicBox/MusicSlider")
+		var musicSlider: HSlider = _find_in_settings("MusicSlider") as HSlider
 		if musicSlider and s.has("music_volume"):
-			musicSlider.value = float(s["music_volume"])
-		var sfxSlider: HSlider = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/SfxBox/SfxSlider")
+			musicSlider.value = float(s["music_volume"]) * 100.0
+			_set_bus_volume_percent("Music", musicSlider.value)
+		var sfxSlider: HSlider = _find_in_settings("SfxSlider") as HSlider
 		if sfxSlider and s.has("sfx_volume"):
-			sfxSlider.value = float(s["sfx_volume"])
+			sfxSlider.value = float(s["sfx_volume"]) * 100.0
+			_set_bus_volume_percent("SFX", sfxSlider.value)
 
 func _on_portal_challenges_synced(_challenges: Array) -> void:
 	_refresh_zadania_ui()
 	_preview_mechanic_profile(Events.selected_level_profile if is_instance_valid(Events) else 1)
 
+## Upewnia się, że szyny audio Master, Music i SFX istnieją w AudioServerze.
+func _ensure_audio_buses() -> void:
+	if AudioServer.get_bus_index("Music") == -1:
+		var idx = AudioServer.bus_count
+		AudioServer.add_bus(idx)
+		AudioServer.set_bus_name(idx, "Music")
+		AudioServer.set_bus_send(idx, "Master")
+	if AudioServer.get_bus_index("SFX") == -1:
+		var idx = AudioServer.bus_count
+		AudioServer.add_bus(idx)
+		AudioServer.set_bus_name(idx, "SFX")
+		AudioServer.set_bus_send(idx, "Master")
+
+## Ustawia głośność na danej szynie (wartość od 0 do 100).
+func _set_bus_volume_percent(bus_name: String, pct: float) -> void:
+	_ensure_audio_buses()
+	var bus_idx = AudioServer.get_bus_index(bus_name)
+	if bus_idx == -1:
+		return
+	if pct <= 0.001:
+		AudioServer.set_bus_mute(bus_idx, true)
+	else:
+		AudioServer.set_bus_mute(bus_idx, false)
+		var linear = clampf(pct / 100.0, 0.0001, 1.0)
+		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(linear))
+
 ## Rozbudowuje karty Level Select o Żywioły Ruchu (Trials of Flow), Dynamiczny Radar DNA Mechanik,
-## wybór Kontraktu Reżysera AI oraz podgląd aktywnych zadań ze strony internetowej.
+## wybór Kontraktu Reżysera AI oraz podgląd aktywnych zadań ze strony internetowej na nowo utworzonych panelach.
 func _setup_mechanic_level_select_ui() -> void:
 	if not lvlView:
 		return
-	var btns: Array[Button] = [lvl1Btn, lvl2Btn, lvl3Btn]
-	for idx in range(btns.size()):
-		var btn: Button = btns[idx]
-		if not btn:
-			continue
-		var profile_id: int = idx + 1
-		var meta: Dictionary = LevelGenerator.get_profile_metadata(profile_id)
-		var dna: Dictionary = meta.get("dna", {"wall_climb": 33, "dash": 33, "double_jump": 34})
-		if not btn.has_node("MechanicTag"):
-			var tag_bg := ColorRect.new()
-			tag_bg.name = "MechanicTag"
-			tag_bg.position = Vector2(4, 4)
-			tag_bg.size = Vector2(139, 50)
-			tag_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			tag_bg.color = Color(0.06, 0.10, 0.18, 0.90)
-			
-			var title_lbl := Label.new()
-			title_lbl.name = "TitleLabel"
-			title_lbl.position = Vector2(4, 2)
-			title_lbl.size = Vector2(131, 15)
-			title_lbl.add_theme_font_size_override("font_size", 9)
-			title_lbl.add_theme_color_override("font_color", Color(0.95, 0.85, 0.35, 1.0))
-			title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			title_lbl.text = String(meta["title"])
-			tag_bg.add_child(title_lbl)
-			
-			var sub_lbl := Label.new()
-			sub_lbl.name = "SubLabel"
-			sub_lbl.position = Vector2(4, 17)
-			sub_lbl.size = Vector2(131, 14)
-			sub_lbl.add_theme_font_size_override("font_size", 8)
-			sub_lbl.add_theme_color_override("font_color", Color(0.70, 0.90, 1.0, 1.0))
-			sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			sub_lbl.text = String(meta["subtitle"])
-			tag_bg.add_child(sub_lbl)
-			
-			var dna_lbl := Label.new()
-			dna_lbl.name = "DnaMiniLabel"
-			dna_lbl.position = Vector2(4, 33)
-			dna_lbl.size = Vector2(131, 14)
-			dna_lbl.add_theme_font_size_override("font_size", 8)
-			dna_lbl.add_theme_color_override("font_color", Color(0.45, 1.0, 0.65, 1.0))
-			dna_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			dna_lbl.text = "DNA: W:%d%% D:%d%% J:%d%%" % [
-				int(dna.get("wall_climb", 33)),
-				int(dna.get("dash", 33)),
-				int(dna.get("double_jump", 34))
-			]
-			tag_bg.add_child(dna_lbl)
-			
-			btn.add_child(tag_bg)
-			
-	if not lvlView.has_node("MechanicInfoPanel"):
-		var panel := ColorRect.new()
-		panel.name = "MechanicInfoPanel"
-		panel.position = Vector2(45, 228)
-		panel.size = Vector2(547, 64)
-		panel.color = Color(0.06, 0.09, 0.15, 0.94)
 		
+	# 1. Pobranie lub utworzenie panelu informacyjnego dopasowanego do nowej grafiki LevelSelect.png
+	var panel: Control = lvlView.get_node_or_null("MechanicInfoPanel") as Control
+	if not panel:
+		panel = Control.new()
+		panel.name = "MechanicInfoPanel"
+		panel.position = Vector2(45, 244)
+		panel.size = Vector2(547, 45)
+		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lvlView.add_child(panel)
+	else:
+		panel.position = Vector2(45, 244)
+		panel.size = Vector2(547, 45)
+		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	mechanicInfoLabel = panel.get_node_or_null("MechanicInfoLabel") as Label
+	if not mechanicInfoLabel:
 		mechanicInfoLabel = Label.new()
 		mechanicInfoLabel.name = "MechanicInfoLabel"
-		mechanicInfoLabel.position = Vector2(10, 4)
-		mechanicInfoLabel.size = Vector2(527, 38)
+		mechanicInfoLabel.position = Vector2(6, 2)
+		mechanicInfoLabel.size = Vector2(535, 24)
 		mechanicInfoLabel.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		mechanicInfoLabel.add_theme_font_size_override("font_size", 10)
-		mechanicInfoLabel.add_theme_color_override("font_color", Color(0.88, 0.94, 1.0, 1.0))
+		mechanicInfoLabel.add_theme_font_size_override("font_size", 9)
+		mechanicInfoLabel.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0, 1.0))
 		panel.add_child(mechanicInfoLabel)
-		
+	else:
+		mechanicInfoLabel.position = Vector2(6, 2)
+		mechanicInfoLabel.size = Vector2(535, 24)
+		mechanicInfoLabel.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		mechanicInfoLabel.add_theme_font_size_override("font_size", 9)
+
+	dnaRadarLabel = panel.get_node_or_null("DnaRadarLabel") as Label
+	if not dnaRadarLabel:
 		dnaRadarLabel = Label.new()
 		dnaRadarLabel.name = "DnaRadarLabel"
-		dnaRadarLabel.position = Vector2(10, 44)
-		dnaRadarLabel.size = Vector2(527, 16)
-		dnaRadarLabel.add_theme_font_size_override("font_size", 9)
+		dnaRadarLabel.position = Vector2(6, 27)
+		dnaRadarLabel.size = Vector2(535, 16)
+		dnaRadarLabel.add_theme_font_size_override("font_size", 8)
 		dnaRadarLabel.add_theme_color_override("font_color", Color(0.45, 0.95, 0.72, 1.0))
 		panel.add_child(dnaRadarLabel)
-		
-		lvlView.add_child(panel)
-		
-	if not lvlView.has_node("AIContractBtn"):
+	else:
+		dnaRadarLabel.position = Vector2(6, 27)
+		dnaRadarLabel.size = Vector2(535, 16)
+		dnaRadarLabel.add_theme_font_size_override("font_size", 8)
+
+	# 2. Pobranie lub utworzenie lewego przycisku: Kontrakt Reżysera AI (x=45, y=296, w=244, h=24)
+	aiContractBtn = lvlView.get_node_or_null("AIContractBtn") as Button
+	if not aiContractBtn:
 		aiContractBtn = Button.new()
 		aiContractBtn.name = "AIContractBtn"
 		aiContractBtn.position = Vector2(45, 296)
-		aiContractBtn.size = Vector2(265, 28)
-		aiContractBtn.add_theme_font_size_override("font_size", 10)
+		aiContractBtn.size = Vector2(244, 24)
+		aiContractBtn.flat = true
+		aiContractBtn.add_theme_font_size_override("font_size", 9)
 		aiContractBtn.pressed.connect(_cycle_ai_contract)
 		lvlView.add_child(aiContractBtn)
-		_update_contract_btn_text()
-		
-	if not lvlView.has_node("AIGenerateBtn"):
+	else:
+		aiContractBtn.position = Vector2(45, 296)
+		aiContractBtn.size = Vector2(244, 24)
+		aiContractBtn.flat = true
+		aiContractBtn.add_theme_font_size_override("font_size", 9)
+		if not aiContractBtn.pressed.is_connected(_cycle_ai_contract):
+			aiContractBtn.pressed.connect(_cycle_ai_contract)
+	_update_contract_btn_text()
+
+	# 3. Pobranie lub utworzenie prawego przycisku: Szachownica AI (x=345, y=296, w=247, h=24)
+	aiGenerateBtn = lvlView.get_node_or_null("AIGenerateBtn") as Button
+	if not aiGenerateBtn:
 		aiGenerateBtn = Button.new()
 		aiGenerateBtn.name = "AIGenerateBtn"
-		aiGenerateBtn.position = Vector2(320, 296)
-		aiGenerateBtn.size = Vector2(272, 28)
-		aiGenerateBtn.add_theme_font_size_override("font_size", 10)
-		aiGenerateBtn.text = "⚡ IV. SZACHOWNICA AI + ZADANIA Z PORTALU"
+		aiGenerateBtn.position = Vector2(345, 296)
+		aiGenerateBtn.size = Vector2(247, 24)
+		aiGenerateBtn.flat = true
+		aiGenerateBtn.add_theme_font_size_override("font_size", 9)
+		aiGenerateBtn.text = "⚡ IV. SZACHOWNICA AI + ZADANIA"
 		aiGenerateBtn.pressed.connect(func():
 			var new_seed: int = int(Time.get_unix_time_from_system()) + randi() % 10000
 			_startLevelProfile(4, new_seed)
@@ -518,7 +527,17 @@ func _setup_mechanic_level_select_ui() -> void:
 		aiGenerateBtn.mouse_entered.connect(func(): _preview_mechanic_profile(4))
 		aiGenerateBtn.focus_entered.connect(func(): _preview_mechanic_profile(4))
 		lvlView.add_child(aiGenerateBtn)
-		
+	else:
+		aiGenerateBtn.position = Vector2(345, 296)
+		aiGenerateBtn.size = Vector2(247, 24)
+		aiGenerateBtn.flat = true
+		aiGenerateBtn.add_theme_font_size_override("font_size", 9)
+		aiGenerateBtn.text = "⚡ IV. SZACHOWNICA AI + ZADANIA"
+		if not aiGenerateBtn.mouse_entered.is_connected(func(): _preview_mechanic_profile(4)):
+			aiGenerateBtn.mouse_entered.connect(func(): _preview_mechanic_profile(4))
+		if not aiGenerateBtn.focus_entered.is_connected(func(): _preview_mechanic_profile(4)):
+			aiGenerateBtn.focus_entered.connect(func(): _preview_mechanic_profile(4))
+
 	_preview_mechanic_profile(1)
 
 func _cycle_ai_contract() -> void:
@@ -540,7 +559,7 @@ func _preview_mechanic_profile(profile_id: int) -> void:
 	var meta: Dictionary = LevelGenerator.get_profile_metadata(profile_id)
 	var best_t: float = Events.get_level_best_time(profile_id) if is_instance_valid(Events) else -1.0
 	var time_str: String = " | Rekord: %02d:%02d.%d" % [int(best_t) / 60, int(best_t) % 60, int((best_t - int(best_t)) * 10)] if best_t >= 0.0 else " | Zbierz wszystkie Jewele na czas!"
-	mechanicInfoLabel.text = "%s — %s%s\n%s" % [
+	mechanicInfoLabel.text = "%s: %s%s\n%s" % [
 		String(meta["title"]),
 		String(meta["subtitle"]),
 		time_str,
@@ -561,74 +580,130 @@ func _preview_mechanic_profile(profile_id: int) -> void:
 			ch_info
 		]
 
-## Upewnia sie, ze szyny audio Master, Music i SFX istnieja w AudioServerze.
-func _ensure_audio_buses() -> void:
-	if AudioServer.get_bus_index("Music") == -1:
-		var idx = AudioServer.bus_count
-		AudioServer.add_bus(idx)
-		AudioServer.set_bus_name(idx, "Music")
-		AudioServer.set_bus_send(idx, "Master")
-	if AudioServer.get_bus_index("SFX") == -1:
-		var idx = AudioServer.bus_count
-		AudioServer.add_bus(idx)
-		AudioServer.set_bus_name(idx, "SFX")
-		AudioServer.set_bus_send(idx, "Master")
+func _find_in_settings(child_path: String) -> Node:
+	if not setView:
+		return null
+	var direct = setView.get_node_or_null(child_path)
+	if direct:
+		return direct
+	return setView.find_child(child_path.get_file(), true, false)
 
-## Ustawia glosnosc na danej szynie (wartosc od 0 do 100).
-func _set_bus_volume_percent(bus_name: String, pct: float) -> void:
-	_ensure_audio_buses()
-	var bus_idx = AudioServer.get_bus_index(bus_name)
-	if bus_idx == -1:
-		return
-	if pct <= 0.001:
-		AudioServer.set_bus_mute(bus_idx, true)
-	else:
-		AudioServer.set_bus_mute(bus_idx, false)
-		var linear = clampf(pct / 100.0, 0.0001, 1.0)
-		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(linear))
 func _setup_settings_mockups() -> void:
-	var modeOpt: OptionButton = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/ModeBox/DisplayModeOpt")
+	_ensure_audio_buses()
+	
+	var modeOpt: OptionButton = _find_in_settings("DisplayModeOpt") as OptionButton
 	if modeOpt and modeOpt.item_count == 0:
 		modeOpt.add_item("Pełny ekran (Fullscreen)")
 		modeOpt.add_item("Okno (Windowed)")
 		modeOpt.add_item("Okno bez ramek (Borderless)")
 		modeOpt.selected = 1
+		modeOpt.item_selected.connect(func(idx):
+			match idx:
+				0: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+				1: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+				2: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+		)
 		
-	var resOpt: OptionButton = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/ResBox/ResolutionOpt")
+	var resOpt: OptionButton = _find_in_settings("ResolutionOpt") as OptionButton
 	if resOpt and resOpt.item_count == 0:
 		resOpt.add_item("1280 x 720 (HD)")
 		resOpt.add_item("1920 x 1080 (FHD)")
-		resOpt.add_item("640 x 360 (Natywna makiety)")
+		resOpt.add_item("640 x 360 (Natywna)")
 		resOpt.selected = 0
+		resOpt.item_selected.connect(func(idx):
+			if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED:
+				match idx:
+					0: DisplayServer.window_set_size(Vector2i(1280, 720))
+					1: DisplayServer.window_set_size(Vector2i(1920, 1080))
+					2: DisplayServer.window_set_size(Vector2i(640, 360))
+		)
 		
-	var fpsOpt: OptionButton = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/FpsBox/FpsLimitOpt")
+	var vsyncCheck: CheckBox = _find_in_settings("VsyncCheck") as CheckBox
+	if vsyncCheck:
+		vsyncCheck.toggled.connect(func(on: bool):
+			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if on else DisplayServer.VSYNC_DISABLED)
+		)
+
+	var fpsOpt: OptionButton = _find_in_settings("FpsLimitOpt") as OptionButton
 	if fpsOpt and fpsOpt.item_count == 0:
 		fpsOpt.add_item("60 FPS")
 		fpsOpt.add_item("120 FPS")
 		fpsOpt.add_item("Bez limitu (Uncapped)")
 		fpsOpt.selected = 0
+		fpsOpt.item_selected.connect(func(idx):
+			match idx:
+				0: Engine.max_fps = 60
+				1: Engine.max_fps = 120
+				2: Engine.max_fps = 0
+		)
 		
-	var langOpt: OptionButton = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel/LangBox/LanguageOpt")
+	var langOpt: OptionButton = _find_in_settings("LanguageOpt") as OptionButton
 	if langOpt and langOpt.item_count == 0:
 		langOpt.add_item("Polski (PL)")
 		langOpt.add_item("English (EN)")
 		langOpt.add_item("Deutsch (DE)")
 		langOpt.selected = 0
 		
-	var masterSlider: HSlider = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MasterBox/MasterSlider")
-	var masterVal: Label = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MasterBox/Value")
-	if masterSlider and masterVal:
-		masterSlider.value_changed.connect(func(v): masterVal.text = "%d%%" % int(v))
+	# --- Rzeczywista regulacja głośności szyn AudioServer ---
+	var masterSlider: HSlider = _find_in_settings("MasterSlider") as HSlider
+	var masterVal: Label = _find_in_settings("MasterBox/Value") as Label
+	if masterSlider:
+		var m_idx = AudioServer.get_bus_index("Master")
+		if m_idx != -1:
+			var cur_db = AudioServer.get_bus_volume_db(m_idx)
+			var is_muted = AudioServer.is_bus_mute(m_idx)
+			masterSlider.value = 0.0 if is_muted else clampf(db_to_linear(cur_db) * 100.0, 0.0, 100.0)
+		if masterVal:
+			masterVal.text = "%d%%" % int(masterSlider.value)
+		masterSlider.value_changed.connect(func(v):
+			if masterVal: masterVal.text = "%d%%" % int(v)
+			_set_bus_volume_percent("Master", v)
+		)
 		
-	var musicSlider: HSlider = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MusicBox/MusicSlider")
-	var musicVal: Label = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MusicBox/Value")
-	if musicSlider and musicVal:
-		musicSlider.value_changed.connect(func(v): musicVal.text = "%d%%" % int(v))
+	var musicSlider: HSlider = _find_in_settings("MusicSlider") as HSlider
+	var musicVal: Label = _find_in_settings("MusicBox/Value") as Label
+	if musicSlider:
+		var mus_idx = AudioServer.get_bus_index("Music")
+		if mus_idx != -1:
+			var cur_db = AudioServer.get_bus_volume_db(mus_idx)
+			var is_muted = AudioServer.is_bus_mute(mus_idx)
+			musicSlider.value = 0.0 if is_muted else clampf(db_to_linear(cur_db) * 100.0, 0.0, 100.0)
+		if musicVal:
+			musicVal.text = "%d%%" % int(musicSlider.value)
+		musicSlider.value_changed.connect(func(v):
+			if musicVal: musicVal.text = "%d%%" % int(v)
+			_set_bus_volume_percent("Music", v)
+			if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+				Events.portal_sync.cosmetics_state["music_volume"] = v / 100.0
+		)
 		
-	var sfxSlider: HSlider = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/SfxBox/SfxSlider")
-	var sfxVal: Label = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/SfxBox/Value")
-	if sfxSlider and sfxVal:
-		sfxSlider.value_changed.connect(func(v): sfxVal.text = "%d%%" % int(v))
+	var sfxSlider: HSlider = _find_in_settings("SfxSlider") as HSlider
+	var sfxVal: Label = _find_in_settings("SfxBox/Value") as Label
+	if sfxSlider:
+		var sfx_idx = AudioServer.get_bus_index("SFX")
+		if sfx_idx != -1:
+			var cur_db = AudioServer.get_bus_volume_db(sfx_idx)
+			var is_muted = AudioServer.is_bus_mute(sfx_idx)
+			sfxSlider.value = 0.0 if is_muted else clampf(db_to_linear(cur_db) * 100.0, 0.0, 100.0)
+		if sfxVal:
+			sfxVal.text = "%d%%" % int(sfxSlider.value)
+		sfxSlider.value_changed.connect(func(v):
+			if sfxVal: sfxVal.text = "%d%%" % int(v)
+			_set_bus_volume_percent("SFX", v)
+			if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+				Events.portal_sync.cosmetics_state["sfx_volume"] = v / 100.0
+			_play_menu_sfx()
+		)
+		
+	var muteCheck: CheckBox = _find_in_settings("MuteCheck") as CheckBox
+	if muteCheck:
+		var m_idx = AudioServer.get_bus_index("Master")
+		if m_idx != -1:
+			muteCheck.button_pressed = AudioServer.is_bus_mute(m_idx)
+		muteCheck.toggled.connect(func(toggled_on: bool):
+			if m_idx != -1:
+				AudioServer.set_bus_mute(m_idx, toggled_on)
+		)
 
 func _switchSettingsTab(tabIdx: int) -> void:
 	currentSettingsTab = clampi(tabIdx, 0, 3)
@@ -645,9 +720,15 @@ func _switchSettingsTab(tabIdx: int) -> void:
 		var b: Button = buttons[i]
 		if b:
 			if i == currentSettingsTab:
-				b.text = "[ %s ]" % tabNames[i]
+				var sb := StyleBoxFlat.new()
+				sb.bg_color = Color(1.0, 0.88, 0.35, 0.18)
+				sb.border_color = Color(1.0, 0.88, 0.35, 0.95)
+				sb.set_border_width_all(2)
+				sb.set_corner_radius_all(3)
+				b.add_theme_stylebox_override("normal", sb)
 			else:
-				b.text = tabNames[i]
+				var empty := StyleBoxEmpty.new()
+				b.add_theme_stylebox_override("normal", empty)
 				
 	if buttons[currentSettingsTab]:
 		buttons[currentSettingsTab].grab_focus()

@@ -1,7 +1,9 @@
+import uuid
+
 from fastapi import APIRouter, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import ChallengeId, CurrentPlayer, DbSession
+from app.api.deps import ChallengeId, CurrentPlayer, DbSession, SessionToken
 from app.db.models import Gracz
 from app.schemas.auth import (
     ChangeEmailRequest,
@@ -99,6 +101,24 @@ def my_challenges(gracz: CurrentPlayer, db: DbSession) -> dict:
 @router.get("/challenges/{challenge_id}/attempts", tags=["wyzwania"])
 def my_attempts(challenge_id: ChallengeId, gracz: CurrentPlayer, db: DbSession) -> dict:
     return challenges.attempts(db, challenge_id, gracz)
+
+
+@router.post("/challenges/{challenge_id}/claim", tags=["wyzwania"])
+def claim_challenge_reward(challenge_id: ChallengeId, gracz: CurrentPlayer, db: DbSession) -> dict:
+    """Odbiór nagrody za ukończone wyzwanie (2.5)."""
+    return challenges.claim_reward(db, challenge_id, gracz)
+
+
+@router.get("/sessions", tags=["konto"])
+def read_sessions(gracz: CurrentPlayer, db: DbSession, token: SessionToken) -> dict:
+    """Lista aktywnych sesji konta (gra i przeglądarka)."""
+    return {"items": auth_service.list_sessions(db, gracz, token)}
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["konto"])
+def delete_session(session_id: uuid.UUID, gracz: CurrentPlayer, db: DbSession) -> None:
+    """Unieważnienie wybranej sesji, np. odłączenie gry."""
+    auth_service.revoke_session(db, gracz, session_id)
 
 
 @router.get("/game-state", tags=["konto"])

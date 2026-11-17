@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
@@ -11,15 +12,20 @@ from app.db.models import (
     ElementPersonalizacji,
     Gracz,
     Nagroda,
+    PortfelGracza,
+    PosiadaneWzmocnienie,
+    PosiadanyElement,
     Poziom,
     PostepPoziomu,
     ProbaWyzwania,
+    Transakcja,
     UczestnictwoWWyzwaniu,
     Wyzwanie,
     Wzmocnienie,
 )
 
 logger = logging.getLogger("jewelrunner")
+DUPLICATE_ELEMENT_GEMS = 100
 
 
 def _reward(nagroda: Nagroda, element_name: str | None, booster_type: str | None) -> dict:
@@ -103,6 +109,7 @@ def get_details(db: Session, challenge_id: int, gracz_id: uuid.UUID) -> dict:
         "ends_at": wyzwanie.data_zakonczenia,
         "participation": participation
         and {"status": participation.status, "progress_percent": participation.postep_procent},
+        "reward_status": participation.status_nagrody if participation else None,
     }
 
 
@@ -184,8 +191,11 @@ def list_mine(db: Session, gracz_id: uuid.UUID) -> list[dict]:
     )
     db.commit()
     rows = db.execute(
-        select(UczestnictwoWWyzwaniu, Wyzwanie)
+        select(UczestnictwoWWyzwaniu, Wyzwanie, Nagroda, ElementPersonalizacji.nazwa, Wzmocnienie.typ)
         .join(Wyzwanie, Wyzwanie.id == UczestnictwoWWyzwaniu.wyzwanie_id)
+        .join(Nagroda, Nagroda.id == Wyzwanie.nagroda_id)
+        .outerjoin(ElementPersonalizacji, ElementPersonalizacji.id == Nagroda.element_id)
+        .outerjoin(Wzmocnienie, Wzmocnienie.id == Nagroda.wzmocnienie_id)
         .where(UczestnictwoWWyzwaniu.gracz_id == gracz_id)
         .order_by(UczestnictwoWWyzwaniu.data_przyjecia.desc(), UczestnictwoWWyzwaniu.id.desc())
     ).all()
@@ -197,9 +207,92 @@ def list_mine(db: Session, gracz_id: uuid.UUID) -> list[dict]:
             "progress_percent": participation.postep_procent,
             "ends_at": wyzwanie.data_zakonczenia,
             "best_score": participation.najlepszy_wynik,
+            "reward_status": participation.status_nagrody,
+            "reward": _reward(nagroda, element_name, booster_type),
         }
-        for participation, wyzwanie in rows
+        for participation, wyzwanie, nagroda, element_name, booster_type in rows
     ]
+
+
+def claim_reward(db: Session, challenge_id: int, gracz: Gracz) -> dict:
+    """Wypłaca nagrodę za ukończone wyzwanie (status_nagrody = 'Do odebrania') w jednej transakcji."""
+    participation = db.scalar(
+        select(UczestnictwoWWyzwaniu)
+        .where(UczestnictwoWWyzwaniu.wyzwanie_id == challenge_id, UczestnictwoWWyzwaniu.gracz_id == gracz.id)
+        .with_for_update()
+    )
+    if participation is None:
+        raise AppError(404, "not_found", "Nie znaleziono uczestnictwa w tym wyzwaniu.")
+    if participation.status_nagrody == "Odebrana":
+        db.rollback()
+        raise AppError(409, "reward_already_claimed", "Nagroda za to wyzwanie została już odebrana.")
+    if participation.status_nagrody != "Do odebrania":
+        db.rollback()
+        raise AppError(409, "reward_not_available", "Nagroda nie jest gotowa do odebrania.")
+
+    row = db.execute(_challenge_query().where(Wyzwanie.id == challenge_id)).first()
+    if row is None:
+        db.rollback()
+        raise AppError(404, "not_found", "Nie znaleziono wyzwania.")
+    _, nagroda, element_name, booster_type = row
+
+    wallet = db.scalar(select(PortfelGracza).where(PortfelGracza.gracz_id == gracz.id).with_for_update())
+    if wallet is None:
+        db.rollback()
+        raise RuntimeError(f"Gracz {gracz.id} nie ma portfela.")
+
+    gems_awarded = 0
+    converted_to_gems = False
+    if nagroda.typ == "klejnoty":
+        gems_awarded = nagroda.liczba_klejnotow or 0
+        wallet.liczba_klejnotow += gems_awarded
+    elif nagroda.typ in ("skórka", "kolor", "akcesorium"):
+        inserted = db.scalar(
+            insert(PosiadanyElement)
+            .values(gracz_id=gracz.id, element_id=nagroda.element_id)
+            .on_conflict_do_nothing(index_elements=["gracz_id", "element_id"])
+            .returning(PosiadanyElement.element_id)
+        )
+        if inserted is None:
+            gems_awarded = DUPLICATE_ELEMENT_GEMS
+            wallet.liczba_klejnotow += gems_awarded
+            converted_to_gems = True
+    elif nagroda.typ == "wzmocnienie":
+        db.execute(
+            insert(PosiadaneWzmocnienie)
+            .values(gracz_id=gracz.id, wzmocnienie_id=nagroda.wzmocnienie_id, liczba=1)
+            .on_conflict_do_update(
+                index_elements=["gracz_id", "wzmocnienie_id"],
+                set_={"liczba": PosiadaneWzmocnienie.liczba + 1},
+            )
+        )
+
+    participation.status_nagrody = "Odebrana"
+    participation.data_odebrania_nagrody = datetime.now(UTC)
+    db.add(
+        Transakcja(
+            gracz_id=gracz.id,
+            typ="odbiór nagrody",
+            kwota_klejnotow=gems_awarded,
+            wzmocnienie_id=nagroda.wzmocnienie_id,
+            uczestnictwo_id=participation.id,
+            klucz_idempotencji=f"challenge_reward:{participation.id}",
+        )
+    )
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise AppError(409, "reward_already_claimed", "Nagroda za to wyzwanie została już odebrana.") from exc
+
+    return {
+        "challenge_id": challenge_id,
+        "reward_status": "Odebrana",
+        "reward": _reward(nagroda, element_name, booster_type),
+        "gems_awarded": gems_awarded,
+        "converted_to_gems": converted_to_gems,
+        "balance": wallet.liczba_klejnotow,
+    }
 
 
 def attempts(db: Session, challenge_id: int, gracz: Gracz) -> dict:

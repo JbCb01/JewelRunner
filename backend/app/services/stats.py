@@ -105,3 +105,19 @@ def history(db: Session, gracz_id: uuid.UUID, limit: int, before_id: int | None)
         ],
         "next_before_id": page[-1].id if len(rows) > limit else None,
     }
+
+
+def complete_tutorial(db: Session, gracz_id: uuid.UUID) -> dict:
+    """Zapisuje ukończenie samouczka w statystykach gracza (3.6)."""
+    db.execute(
+        text(
+            """
+            INSERT INTO statystyki_gracza (gracz_id, czy_samouczek_ukonczony)
+            VALUES (:g, TRUE)
+            ON CONFLICT (gracz_id) DO UPDATE SET czy_samouczek_ukonczony = TRUE
+            """
+        ),
+        {"g": gracz_id},
+    )
+    db.commit()
+    return {"tutorial_completed": True}

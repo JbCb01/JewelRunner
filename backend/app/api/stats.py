@@ -23,3 +23,9 @@ def read_runs(
 ) -> dict:
     """Historia gier: ukończone poziomy i porażki, od najnowszych."""
     return stats.history(db, gracz.id, limit, before_id)
+
+
+@router.post("/tutorial/complete")
+def complete_tutorial(gracz: CurrentPlayer, db: DbSession) -> dict:
+    """Zapisuje ukończenie samouczka przez gracza (3.6)."""
+    return stats.complete_tutorial(db, gracz.id)

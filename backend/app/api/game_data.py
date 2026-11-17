@@ -3,8 +3,17 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from app.api.deps import CurrentPlayer, DbSession
-from app.schemas.game import SaveRequest, SaveResponse, SaveState, WalletResponse, WalletSyncRequest, WalletSyncResponse
-from app.services import game_save, wallet
+from app.schemas.game import (
+    SaveRequest,
+    SaveResponse,
+    SaveState,
+    UseBoosterRequest,
+    UseBoosterResponse,
+    WalletResponse,
+    WalletSyncRequest,
+    WalletSyncResponse,
+)
+from app.services import game_save, shop, wallet
 
 router = APIRouter(prefix="/me", tags=["gra"])
 
@@ -35,3 +44,9 @@ def sync_wallet(data: WalletSyncRequest, gracz: CurrentPlayer, db: DbSession) ->
     """Klejnoty zebrane w grze, także te zebrane bez internetu i wysłane później."""
     gems, applied, duplicates = wallet.sync(db, gracz, data.operations)
     return WalletSyncResponse(gems=gems, applied=applied, duplicates=duplicates)
+
+
+@router.post("/boosters/use")
+def use_booster(data: UseBoosterRequest, gracz: CurrentPlayer, db: DbSession) -> UseBoosterResponse:
+    """Zgłoszenie zużycia wzmocnienia z gry; idempotentne po operation_id."""
+    return UseBoosterResponse(**shop.use_booster(db, gracz, data.booster_type, data.operation_id))

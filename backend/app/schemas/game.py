@@ -53,6 +53,17 @@ class WalletSyncResponse(WalletResponse):
     duplicates: list[str]
 
 
+class UseBoosterRequest(BaseModel):
+    operation_id: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.:-]{8,64}$")]
+    booster_type: ShortText
+
+
+class UseBoosterResponse(BaseModel):
+    booster_type: str
+    remaining: int
+    duplicate: bool
+
+
 class RunRequest(BaseModel):
     """Wynik jednego rozegrania poziomu wysłany przez grę po mecie albo po porażce."""
 

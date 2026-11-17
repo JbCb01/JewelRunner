@@ -21,7 +21,7 @@ from app.db.models import (
     WygladPostaci,
     Wzmocnienie,
 )
-from app.services import challenges, mailer, player_settings
+from app.services import challenges, mailer, player_settings, shop
 from app.services.auth import check_password_with_lock
 
 EMAIL_TOKEN_TTL = timedelta(hours=24)
@@ -167,11 +167,6 @@ def get_game_state(db: Session, gracz: Gracz) -> dict:
             "equipped_accessories": {},
             "owned_items": owned_items,
         },
-        "boosters": {
-            "tarcza": 0,
-            "podwójne punkty": 0,
-            "dodatkowe życie": 0,
-            "magnes": 0,
-        },
+        "boosters": shop.owned_boosters_map(db, gracz.id),
         "challenges": enriched_challenges,
     }

@@ -171,3 +171,43 @@ def has_game_session(db: Session, gracz: Gracz) -> bool:
         )
         is not None
     )
+
+
+def list_sessions(db: Session, gracz: Gracz, current_token: str | None) -> list[dict]:
+    """Zwraca aktywne sesje zalogowanego gracza (gra i przeglądarka)."""
+    current_hash = token_hash(current_token) if current_token else None
+    rows = db.scalars(
+        select(SesjaLogowania)
+        .where(
+            SesjaLogowania.gracz_id == gracz.id,
+            SesjaLogowania.data_uniewaznienia.is_(None),
+            SesjaLogowania.data_wygasniecia > datetime.now(UTC),
+        )
+        .order_by(SesjaLogowania.data_utworzenia.desc())
+    ).all()
+    return [
+        {
+            "id": str(row.id),
+            "device": row.urzadzenie,
+            "created_at": row.data_utworzenia,
+            "expires_at": row.data_wygasniecia,
+            "is_current": current_hash is not None and row.skrot_tokenu == current_hash,
+        }
+        for row in rows
+    ]
+
+
+def revoke_session(db: Session, gracz: Gracz, session_id) -> None:
+    """Unieważnia wybraną aktywną sesję gracza (np. odłączenie gry)."""
+    session = db.scalar(
+        select(SesjaLogowania).where(
+            SesjaLogowania.id == session_id,
+            SesjaLogowania.gracz_id == gracz.id,
+            SesjaLogowania.data_uniewaznienia.is_(None),
+            SesjaLogowania.data_wygasniecia > datetime.now(UTC),
+        )
+    )
+    if session is None:
+        raise AppError(404, "not_found", "Nie znaleziono aktywnej sesji.")
+    session.data_uniewaznienia = datetime.now(UTC)
+    db.commit()

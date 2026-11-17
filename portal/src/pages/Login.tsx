@@ -63,7 +63,8 @@ export function Login() {
         </button>
       </form>
       <p>
-        Nie masz konta? <Link to="/rejestracja">Utwórz konto</Link>
+        Nie masz konta? <Link to="/rejestracja">Utwórz konto</Link> ·{" "}
+        <Link to="/odzyskiwanie-hasla">Zapomniałeś hasła?</Link>
       </p>
     </section>
   );

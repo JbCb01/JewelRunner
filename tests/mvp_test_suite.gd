@@ -46,6 +46,7 @@ func _ready() -> void:
 	itGoalRequiresAllJewelsAndRecordsTime()
 	itMainMenuViewNavigation()
 	itMainMenuSfxMuteSync()
+	itSettingsAudioSlidersAdjustAudioServerBuses()
 	itTopProfileButtonOpensWebPortalAndSyncs()
 	itPortalShieldAndMagnetBoostersInGameplay()
 	itWebChallengesCompleteOnWinningRun()
@@ -525,6 +526,33 @@ func itMainMenuSfxMuteSync() -> void:
 	assertCond(stateOk, "IT-07", "Przełącznik SFX w ustawieniach wycisza szynę SFX w AudioServer")
 	menu.free()
 
+func itSettingsAudioSlidersAdjustAudioServerBuses() -> void:
+	var menu = _createMockMainMenu()
+	menu._ensure_audio_buses()
+	
+	var musSlider = menu._find_in_settings("MusicSlider") as HSlider
+	var sfxSlider = menu._find_in_settings("SfxSlider") as HSlider
+	var masterSlider = menu._find_in_settings("MasterSlider") as HSlider
+	
+	if musSlider:
+		musSlider.value = 60.0
+	if sfxSlider:
+		sfxSlider.value = 40.0
+	if masterSlider:
+		masterSlider.value = 85.0
+		
+	var musBus = AudioServer.get_bus_index("Music")
+	var sfxBus = AudioServer.get_bus_index("SFX")
+	var masterBus = AudioServer.get_bus_index("Master")
+	
+	var musOk: bool = (musBus != -1) and is_equal_approx(AudioServer.get_bus_volume_db(musBus), linear_to_db(0.6))
+	var sfxOk: bool = (sfxBus != -1) and is_equal_approx(AudioServer.get_bus_volume_db(sfxBus), linear_to_db(0.4))
+	var masterOk: bool = (masterBus != -1) and is_equal_approx(AudioServer.get_bus_volume_db(masterBus), linear_to_db(0.85))
+	
+	var allAudioOk: bool = musOk and sfxOk and masterOk
+	assertCond(allAudioOk, "IT-07B", "Suwaki głośności w zakładce Muzyka/Dźwięk faktycznie regulują szyny AudioServer (Master, Music, SFX)")
+	menu.free()
+
 func itTopProfileButtonOpensWebPortalAndSyncs() -> void:
 	var menu = _createMockMainMenu()
 	Events.portal_sync.last_opened_url = ""
@@ -729,6 +757,65 @@ func _createMockMainMenu() -> Control:
 			var bBack = Button.new()
 			bBack.name = "BackBtn"
 			v.add_child(bBack)
+		elif vName == "SettingsView":
+			var tb = Control.new()
+			tb.name = "TabBar"
+			for tName in ["TabAudioBtn", "TabGraphicsBtn", "TabControlsBtn", "TabLanguageBtn"]:
+				var b = Button.new()
+				b.name = tName
+				tb.add_child(b)
+			v.add_child(tb)
+			
+			var panels = Control.new()
+			panels.name = "Panels"
+			var aud = Control.new()
+			aud.name = "AudioPanel"
+			
+			var mBox = HBoxContainer.new()
+			mBox.name = "MasterBox"
+			var mSld = HSlider.new()
+			mSld.name = "MasterSlider"
+			var mVal = Label.new()
+			mVal.name = "Value"
+			mBox.add_child(mSld)
+			mBox.add_child(mVal)
+			aud.add_child(mBox)
+			
+			var musBox = HBoxContainer.new()
+			musBox.name = "MusicBox"
+			var musSld = HSlider.new()
+			musSld.name = "MusicSlider"
+			var musVal = Label.new()
+			musVal.name = "Value"
+			musBox.add_child(musSld)
+			musBox.add_child(musVal)
+			aud.add_child(musBox)
+			
+			var sfxBox = HBoxContainer.new()
+			sfxBox.name = "SfxBox"
+			var sfxSld = HSlider.new()
+			sfxSld.name = "SfxSlider"
+			var sfxVal = Label.new()
+			sfxVal.name = "Value"
+			sfxBox.add_child(sfxSld)
+			sfxBox.add_child(sfxVal)
+			aud.add_child(sfxBox)
+			
+			var muteChk = CheckBox.new()
+			muteChk.name = "MuteCheck"
+			aud.add_child(muteChk)
+			
+			panels.add_child(aud)
+			
+			for pName in ["GraphicsPanel", "ControlsPanel", "LanguagePanel"]:
+				var p = Control.new()
+				p.name = pName
+				panels.add_child(p)
+			v.add_child(panels)
+			
+			var sBack = Button.new()
+			sBack.name = "BackBtn"
+			v.add_child(sBack)
 		elif vName == "ProfileSettingsView":
 			for bName in ["ProfilBtn", "SkinSelectBtn", "ZadaniaBtn", "BackBtn"]:
 				var b = Button.new()

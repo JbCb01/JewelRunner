@@ -34,6 +34,7 @@ class SesjaLogowania(Base):
     gracz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gracz.id"))
     skrot_tokenu: Mapped[str] = mapped_column(Text)
     urzadzenie: Mapped[str] = mapped_column(Text)
+    data_utworzenia: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
     data_wygasniecia: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     data_uniewaznienia: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -71,6 +72,7 @@ class StatystykiGracza(Base):
     liczba_pokonanych_wrogow: Mapped[int] = mapped_column(server_default="0")
     liczba_porazek: Mapped[int] = mapped_column(server_default="0")
     najdluzsze_combo: Mapped[int] = mapped_column(server_default="0")
+    czy_samouczek_ukonczony: Mapped[bool] = mapped_column(server_default="false")
 
 
 class PortfelGracza(Base):
@@ -158,6 +160,24 @@ class Wzmocnienie(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     typ: Mapped[str] = mapped_column(Text)
+    efekt: Mapped[str] = mapped_column(Text)
+    czas_trwania_s: Mapped[int | None] = mapped_column()
+
+
+class OfertaSklepu(Base):
+    __tablename__ = "oferta_sklepu"
+
+    wzmocnienie_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("wzmocnienie.id"), primary_key=True)
+    cena_w_klejnotach: Mapped[int] = mapped_column()
+    dostepnosc: Mapped[bool] = mapped_column(server_default="true")
+
+
+class PosiadaneWzmocnienie(Base):
+    __tablename__ = "posiadane_wzmocnienie"
+
+    gracz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gracz.id"), primary_key=True)
+    wzmocnienie_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("wzmocnienie.id"), primary_key=True)
+    liczba: Mapped[int] = mapped_column(server_default="0")
 
 
 class Nagroda(Base):
@@ -196,6 +216,8 @@ class UczestnictwoWWyzwaniu(Base):
     postep_procent: Mapped[int] = mapped_column(server_default="0")
     najlepszy_wynik: Mapped[int | None] = mapped_column()
     data_przyjecia: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    status_nagrody: Mapped[str | None] = mapped_column(Text)
+    data_odebrania_nagrody: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class ProbaWyzwania(Base):

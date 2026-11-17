@@ -15,6 +15,7 @@ from app.api import (
     me,
     players,
     ranking,
+    shop,
     stats,
 )
 from app.api import settings as settings_api
@@ -55,6 +56,7 @@ def create_app() -> FastAPI:
     app.include_router(challenges.router, prefix="/api")
     app.include_router(ranking.router, prefix="/api")
     app.include_router(players.router, prefix="/api")
+    app.include_router(shop.router, prefix="/api")
     if settings.portal_dist:
         register_portal(app, Path(settings.portal_dist))
     return app

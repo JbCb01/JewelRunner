@@ -173,8 +173,14 @@ Błędy: `404 challenge_unavailable`, `409 participation_requirements_not_met` (
 ## Moje wyzwania (2.4)
 
 ### GET /me/challenges
-`200`: `items`: `{"challenge_id", "name", "status", "progress_percent", "ends_at", "best_score"}`.
-Status: `Aktywne`, `Ukończone` lub `Wygasłe` (portal pokazuje „Zakończone – nieukończone”).
+`200`: `items`: `{"challenge_id", "name", "status", "progress_percent", "ends_at", "best_score", "reward_status", "reward"}`.
+Status: `Aktywne`, `Ukończone` lub `Wygasłe` (portal pokazuje „Zakończone – nieukończone”). `reward_status`: `"Do odebrania"`, `"Odebrana"` lub `null`.
+
+### POST /me/challenges/{id}/claim (2.5)
+Odbiór nagrody za ukończone wyzwanie (`status_nagrody = 'Do odebrania'`).
+`200`: `{"challenge_id", "reward_status": "Odebrana", "reward", "gems_awarded", "converted_to_gems", "balance"}`.
+Gdy gracz posiada już element personalizacji z nagrody, otrzymuje równowartość `100` klejnotów (`converted_to_gems: true`).
+Błędy: `404 not_found`, `409 reward_not_available`, `409 reward_already_claimed`.
 
 ### GET /me/challenges/{id}/attempts
 `{id}` to identyfikator wyzwania.
@@ -279,6 +285,32 @@ Błędy: `400 invalid_token`, `409 email_taken`.
 ### POST /me/password (propozycja)
 Wejście: `{"current_password", "new_password"}`. `204`.
 Błędy: `403 invalid_password`, `422 weak_password`.
+
+## Sklep i wzmocnienia (7.3, 6.4)
+
+### GET /shop
+`200`: `{"balance": 250, "items": [{"booster_id", "type", "effect", "duration_s", "price", "owned"}]}`.
+
+### POST /shop/purchase
+Wejście: `{"booster_id": 1, "idempotency_key": "..."}`.
+`200`: `{"booster_id", "type", "price", "balance", "owned", "duplicate"}`.
+Błędy: `404 offer_unavailable`, `409 insufficient_gems` (`details.missing_gems`).
+
+### POST /me/boosters/use
+Wejście: `{"operation_id": "SES-...", "booster_type": "tarcza"}`.
+`200`: `{"booster_type", "remaining", "duplicate"}`.
+Błędy: `409 booster_not_owned`, `422 unknown_booster`.
+
+## Sesje i samouczek (8.3, 3.6)
+
+### GET /me/sessions
+`200`: `{"items": [{"id", "device": "gra|przeglądarka", "created_at", "expires_at", "is_current"}]}`.
+
+### DELETE /me/sessions/{id}
+`204`. Unieważnia aktywną sesję (np. odłączenie gry). Błąd: `404 not_found`.
+
+### POST /me/tutorial/complete
+`200`: `{"tutorial_completed": true}`. Zapisuje ukończenie samouczka w `statystyki_gracza`.
 
 ## Do ustalenia
 

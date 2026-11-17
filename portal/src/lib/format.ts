@@ -1,4 +1,4 @@
-import type { Conditions, Reward } from "../api/types";
+import type { ClaimRewardResponse, Conditions, Reward, UnlockCondition } from "../api/types";
 
 const dateFormat = new Intl.DateTimeFormat("pl-PL", { dateStyle: "medium", timeStyle: "short" });
 
@@ -71,4 +71,40 @@ export function secondsLeft(expiresAt: string, nowMs: number = Date.now()): numb
 export function formatCountdown(seconds: number): string {
   const clamped = Math.max(0, Math.floor(seconds));
   return `${Math.floor(clamped / 60)}:${String(clamped % 60).padStart(2, "0")}`;
+}
+
+export function formatRunTime(seconds: number): string {
+  if (seconds < 60) return `${seconds.toFixed(1)} s`;
+  const mins = Math.floor(seconds / 60);
+  const rem = (seconds % 60).toFixed(1).padStart(4, "0");
+  return `${mins}:${rem}`;
+}
+
+export function formatUnlockCondition(condition: UnlockCondition | null): string {
+  if (!condition) return "Do zdobycia jako nagroda w wyzwaniu";
+  switch (condition.type) {
+    case "wynik w poziomie":
+      return `Zdobądź co najmniej ${condition.value} pkt w poziomie`;
+    case "liczba klejnotów":
+      return `Zbierz łącznie ${condition.value} klejnotów`;
+    case "wyzwanie":
+      return condition.challenge_name
+        ? `Ukończ wyzwanie: ${condition.challenge_name}`
+        : `Ukończ wyzwanie #${condition.value}`;
+  }
+}
+
+export function formatBoosterName(type: string): string {
+  if (!type) return type;
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+export function formatClaimResult(result: ClaimRewardResponse): string {
+  if (result.converted_to_gems) {
+    return `Masz już ten element — otrzymano równowartość ${result.gems_awarded} klejnotów. Nowe saldo: ${result.balance} klejnotów.`;
+  }
+  if (result.reward.type === "klejnoty") {
+    return `Odebrano ${result.gems_awarded} klejnotów. Nowe saldo: ${result.balance} klejnotów.`;
+  }
+  return `Odebrano nagrodę: ${formatReward(result.reward)}.`;
 }

@@ -63,8 +63,8 @@ a {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 32px;
-  padding: 12px 32px;
+  gap: 20px;
+  padding: 12px 24px;
   background: var(--panel);
   border-bottom: 3px solid var(--panel-border);
 }
@@ -74,7 +74,8 @@ a {
   align-items: center;
   gap: 10px;
   color: var(--text);
-  font-size: 24px;
+  font-size: 22px;
+  white-space: nowrap;
   text-decoration: none;
 }
 
@@ -84,13 +85,16 @@ a {
 
 .topbar nav {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .topbar nav a {
-  padding: 6px 12px;
+  padding: 6px 10px;
   color: var(--text);
+  font-size: 15px;
   border-radius: 4px;
+  white-space: nowrap;
   text-decoration: none;
 }
 
@@ -431,4 +435,340 @@ tfoot td {
 .pairing-countdown p {
   margin: 0;
   font-size: 14px;
+}
+
+.stack-lg {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.page-header-row h1,
+.page-header-row h2 {
+  margin-bottom: 0;
+}
+
+.muted-text {
+  color: var(--muted);
+}
+
+.small-note {
+  font-size: 14px;
+}
+
+.top-gap {
+  margin-top: 14px;
+}
+
+.subsection-title {
+  margin: 20px 0 12px;
+  font-family: var(--heading);
+  font-size: 18px;
+  color: var(--accent);
+}
+
+.wallet-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.wallet-pill img,
+.daily-reward-hero img,
+.shop-balance img,
+.overview-gems img {
+  image-rendering: pixelated;
+}
+
+.button.accent-small {
+  padding: 5px 10px;
+  font-size: 13px;
+  color: #1d1033;
+  background: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.button.filter-btn {
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.button.filter-btn.active {
+  color: #1d1033;
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.tab-dot {
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+.inline-search-form {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.inline-search-form .grow {
+  flex: 1;
+}
+
+.search-results {
+  margin-top: 20px;
+}
+
+.search-results h2 {
+  margin-bottom: 12px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 8, 28, 0.78);
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 600px;
+  padding: 24px;
+  background: var(--panel);
+  border: 3px solid var(--accent);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.daily-reward-hero {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 20px;
+}
+
+.daily-track {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.daily-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.daily-day.current {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 211, 78, 0.25);
+}
+
+.daily-day.done {
+  background: var(--success-bg);
+  border-color: var(--success);
+}
+
+.daily-day.special {
+  border-color: var(--panel-border);
+}
+
+.daily-day-num {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.daily-day-tag {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.badge.badge-special {
+  color: #1d1033;
+  background: var(--accent);
+  font-weight: 600;
+}
+
+.badge-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.appearance-preview {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px;
+  margin-bottom: 18px;
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+}
+
+.appearance-swatch-lg {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border: 2px solid var(--text);
+  border-radius: 6px;
+}
+
+.appearance-summary {
+  flex: 1;
+}
+
+.appearance-summary p {
+  margin: 2px 0;
+}
+
+.collection-card,
+.shop-card,
+.history-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.collection-card.selected {
+  border-color: var(--accent);
+}
+
+.collection-card.locked {
+  opacity: 0.72;
+}
+
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-dot {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--text);
+  flex-shrink: 0;
+}
+
+.color-dot.lg {
+  width: 34px;
+  height: 34px;
+}
+
+.shop-balance {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.shop-price {
+  margin: 0;
+  font-size: 18px;
+  color: var(--accent);
+}
+
+.profile-overview {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+}
+
+.overview-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.overview-gems {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 20px;
+  color: var(--accent);
+}
+
+.appearance-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.appearance-inline p {
+  margin: 2px 0;
+}
+
+.stats-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.stat-box strong {
+  font-size: 20px;
+  color: var(--accent);
 }

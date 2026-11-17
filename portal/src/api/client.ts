@@ -18,7 +18,7 @@ export class ApiError extends Error {
 }
 
 interface Options {
-  method?: "GET" | "POST" | "PATCH";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   /** Brak sesji jest tu oczekiwany, np. przy logowaniu i pierwszym sprawdzeniu stanu konta. */
   allowAnonymous?: boolean;

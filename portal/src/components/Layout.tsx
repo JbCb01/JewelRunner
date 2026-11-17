@@ -1,16 +1,20 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import jewel from "../assets/jewel.png";
+import { DailyRewardModal } from "./DailyRewardModal";
 
 const MENU = [
   ["/wyzwania", "Wyzwania"],
   ["/moje-wyzwania", "Moje wyzwania"],
   ["/rankingi", "Rankingi"],
+  ["/znajomi", "Znajomi"],
+  ["/kolekcja", "Kolekcja"],
+  ["/sklep", "Sklep"],
   ["/profil", "Profil"],
 ] as const;
 
 export function Layout() {
-  const { user, logout } = useAuth();
+  const { user, gems, dailyReward, openDailyReward, logout } = useAuth();
   const navigate = useNavigate();
 
   async function handleLogout() {
@@ -36,6 +40,20 @@ export function Layout() {
         )}
         {user && (
           <div className="account">
+            {dailyReward?.available && (
+              <button
+                type="button"
+                className="button accent-small"
+                onClick={openDailyReward}
+                data-testid="daily-reward-trigger"
+              >
+                Nagroda dzienna
+              </button>
+            )}
+            <span className="wallet-pill" data-testid="header-gems" title="Saldo klejnotów">
+              <img src={jewel} alt="" width={18} height={18} />
+              {gems ?? "–"}
+            </span>
             <span data-testid="current-user">{user.username}</span>
             <button className="button ghost" onClick={handleLogout}>
               Wyloguj
@@ -46,6 +64,7 @@ export function Layout() {
       <main className="content">
         <Outlet />
       </main>
+      {user && <DailyRewardModal />}
     </>
   );
 }

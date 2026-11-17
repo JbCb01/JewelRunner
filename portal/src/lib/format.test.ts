@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatBoosterName,
+  formatClaimResult,
   formatConditions,
   formatCountdown,
   formatRemaining,
   formatReward,
+  formatRunTime,
+  formatUnlockCondition,
   secondsLeft,
   validatePassword,
 } from "./format";
@@ -58,5 +62,45 @@ describe("formatCountdown i secondsLeft", () => {
     const now = new Date("2026-11-13T10:00:00Z").getTime();
     expect(secondsLeft("2026-11-13T10:05:00Z", now)).toBe(300);
     expect(secondsLeft("2026-11-13T09:59:00Z", now)).toBe(0);
+  });
+});
+
+describe("nowe formatowania (czas, odblokowania, wzmocnienia, odbiór nagród)", () => {
+  it("formatuje czas przejścia", () => {
+    expect(formatRunTime(45.5)).toBe("45.5 s");
+    expect(formatRunTime(62.4)).toBe("1:02.4");
+  });
+
+  it("formatuje warunki odblokowania kolekcji", () => {
+    expect(formatUnlockCondition(null)).toContain("nagroda");
+    expect(formatUnlockCondition({ type: "wynik w poziomie", value: 1000, challenge_name: null })).toContain("1000 pkt");
+    expect(formatUnlockCondition({ type: "liczba klejnotów", value: 50, challenge_name: null })).toContain("50 klejnotów");
+    expect(formatUnlockCondition({ type: "wyzwanie", value: 2, challenge_name: "Łowca klejnotów" })).toContain(
+      "Łowca klejnotów",
+    );
+  });
+
+  it("formatuje nazwy wzmocnień i wynik odbioru nagrody", () => {
+    expect(formatBoosterName("tarcza")).toBe("Tarcza");
+    expect(
+      formatClaimResult({
+        challenge_id: 1,
+        reward_status: "Odebrana",
+        reward: { type: "klejnoty", gems: 50, element_name: null, booster_type: null },
+        gems_awarded: 50,
+        converted_to_gems: false,
+        balance: 150,
+      }),
+    ).toContain("Nowe saldo: 150 klejnotów");
+    expect(
+      formatClaimResult({
+        challenge_id: 2,
+        reward_status: "Odebrana",
+        reward: { type: "skórka", gems: null, element_name: "Złoty biegacz", booster_type: null },
+        gems_awarded: 100,
+        converted_to_gems: true,
+        balance: 250,
+      }),
+    ).toContain("równowartość 100 klejnotów");
   });
 });

@@ -143,7 +143,7 @@ func flush() -> bool:
 	return true
 
 func _on_request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
+	var parsed: Variant = safe_parse_json(body.get_string_from_utf8())
 	var sent: Array[String] = _sending_ids.duplicate()
 	_sending_ids.clear()
 	if apply_response(response_code, parsed, sent) and not pending.is_empty():
@@ -214,7 +214,7 @@ func load_queue() -> void:
 	pending.clear()
 	if not FileAccess.file_exists(queue_path):
 		return
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(queue_path))
+	var parsed: Variant = safe_parse_json(FileAccess.get_file_as_string(queue_path))
 	if not parsed is Dictionary:
 		push_warning("Plik kolejki klejnotów jest uszkodzony; zaczynamy od pustej kolejki.")
 		return
@@ -227,3 +227,11 @@ func load_queue() -> void:
 				"gems": int(op["gems"]),
 				"reason": String((op as Dictionary).get("reason", "rozgrywka")),
 			})
+
+static func safe_parse_json(text: String) -> Variant:
+	if text.strip_edges().is_empty():
+		return null
+	var json := JSON.new()
+	if json.parse(text) == OK:
+		return json.data
+	return null

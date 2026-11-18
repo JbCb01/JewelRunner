@@ -69,6 +69,9 @@ var current_state: State = State.IDLE
 @export var trick_stamina_regen_per_sec: float = 0.36
 ## Indywidualny mnożnik regeneracji staminy z tricków.
 @export var trick_regen_multiplier: float = 1.00
+## Powolna, bierna regeneracja staminy na sekundę (gdy postać nie wspina się ani nie wykonuje tricku).
+## Konfigurowalna za pomocą suwaka w Inspektorze Godot.
+@export_range(0.0, 1.0, 0.01, "or_greater") var passive_stamina_regen_per_sec: float = 0.10
 
 @export_group("Tricki w Powietrzu")
 @export var trick_points_per_second: float = 120.0
@@ -195,6 +198,14 @@ func _physics_process(delta: float) -> void:
 			
 	move_and_slide()
 	_update_visuals()
+
+	# Bierna, powolna regeneracja staminy
+	if current_state != State.WALL_CLIMB and not is_tricking and wall_stamina < wall_climb_max_stamina:
+		var prev_stam: float = wall_stamina
+		wall_stamina = min(wall_climb_max_stamina, wall_stamina + passive_stamina_regen_per_sec * delta)
+		if not is_equal_approx(prev_stam, wall_stamina):
+			Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
+			_update_stamina_bar()
 
 # --- Obsługa Mnożników i Kosztów Staminy ---
 

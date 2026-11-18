@@ -224,7 +224,7 @@ func request_sync_from_web() -> bool:
 
 func _on_pair_request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	var text: String = body.get_string_from_utf8()
-	var parsed: Variant = JSON.parse_string(text)
+	var parsed: Variant = safe_parse_json(text)
 	if response_code == 200 and parsed is Dictionary:
 		var data := parsed as Dictionary
 		session_token = String(data.get("token", ""))
@@ -248,7 +248,7 @@ func _on_pair_request_completed(_result: int, response_code: int, _headers: Pack
 
 func _on_sync_request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	var text: String = body.get_string_from_utf8()
-	var parsed: Variant = JSON.parse_string(text)
+	var parsed: Variant = safe_parse_json(text)
 	if response_code == 200 and parsed is Dictionary:
 		apply_synced_payload(parsed as Dictionary)
 	elif response_code == 0:
@@ -552,3 +552,11 @@ func _load_saved_session() -> void:
 		session_token = String(cfg.get_value("portal", "session_token", ""))
 		is_linked = bool(cfg.get_value("portal", "is_linked", false))
 		player_profile["username"] = String(cfg.get_value("portal", "username", "Gość"))
+
+static func safe_parse_json(text: String) -> Variant:
+	if text.strip_edges().is_empty():
+		return null
+	var json := JSON.new()
+	if json.parse(text) == OK:
+		return json.data
+	return null

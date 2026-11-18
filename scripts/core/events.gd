@@ -50,10 +50,16 @@ signal portal_sync_failed(code: String, message: String)
 var session_id: String = ""
 var completed_levels: Dictionary = {}
 var level_best_times: Dictionary = {}
+var level_contracts_completed: Dictionary = {}
+
+## Płynna, konfigurowalna w Settings prędkość biernej regeneracji staminy
+signal stamina_regen_changed(new_rate: float)
+var stamina_regen_rate: float = 0.10
 
 ## Wybrany w menu głównym profil mechaniki poziomu (1 = Synergia, 2 = Ascent, 3 = Momentum, 4 = Aether / AI Szachownica)
 var selected_level_profile: int = 1
 var selected_level_seed: int = 0
+var return_to_level_select: bool = false
 
 ## Instancja Adaptacyjnego Reżysera AI (zarządza mnożnikami staminy, kontraktami AI, blokadami i analizą poziomu)
 var ai_director: AdaptiveAIDirector = null
@@ -71,8 +77,16 @@ func generate_session_id() -> String:
 	session_started.emit(session_id)
 	return session_id
 
-func complete_level(level_id: int, completion_time: float = -1.0) -> void:
+func complete_level(level_id: int, completion_time: float = -1.0, contract_mode: int = -1) -> void:
 	completed_levels[level_id] = true
+	var c_mode = contract_mode
+	if c_mode < 0:
+		c_mode = int(ai_director.active_contract) if is_instance_valid(ai_director) else 0
+
+	if not level_contracts_completed.has(level_id):
+		level_contracts_completed[level_id] = {}
+	level_contracts_completed[level_id][c_mode] = true
+
 	if completion_time >= 0.0:
 		if not level_best_times.has(level_id) or completion_time < float(level_best_times[level_id]):
 			level_best_times[level_id] = completion_time
@@ -80,6 +94,24 @@ func complete_level(level_id: int, completion_time: float = -1.0) -> void:
 
 func is_level_completed(level_id: int) -> bool:
 	return completed_levels.get(level_id, false)
+
+func get_level_stars(level_id: int) -> int:
+	var contracts: Dictionary = level_contracts_completed.get(level_id, {})
+	var count: int = 0
+	for m in [0, 1, 2]:
+		if contracts.get(m, false) == true:
+			count += 1
+	if count == 0 and is_level_completed(level_id):
+		count = 1
+	return count
+
+func is_level_contract_completed(level_id: int, contract_id: int) -> bool:
+	var contracts: Dictionary = level_contracts_completed.get(level_id, {})
+	if contracts.get(contract_id, false) == true:
+		return true
+	if contract_id == 0 and is_level_completed(level_id) and contracts.is_empty():
+		return true
+	return false
 
 func get_level_best_time(level_id: int) -> float:
 	return float(level_best_times.get(level_id, -1.0))

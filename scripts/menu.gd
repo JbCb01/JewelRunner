@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 
@@ -140,6 +140,7 @@ var aiGenerateBtn: Button = null
 var aiContractBtn: Button = null
 
 func _ready() -> void:
+	_ensure_audio_buses()
 	_ensure_top_profile_button()
 	_setup_profile_navigation_ui()
 	_setup_mechanic_level_select_ui()
@@ -560,6 +561,31 @@ func _preview_mechanic_profile(profile_id: int) -> void:
 			ch_info
 		]
 
+## Upewnia sie, ze szyny audio Master, Music i SFX istnieja w AudioServerze.
+func _ensure_audio_buses() -> void:
+	if AudioServer.get_bus_index("Music") == -1:
+		var idx = AudioServer.bus_count
+		AudioServer.add_bus(idx)
+		AudioServer.set_bus_name(idx, "Music")
+		AudioServer.set_bus_send(idx, "Master")
+	if AudioServer.get_bus_index("SFX") == -1:
+		var idx = AudioServer.bus_count
+		AudioServer.add_bus(idx)
+		AudioServer.set_bus_name(idx, "SFX")
+		AudioServer.set_bus_send(idx, "Master")
+
+## Ustawia glosnosc na danej szynie (wartosc od 0 do 100).
+func _set_bus_volume_percent(bus_name: String, pct: float) -> void:
+	_ensure_audio_buses()
+	var bus_idx = AudioServer.get_bus_index(bus_name)
+	if bus_idx == -1:
+		return
+	if pct <= 0.001:
+		AudioServer.set_bus_mute(bus_idx, true)
+	else:
+		AudioServer.set_bus_mute(bus_idx, false)
+		var linear = clampf(pct / 100.0, 0.0001, 1.0)
+		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(linear))
 func _setup_settings_mockups() -> void:
 	var modeOpt: OptionButton = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/ModeBox/DisplayModeOpt")
 	if modeOpt and modeOpt.item_count == 0:

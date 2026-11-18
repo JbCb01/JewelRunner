@@ -594,9 +594,10 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "◀ Powrót do menu"
 
-[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=1094510268]
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=1094510268]
 stream = ExtResource("5_8ln24")
 autoplay = true
+bus = &"Music"
 
 [node name="CreatorsView" type="Control" parent="." unique_id=1236711604]
 visible = false

@@ -1,15 +1,29 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError } from "../api/client";
-import type { Me, PairingCode } from "../api/types";
+import type {
+  AppearanceState,
+  GameRun,
+  GameRunPage,
+  ItemList,
+  Me,
+  PairingCode,
+  PlayerStats,
+  UserSession,
+} from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { ProgressBar } from "../components/Status";
+import { ErrorBox, Loading, ProgressBar } from "../components/Status";
 import {
   formatCountdown,
   formatDate,
+  formatDuration,
+  formatRunTime,
   PAIRING_CODE_TTL_SECONDS,
   secondsLeft,
   validatePassword,
 } from "../lib/format";
+import { useApi } from "../lib/useApi";
+import jewel from "../assets/jewel.png";
 
 type Message = { kind: "success" | "error"; text: string } | null;
 
@@ -45,6 +59,54 @@ function accountError(error: ApiError): string {
     default:
       return "Nie udało się zapisać zmian.";
   }
+}
+
+function ProfileOverview() {
+  const { gems } = useAuth();
+  const appearance = useApi<AppearanceState>("/me/appearance");
+  const current = appearance.data?.current;
+
+  return (
+    <div className="panel profile-overview" data-testid="profile-overview">
+      <div className="overview-block">
+        <h2>Portfel</h2>
+        <p className="overview-gems" data-testid="profile-gems">
+          <img src={jewel} alt="" width={24} height={24} />
+          <strong>{gems ?? "–"} klejnotów</strong>
+        </p>
+        <Link to="/sklep">Przejdź do sklepu</Link>
+      </div>
+
+      <div className="overview-block" data-testid="profile-appearance">
+        <h2>Aktualny wygląd postaci</h2>
+        {appearance.loading && !current && <Loading />}
+        {current ? (
+          <div className="appearance-inline">
+            <span
+              className="color-dot lg"
+              style={{ backgroundColor: current.color.hex }}
+              title={current.color.name}
+              aria-hidden="true"
+            />
+            <div>
+              <p>
+                <strong>Skórka:</strong> {current.skin.name} · <strong>Kolor:</strong> {current.color.name}
+              </p>
+              <p className="muted-text small-note">
+                Akcesoria:{" "}
+                {current.accessories.length > 0
+                  ? current.accessories.map((acc) => `${acc.accessory.name} (${acc.slot})`).join(", ")
+                  : "Brak"}
+              </p>
+            </div>
+          </div>
+        ) : (
+          !appearance.loading && <p className="muted-text">Brak danych o wyglądzie.</p>
+        )}
+        <Link to="/kolekcja">Zmień w Kolekcji</Link>
+      </div>
+    </div>
+  );
 }
 
 function UsernameForm({ user }: { user: Me }) {
@@ -195,11 +257,13 @@ function PasswordForm() {
 }
 
 function GamePairing({ user }: { user: Me }) {
+  const { refreshMe } = useAuth();
   const [pairing, setPairing] = useState<PairingCode | null>(null);
   const [left, setLeft] = useState(0);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const [busy, setBusy] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   useEffect(() => {
     if (!pairing) return;
@@ -222,6 +286,25 @@ function GamePairing({ user }: { user: Me }) {
       });
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function disconnectGame() {
+    setDisconnecting(true);
+    setMessage(null);
+    try {
+      const response = await api<ItemList<UserSession>>("/me/sessions");
+      const gameSessions = response.items.filter((session) => session.device === "gra");
+      for (const session of gameSessions) {
+        await api(`/me/sessions/${session.id}`, { method: "DELETE" });
+      }
+      await refreshMe();
+      setPairing(null);
+      setMessage({ kind: "success", text: "Gra została odłączona od konta." });
+    } catch {
+      setMessage({ kind: "error", text: "Nie udało się odłączyć gry. Spróbuj ponownie." });
+    } finally {
+      setDisconnecting(false);
     }
   }
 
@@ -289,8 +372,184 @@ function GamePairing({ user }: { user: Me }) {
             {copied ? "Skopiowano" : "Kopiuj kod"}
           </button>
         )}
+        {linked && (
+          <button type="button" className="button ghost" onClick={disconnectGame} disabled={disconnecting}>
+            {disconnecting ? "Odłączanie..." : "Odłącz grę"}
+          </button>
+        )}
       </div>
     </section>
+  );
+}
+
+function StatsAndHistory() {
+  const stats = useApi<PlayerStats>("/me/stats");
+  const [runs, setRuns] = useState<GameRun[]>([]);
+  const [nextBeforeId, setNextBeforeId] = useState<number | null>(null);
+  const [runsLoading, setRunsLoading] = useState(true);
+  const [runsLoadingMore, setRunsLoadingMore] = useState(false);
+  const [runsError, setRunsError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setRunsLoading(true);
+    setRunsError(false);
+    api<GameRunPage>("/me/runs?limit=10")
+      .then((page) => {
+        if (!active) return;
+        setRuns(page.items);
+        setNextBeforeId(page.next_before_id);
+      })
+      .catch(() => {
+        if (active) setRunsError(true);
+      })
+      .finally(() => {
+        if (active) setRunsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function loadMoreRuns() {
+    if (nextBeforeId === null || runsLoadingMore) return;
+    setRunsLoadingMore(true);
+    try {
+      const page = await api<GameRunPage>(`/me/runs?limit=10&before_id=${nextBeforeId}`);
+      setRuns((prev) => [...prev, ...page.items]);
+      setNextBeforeId(page.next_before_id);
+    } catch {
+      setRunsError(true);
+    } finally {
+      setRunsLoadingMore(false);
+    }
+  }
+
+  return (
+    <div className="stack-lg">
+      <div className="panel" data-testid="profile-stats">
+        <div className="page-header-row">
+          <h2>Statystyki</h2>
+          <Link to="/rankingi" className="button ghost">
+            Zobacz ranking
+          </Link>
+        </div>
+
+        {stats.loading && !stats.data && <Loading />}
+        {stats.error && <ErrorBox message="Nie można pobrać statystyk." onRetry={stats.reload} />}
+
+        {stats.data && (
+          <>
+            {!stats.data.has_played && (
+              <p className="notice info" data-testid="stats-zero-notice">
+                Nie rozegrałeś jeszcze żadnego poziomu. Uruchom grę, aby zdobyć pierwsze wyniki i pojawić się w rankingu!
+              </p>
+            )}
+
+            <div className="stats-summary-grid">
+              <div className="stat-box">
+                <span className="stat-label">Łączny czas gry</span>
+                <strong>{formatDuration(stats.data.overall.play_time_s)}</strong>
+              </div>
+              <div className="stat-box">
+                <span className="stat-label">Rozgrywki</span>
+                <strong>{stats.data.overall.runs}</strong>
+              </div>
+              <div className="stat-box">
+                <span className="stat-label">Ukończone poziomy</span>
+                <strong>{stats.data.overall.levels_completed}</strong>
+              </div>
+              <div className="stat-box">
+                <span className="stat-label">Pokonani wrogowie</span>
+                <strong>{stats.data.overall.enemies_defeated}</strong>
+              </div>
+              <div className="stat-box">
+                <span className="stat-label">Porażki</span>
+                <strong>{stats.data.overall.defeats}</strong>
+              </div>
+              <div className="stat-box">
+                <span className="stat-label">Zebrane klejnoty</span>
+                <strong>{stats.data.overall.gems_collected}</strong>
+              </div>
+            </div>
+
+            <h3 className="subsection-title">Poziomy</h3>
+            <table data-testid="stats-levels-table">
+              <thead>
+                <tr>
+                  <th>Poziom</th>
+                  <th>Status</th>
+                  <th>Najlepszy wynik</th>
+                  <th>Najlepszy czas</th>
+                  <th>Próby</th>
+                  <th>Ranking</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.data.levels.map((level) => (
+                  <tr key={level.level}>
+                    <td>{level.name}</td>
+                    <td>{level.unlocked ? (level.completed ? "Ukończony" : "Odblokowany") : "Zablokowany"}</td>
+                    <td>{level.best_score ?? "–"}</td>
+                    <td>{level.best_time_s !== null ? formatRunTime(level.best_time_s) : "–"}</td>
+                    <td>{level.attempts}</td>
+                    <td>
+                      <Link to="/rankingi">Ranking</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+      </div>
+
+      <div className="panel" data-testid="profile-runs">
+        <h2>Historia gier</h2>
+        {runsLoading && <Loading />}
+        {runsError && <p className="notice error">Nie udało się pobrać historii gier.</p>}
+        {!runsLoading && runs.length === 0 && !runsError && (
+          <p className="notice info">Brak zapisanych rozgrywek.</p>
+        )}
+        {runs.length > 0 && (
+          <>
+            <table data-testid="runs-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Poziom</th>
+                  <th>Wynik przejścia</th>
+                  <th>Punkty</th>
+                  <th>Czas</th>
+                  <th>Klejnoty</th>
+                  <th>Wrogowie</th>
+                </tr>
+              </thead>
+              <tbody>
+                {runs.map((run) => (
+                  <tr key={run.id}>
+                    <td>{formatDate(run.played_at)}</td>
+                    <td>{run.level_name}</td>
+                    <td>{run.completed ? "Ukończony" : "Porażka"}</td>
+                    <td>{run.score}</td>
+                    <td>{formatRunTime(run.time_s)}</td>
+                    <td>{run.gems}</td>
+                    <td>{run.enemies_defeated}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {nextBeforeId !== null && (
+              <div className="actions top-gap">
+                <button type="button" className="button ghost" onClick={loadMoreRuns} disabled={runsLoadingMore}>
+                  {runsLoadingMore ? "Ładowanie..." : "Załaduj więcej"}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -298,8 +557,9 @@ export function Profile() {
   const { user } = useAuth();
   if (!user) return null;
   return (
-    <section>
+    <section className="stack-lg">
       <h1>Ustawienia profilu</h1>
+      <ProfileOverview />
       <div className="profile-grid">
         <div className="panel">
           <UsernameForm key={user.username} user={user} />
@@ -314,6 +574,7 @@ export function Profile() {
           <GamePairing user={user} />
         </div>
       </div>
+      <StatsAndHistory />
     </section>
   );
 }

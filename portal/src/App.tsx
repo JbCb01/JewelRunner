@@ -4,7 +4,9 @@ import { RequireAuth } from "./components/RequireAuth";
 import { Attempts } from "./pages/Attempts";
 import { ChallengeDetails } from "./pages/ChallengeDetails";
 import { Challenges } from "./pages/Challenges";
+import { Collection } from "./pages/Collection";
 import { ConfirmEmail } from "./pages/ConfirmEmail";
+import { Friends } from "./pages/Friends";
 import { Login } from "./pages/Login";
 import { MyChallenges } from "./pages/MyChallenges";
 import { NotFound } from "./pages/NotFound";
@@ -13,6 +15,8 @@ import { PlayerProfile } from "./pages/PlayerProfile";
 import { Profile } from "./pages/Profile";
 import { Ranking } from "./pages/Ranking";
 import { Register } from "./pages/Register";
+import { ResetPassword } from "./pages/ResetPassword";
+import { Shop } from "./pages/Shop";
 
 export function App() {
   return (
@@ -21,6 +25,7 @@ export function App() {
         <Route path="/logowanie" element={<Login />} />
         <Route path="/rejestracja" element={<Register />} />
         <Route path="/odzyskiwanie-hasla" element={<PasswordRecovery />} />
+        <Route path="/nowe-haslo" element={<ResetPassword />} />
         <Route element={<RequireAuth />}>
           <Route path="/" element={<Navigate to="/wyzwania" replace />} />
           <Route path="/wyzwania" element={<Challenges />} />
@@ -28,6 +33,9 @@ export function App() {
           <Route path="/moje-wyzwania" element={<MyChallenges />} />
           <Route path="/moje-wyzwania/:id" element={<Attempts />} />
           <Route path="/rankingi" element={<Ranking />} />
+          <Route path="/znajomi" element={<Friends />} />
+          <Route path="/kolekcja" element={<Collection />} />
+          <Route path="/sklep" element={<Shop />} />
           <Route path="/gracze/:id" element={<PlayerProfile />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/potwierdz-email" element={<ConfirmEmail />} />

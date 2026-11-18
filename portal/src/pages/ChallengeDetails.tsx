@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
-import type { AcceptedChallenge, ChallengeDetails as Details } from "../api/types";
+import type { AcceptedChallenge, ChallengeDetails as Details, ClaimRewardResponse } from "../api/types";
+import { useAuth } from "../auth/AuthContext";
 import { ErrorBox, Loading, ProgressBar } from "../components/Status";
-import { formatConditions, formatDate, formatReward } from "../lib/format";
+import { formatClaimResult, formatConditions, formatDate, formatReward } from "../lib/format";
 import { useApi } from "../lib/useApi";
 
 const BACK = <Link to="/wyzwania">Powrót do listy</Link>;
@@ -19,9 +20,11 @@ function acceptError(error: ApiError): string {
 
 export function ChallengeDetails() {
   const { id } = useParams();
+  const { setGems } = useAuth();
   const { data, error, loading, reload } = useApi<Details>(`/challenges/${id}`);
   const [accepted, setAccepted] = useState<AcceptedChallenge | null>(null);
   const [acceptMessage, setAcceptMessage] = useState<string | null>(null);
+  const [claimMessage, setClaimMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function accept() {
@@ -32,6 +35,27 @@ export function ChallengeDetails() {
       reload();
     } catch (caught) {
       setAcceptMessage(acceptError(caught as ApiError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function claimReward() {
+    setBusy(true);
+    setClaimMessage(null);
+    try {
+      const result = await api<ClaimRewardResponse>(`/me/challenges/${id}/claim`, { method: "POST" });
+      setGems(result.balance);
+      setClaimMessage({ kind: "success", text: formatClaimResult(result) });
+      reload();
+    } catch (caught) {
+      const err = caught as ApiError;
+      if (err.code === "reward_already_claimed") {
+        setClaimMessage({ kind: "error", text: "Nagroda za to wyzwanie została już odebrana." });
+        reload();
+      } else {
+        setClaimMessage({ kind: "error", text: "Nie udało się odebrać nagrody. Spróbuj ponownie." });
+      }
     } finally {
       setBusy(false);
     }
@@ -81,6 +105,14 @@ export function ChallengeDetails() {
         </div>
       )}
       {acceptMessage && <ErrorBox message={acceptMessage} />}
+      {claimMessage && (
+        <p
+          className={claimMessage.kind === "success" ? "notice success" : "notice error"}
+          role={claimMessage.kind === "success" ? "status" : "alert"}
+        >
+          {claimMessage.text}
+        </p>
+      )}
 
       {data.participation ? (
         <div className="participation">
@@ -88,6 +120,14 @@ export function ChallengeDetails() {
             Twój postęp: {data.participation.progress_percent}% ({data.participation.status})
           </p>
           <ProgressBar value={data.participation.progress_percent} />
+          {data.reward_status === "Do odebrania" && (
+            <div className="actions top-gap">
+              <button type="button" className="button primary" onClick={claimReward} disabled={busy}>
+                {busy ? "Odbieranie..." : "Odbierz nagrodę"}
+              </button>
+            </div>
+          )}
+          {data.reward_status === "Odebrana" && <p className="notice info top-gap">Nagroda została już odebrana.</p>}
         </div>
       ) : (
         <button className="button primary" onClick={accept} disabled={busy}>

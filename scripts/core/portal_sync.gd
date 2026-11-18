@@ -31,6 +31,7 @@ var player_profile: Dictionary = {
 # --- Ustawienia pobrane ze strony (tabela ustawienia_gracza + przypisanie_klawisza) ---
 var profile_settings: Dictionary = {
 	"music_volume": 80,
+	"level_music_volume": 70,
 	"sfx_volume": 100,
 	"resolution": "1280x720",
 	"graphics_profile": "Wysoki",
@@ -274,6 +275,8 @@ func apply_synced_payload(payload: Dictionary) -> void:
 	if payload.has("settings") and payload["settings"] is Dictionary:
 		var s := payload["settings"] as Dictionary
 		profile_settings["music_volume"] = clampi(int(s.get("music_volume", profile_settings["music_volume"])), 0, 100)
+		if s.has("level_music_volume"):
+			profile_settings["level_music_volume"] = clampi(int(s.get("level_music_volume", profile_settings.get("level_music_volume", 70))), 0, 100)
 		profile_settings["sfx_volume"] = clampi(int(s.get("sfx_volume", profile_settings["sfx_volume"])), 0, 100)
 		profile_settings["resolution"] = String(s.get("resolution", profile_settings["resolution"]))
 		profile_settings["graphics_profile"] = String(s.get("graphics_profile", profile_settings["graphics_profile"]))
@@ -313,8 +316,21 @@ func apply_synced_payload(payload: Dictionary) -> void:
 ## Aplikuje pobrane ustawienia audio i przypisania klawiszy bezpośrednio do silnika Godot.
 func _apply_settings_to_engine() -> void:
 	var music_vol: float = float(profile_settings.get("music_volume", 80)) / 100.0
+	var level_music_vol: float = float(profile_settings.get("level_music_volume", 70)) / 100.0
 	var sfx_vol: float = float(profile_settings.get("sfx_volume", 100)) / 100.0
 	
+	var mus_menu_bus: int = AudioServer.get_bus_index("MusicMenu")
+	if mus_menu_bus != -1:
+		AudioServer.set_bus_mute(mus_menu_bus, music_vol <= 0.001)
+		if music_vol > 0.001:
+			AudioServer.set_bus_volume_db(mus_menu_bus, linear_to_db(music_vol))
+			
+	var mus_lvl_bus: int = AudioServer.get_bus_index("MusicLevel")
+	if mus_lvl_bus != -1:
+		AudioServer.set_bus_mute(mus_lvl_bus, level_music_vol <= 0.001)
+		if level_music_vol > 0.001:
+			AudioServer.set_bus_volume_db(mus_lvl_bus, linear_to_db(level_music_vol))
+
 	var music_bus: int = AudioServer.get_bus_index("Music")
 	if music_bus != -1:
 		AudioServer.set_bus_mute(music_bus, music_vol <= 0.001)
@@ -500,6 +516,17 @@ func apply_cosmetics_and_boosters_to_player(player: Node2D) -> void:
 		player.set_meta("has_portal_magnet", true)
 
 func build_current_state_payload() -> Dictionary:
+	var mus_idx = AudioServer.get_bus_index("MusicMenu")
+	if mus_idx == -1:
+		mus_idx = AudioServer.get_bus_index("Music")
+	if mus_idx != -1:
+		profile_settings["music_volume"] = 0.0 if AudioServer.is_bus_mute(mus_idx) else clampf(db_to_linear(AudioServer.get_bus_volume_db(mus_idx)) * 100.0, 0.0, 100.0)
+	var mus_lvl_idx = AudioServer.get_bus_index("MusicLevel")
+	if mus_lvl_idx != -1:
+		profile_settings["level_music_volume"] = 0.0 if AudioServer.is_bus_mute(mus_lvl_idx) else clampf(db_to_linear(AudioServer.get_bus_volume_db(mus_lvl_idx)) * 100.0, 0.0, 100.0)
+	var sfx_idx = AudioServer.get_bus_index("SFX")
+	if sfx_idx != -1:
+		profile_settings["sfx_volume"] = 0.0 if AudioServer.is_bus_mute(sfx_idx) else clampf(db_to_linear(AudioServer.get_bus_volume_db(sfx_idx)) * 100.0, 0.0, 100.0)
 	return {
 		"player": player_profile.duplicate(true),
 		"wallet": {

@@ -244,6 +244,61 @@ offset_right = 592.0
 offset_bottom = 224.0
 theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
 
+[node name="MechanicInfoPanel" type="Control" parent="LevelSelectView"]
+layout_mode = 0
+offset_left = 45.0
+offset_top = 244.0
+offset_right = 592.0
+offset_bottom = 289.0
+mouse_filter = 2
+
+[node name="MechanicInfoLabel" type="Label" parent="LevelSelectView/MechanicInfoPanel"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 2.0
+offset_right = 541.0
+offset_bottom = 26.0
+theme_override_colors/font_color = Color(0.92, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 9
+autowrap_mode = 2
+
+[node name="DnaRadarLabel" type="Label" parent="LevelSelectView/MechanicInfoPanel"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 27.0
+offset_right = 541.0
+offset_bottom = 43.0
+theme_override_colors/font_color = Color(0.45, 0.95, 0.72, 1)
+theme_override_font_sizes/font_size = 8
+
+[node name="AIContractBtn" type="Button" parent="LevelSelectView"]
+layout_mode = 0
+offset_left = 45.0
+offset_top = 296.0
+offset_right = 289.0
+offset_bottom = 320.0
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+text = "📜 KONTRAKT AI: STANDARDOWY"
+
+[node name="AIGenerateBtn" type="Button" parent="LevelSelectView"]
+layout_mode = 0
+offset_left = 345.0
+offset_top = 296.0
+offset_right = 592.0
+offset_bottom = 320.0
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+text = "⚡ IV. SZACHOWNICA AI + ZADANIA"
+
 [node name="BackBtn" type="Button" parent="LevelSelectView"]
 layout_mode = 0
 offset_top = 328.0
@@ -275,324 +330,325 @@ texture = ExtResource("4_wu84c")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="DarkOverlay" type="ColorRect" parent="SettingsView"]
-layout_mode = 0
-offset_left = 35.0
-offset_top = 20.0
-offset_right = 605.0
-offset_bottom = 340.0
-color = Color(0.06, 0.08, 0.13, 0.9)
-
-[node name="SettingsContent" type="VBoxContainer" parent="SettingsView/DarkOverlay"]
+[node name="TabBar" type="Control" parent="SettingsView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 10.0
-offset_right = -16.0
-offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+
+[node name="TabAudioBtn" type="Button" parent="SettingsView/TabBar"]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 112.0
+offset_right = 177.0
+offset_bottom = 144.0
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_tab_active")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="TabGraphicsBtn" type="Button" parent="SettingsView/TabBar"]
+layout_mode = 0
+offset_left = 209.0
+offset_top = 112.0
+offset_right = 305.0
+offset_bottom = 144.0
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="TabControlsBtn" type="Button" parent="SettingsView/TabBar"]
+layout_mode = 0
+offset_left = 336.0
+offset_top = 112.0
+offset_right = 432.0
+offset_bottom = 144.0
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="TabLanguageBtn" type="Button" parent="SettingsView/TabBar"]
+layout_mode = 0
+offset_left = 464.0
+offset_top = 112.0
+offset_right = 560.0
+offset_bottom = 144.0
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
+
+[node name="Panels" type="MarginContainer" parent="SettingsView"]
+layout_mode = 0
+offset_left = 65.0
+offset_top = 152.0
+offset_right = 575.0
+offset_bottom = 312.0
+
+[node name="AudioPanel" type="VBoxContainer" parent="SettingsView/Panels"]
+layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="HeaderBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent"]
+[node name="MasterBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel"]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/HeaderBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "USTAWIENIA (MOCKUP)"
-
-[node name="TabBar" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="TabAudioBtn" type="Button" parent="SettingsView/DarkOverlay/SettingsContent/TabBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "[ Dźwięk ]"
-
-[node name="TabGraphicsBtn" type="Button" parent="SettingsView/DarkOverlay/SettingsContent/TabBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Grafika"
-
-[node name="TabControlsBtn" type="Button" parent="SettingsView/DarkOverlay/SettingsContent/TabBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Sterowanie"
-
-[node name="TabLanguageBtn" type="Button" parent="SettingsView/DarkOverlay/SettingsContent/TabBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Język"
-
-[node name="SepTop" type="HSeparator" parent="SettingsView/DarkOverlay/SettingsContent"]
-layout_mode = 2
-
-[node name="Panels" type="MarginContainer" parent="SettingsView/DarkOverlay/SettingsContent"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="AudioPanel" type="VBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="MasterBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MasterBox"]
-custom_minimum_size = Vector2(170, 0)
+[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/MasterBox"]
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Głośność ogólna:"
 
-[node name="MasterSlider" type="HSlider" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MasterBox"]
+[node name="MasterSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/MasterBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 value = 80.0
 
-[node name="Value" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MasterBox"]
-custom_minimum_size = Vector2(40, 0)
+[node name="Value" type="Label" parent="SettingsView/Panels/AudioPanel/MasterBox"]
+custom_minimum_size = Vector2(45, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "80%"
 horizontal_alignment = 2
 
-[node name="MusicBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel"]
+[node name="MusicBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MusicBox"]
-custom_minimum_size = Vector2(170, 0)
+[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/MusicBox"]
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Głośność muzyki:"
 
-[node name="MusicSlider" type="HSlider" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MusicBox"]
+[node name="MusicSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/MusicBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-value = 50.0
+value = 70.0
 
-[node name="Value" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MusicBox"]
-custom_minimum_size = Vector2(40, 0)
+[node name="Value" type="Label" parent="SettingsView/Panels/AudioPanel/MusicBox"]
+custom_minimum_size = Vector2(45, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "50%"
+text = "70%"
 horizontal_alignment = 2
 
-[node name="SfxBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel"]
+[node name="SfxBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/SfxBox"]
-custom_minimum_size = Vector2(170, 0)
+[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/SfxBox"]
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Efekty dźwiękowe (SFX):"
 
-[node name="SfxSlider" type="HSlider" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/SfxBox"]
+[node name="SfxSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/SfxBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-value = 100.0
+value = 80.0
 
-[node name="Value" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/SfxBox"]
-custom_minimum_size = Vector2(40, 0)
+[node name="Value" type="Label" parent="SettingsView/Panels/AudioPanel/SfxBox"]
+custom_minimum_size = Vector2(45, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "100%"
+text = "80%"
 horizontal_alignment = 2
 
-[node name="MuteCheck" type="CheckBox" parent="SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel"]
+[node name="MuteCheck" type="CheckBox" parent="SettingsView/Panels/AudioPanel"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Wycisz wszystkie dźwięki (Mute All)"
 
-[node name="GraphicsPanel" type="VBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels"]
+[node name="GraphicsPanel" type="VBoxContainer" parent="SettingsView/Panels"]
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="ModeBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel"]
+[node name="ModeBox" type="HBoxContainer" parent="SettingsView/Panels/GraphicsPanel"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/ModeBox"]
-custom_minimum_size = Vector2(170, 0)
+[node name="Label" type="Label" parent="SettingsView/Panels/GraphicsPanel/ModeBox"]
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Tryb wyświetlania:"
 
-[node name="DisplayModeOpt" type="OptionButton" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/ModeBox"]
+[node name="DisplayModeOpt" type="OptionButton" parent="SettingsView/Panels/GraphicsPanel/ModeBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 
-[node name="ResBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel"]
+[node name="ResBox" type="HBoxContainer" parent="SettingsView/Panels/GraphicsPanel"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/ResBox"]
-custom_minimum_size = Vector2(170, 0)
+[node name="Label" type="Label" parent="SettingsView/Panels/GraphicsPanel/ResBox"]
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Rozdzielczość okna:"
 
-[node name="ResolutionOpt" type="OptionButton" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/ResBox"]
+[node name="ResolutionOpt" type="OptionButton" parent="SettingsView/Panels/GraphicsPanel/ResBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 
-[node name="VsyncCheck" type="CheckBox" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel"]
+[node name="VsyncCheck" type="CheckBox" parent="SettingsView/Panels/GraphicsPanel"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 button_pressed = true
 text = "Synchronizacja pionowa (V-Sync)"
 
-[node name="FpsBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel"]
+[node name="FpsBox" type="HBoxContainer" parent="SettingsView/Panels/GraphicsPanel"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/FpsBox"]
-custom_minimum_size = Vector2(170, 0)
+[node name="Label" type="Label" parent="SettingsView/Panels/GraphicsPanel/FpsBox"]
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Limit klatek (FPS):"
 
-[node name="FpsLimitOpt" type="OptionButton" parent="SettingsView/DarkOverlay/SettingsContent/Panels/GraphicsPanel/FpsBox"]
+[node name="FpsLimitOpt" type="OptionButton" parent="SettingsView/Panels/GraphicsPanel/FpsBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 
-[node name="ControlsPanel" type="VBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels"]
+[node name="ControlsPanel" type="VBoxContainer" parent="SettingsView/Panels"]
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Grid" type="GridContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel"]
+[node name="Grid" type="GridContainer" parent="SettingsView/Panels/ControlsPanel"]
 layout_mode = 2
 theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 3
 columns = 2
 
-[node name="Action1" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Action1" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Ruch poziomy (Lewo / Prawo):"
 
-[node name="Key1" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Key1" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
 text = "A / D  (lub Strzałki)"
 
-[node name="Action2" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Action2" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Skok / Podwójny skok:"
 
-[node name="Key2" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Key2" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
-text = "Spacja"
+text = "Spacja / W"
 
-[node name="Action3" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Action3" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Zryw (Dash):"
 
-[node name="Key3" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Key3" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
-text = "Shift"
+text = "Shift / E"
 
-[node name="Action4" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Action4" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Kucanie / Wślizg:"
 
-[node name="Key4" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Key4" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
-text = "S"
+text = "S / Strzałka w dół"
 
-[node name="Action5" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Action5" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Wspinaczka (przy ścianie):"
 
-[node name="Key5" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Key5" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
-text = "W"
+text = "W / Shift"
 
-[node name="Action6" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Action6" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
-text = "Trick (w powietrzu):"
+text = "Trick (w locie - ładuje staminę):"
 
-[node name="Key6" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Key6" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
 text = "C (przytrzymaj w locie)"
 
-[node name="Action7" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Action7" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Pauza:"
 
-[node name="Key7" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel/Grid"]
+[node name="Key7" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
 text = "Esc / P"
 
-[node name="LanguagePanel" type="VBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels"]
+[node name="LanguagePanel" type="VBoxContainer" parent="SettingsView/Panels"]
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="LangBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel"]
+[node name="LangBox" type="HBoxContainer" parent="SettingsView/Panels/LanguagePanel"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel/LangBox"]
-custom_minimum_size = Vector2(170, 0)
+[node name="Label" type="Label" parent="SettingsView/Panels/LanguagePanel/LangBox"]
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Język gry (Language):"
 
-[node name="LanguageOpt" type="OptionButton" parent="SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel/LangBox"]
+[node name="LanguageOpt" type="OptionButton" parent="SettingsView/Panels/LanguagePanel/LangBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 
-[node name="SubtitlesCheck" type="CheckBox" parent="SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel"]
+[node name="SubtitlesCheck" type="CheckBox" parent="SettingsView/Panels/LanguagePanel"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 button_pressed = true
 text = "Wyświetlaj napisy dialogowe (Subtitles)"
 
-[node name="SepBottom" type="HSeparator" parent="SettingsView/DarkOverlay/SettingsContent"]
-layout_mode = 2
-
-[node name="FooterBox" type="HBoxContainer" parent="SettingsView/DarkOverlay/SettingsContent"]
-layout_mode = 2
-
-[node name="NavTip" type="Label" parent="SettingsView/DarkOverlay/SettingsContent/FooterBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.65, 0.7, 0.8, 0.8)
-theme_override_font_sizes/font_size = 10
-text = "Zakładki: Mysz lub [Q] / [E] / [1-4] | [Esc]: Powrót"
-
-[node name="SettingsBackBtn" type="Button" parent="SettingsView/DarkOverlay/SettingsContent/FooterBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "◀ Powrót do menu"
+[node name="BackBtn" type="Button" parent="SettingsView"]
+layout_mode = 0
+offset_top = 328.0
+offset_right = 160.0
+offset_bottom = 360.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=1094510268]
 stream = ExtResource("5_8ln24")

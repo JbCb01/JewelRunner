@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cu0bwfp0csmc7"]
 
-[ext_resource type="Script" path="res://scripts/menu.gd" id="1_bqqt6"]
+[ext_resource type="Script" uid="uid://bm4qso65s6638" path="res://scripts/menu.gd" id="1_bqqt6"]
 [ext_resource type="Texture2D" uid="uid://bxcweaicbmia" path="res://assets/HomeScreen.png" id="1_ekxnf"]
 [ext_resource type="Texture2D" uid="uid://xtyidye288j0" path="res://assets/LevelSelect.png" id="2_bqqt6"]
 [ext_resource type="Texture2D" uid="uid://7awqv16hpkld" path="res://assets/UstawieniaFix.png" id="4_wu84c"]
@@ -56,18 +56,6 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_selected"]
-bg_color = Color(0.2, 0.85, 0.45, 0.2)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.3, 1, 0.55, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
 [node name="MainMenu" type="Control" unique_id=1858959376]
 layout_mode = 3
 anchors_preset = 15
@@ -76,7 +64,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_bqqt6")
-arenaScenePath = "res://scenes/test_arena.tscn"
 
 [node name="HomeView" type="Control" parent="." unique_id=1548176391]
 layout_mode = 1
@@ -185,7 +172,7 @@ offset_right = 192.0
 offset_bottom = 224.0
 theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
 
-[node name="CompletedBadge" type="ColorRect" parent="LevelSelectView/Lvl1Btn"]
+[node name="CompletedBadge" type="ColorRect" parent="LevelSelectView/Lvl1Btn" unique_id=528918880]
 visible = false
 layout_mode = 1
 anchors_preset = 12
@@ -198,7 +185,7 @@ grow_vertical = 0
 mouse_filter = 2
 color = Color(0.1, 0.5, 0.2, 0.85)
 
-[node name="BadgeText" type="Label" parent="LevelSelectView/Lvl1Btn/CompletedBadge"]
+[node name="BadgeText" type="Label" parent="LevelSelectView/Lvl1Btn/CompletedBadge" unique_id=705022050]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -211,7 +198,7 @@ text = "✔ UKOŃCZONY"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="CheckmarkIcon" type="Label" parent="LevelSelectView/Lvl1Btn"]
+[node name="CheckmarkIcon" type="Label" parent="LevelSelectView/Lvl1Btn" unique_id=1806452999]
 visible = false
 layout_mode = 1
 anchors_preset = 1
@@ -244,15 +231,15 @@ offset_right = 592.0
 offset_bottom = 224.0
 theme_override_styles/normal = SubResource("StyleBoxEmpty_jm5mo")
 
-[node name="MechanicInfoPanel" type="Control" parent="LevelSelectView"]
-layout_mode = 0
+[node name="MechanicInfoPanel" type="Control" parent="LevelSelectView" unique_id=687882393]
+anchors_preset = 0
 offset_left = 45.0
 offset_top = 244.0
 offset_right = 592.0
 offset_bottom = 289.0
 mouse_filter = 2
 
-[node name="MechanicInfoLabel" type="Label" parent="LevelSelectView/MechanicInfoPanel"]
+[node name="MechanicInfoLabel" type="Label" parent="LevelSelectView/MechanicInfoPanel" unique_id=1524800483]
 layout_mode = 0
 offset_left = 6.0
 offset_top = 2.0
@@ -262,7 +249,7 @@ theme_override_colors/font_color = Color(0.92, 0.96, 1, 1)
 theme_override_font_sizes/font_size = 9
 autowrap_mode = 2
 
-[node name="DnaRadarLabel" type="Label" parent="LevelSelectView/MechanicInfoPanel"]
+[node name="DnaRadarLabel" type="Label" parent="LevelSelectView/MechanicInfoPanel" unique_id=1045186354]
 layout_mode = 0
 offset_left = 6.0
 offset_top = 27.0
@@ -271,7 +258,7 @@ offset_bottom = 43.0
 theme_override_colors/font_color = Color(0.45, 0.95, 0.72, 1)
 theme_override_font_sizes/font_size = 8
 
-[node name="AIContractBtn" type="Button" parent="LevelSelectView"]
+[node name="AIContractBtn" type="Button" parent="LevelSelectView" unique_id=2077630185]
 layout_mode = 0
 offset_left = 45.0
 offset_top = 296.0
@@ -285,7 +272,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 text = "📜 KONTRAKT AI: STANDARDOWY"
 
-[node name="AIGenerateBtn" type="Button" parent="LevelSelectView"]
+[node name="AIGenerateBtn" type="Button" parent="LevelSelectView" unique_id=344161558]
 layout_mode = 0
 offset_left = 345.0
 offset_top = 296.0
@@ -299,7 +286,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 text = "⚡ IV. SZACHOWNICA AI + ZADANIA"
 
-[node name="BackBtn" type="Button" parent="LevelSelectView"]
+[node name="BackBtn" type="Button" parent="LevelSelectView" unique_id=1388138202]
 layout_mode = 0
 offset_top = 328.0
 offset_right = 160.0
@@ -330,7 +317,7 @@ texture = ExtResource("4_wu84c")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="TabBar" type="Control" parent="SettingsView"]
+[node name="TabBar" type="Control" parent="SettingsView" unique_id=1048565896]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -339,7 +326,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="TabAudioBtn" type="Button" parent="SettingsView/TabBar"]
+[node name="TabAudioBtn" type="Button" parent="SettingsView/TabBar" unique_id=1793301416]
 layout_mode = 0
 offset_left = 80.0
 offset_top = 112.0
@@ -352,7 +339,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 
-[node name="TabGraphicsBtn" type="Button" parent="SettingsView/TabBar"]
+[node name="TabGraphicsBtn" type="Button" parent="SettingsView/TabBar" unique_id=2092494298]
 layout_mode = 0
 offset_left = 209.0
 offset_top = 112.0
@@ -365,7 +352,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 
-[node name="TabControlsBtn" type="Button" parent="SettingsView/TabBar"]
+[node name="TabControlsBtn" type="Button" parent="SettingsView/TabBar" unique_id=671059566]
 layout_mode = 0
 offset_left = 336.0
 offset_top = 112.0
@@ -378,7 +365,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 
-[node name="TabLanguageBtn" type="Button" parent="SettingsView/TabBar"]
+[node name="TabLanguageBtn" type="Button" parent="SettingsView/TabBar" unique_id=12180193]
 layout_mode = 0
 offset_left = 464.0
 offset_top = 112.0
@@ -391,277 +378,277 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 
-[node name="Panels" type="MarginContainer" parent="SettingsView"]
+[node name="Panels" type="MarginContainer" parent="SettingsView" unique_id=1839715829]
 layout_mode = 0
 offset_left = 65.0
 offset_top = 152.0
 offset_right = 575.0
 offset_bottom = 312.0
 
-[node name="AudioPanel" type="VBoxContainer" parent="SettingsView/Panels"]
+[node name="AudioPanel" type="VBoxContainer" parent="SettingsView/Panels" unique_id=633769127]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="MasterBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel"]
+[node name="MasterBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel" unique_id=36517025]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/MasterBox"]
+[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/MasterBox" unique_id=1845135263]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Głośność ogólna:"
 
-[node name="MasterSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/MasterBox"]
+[node name="MasterSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/MasterBox" unique_id=1701790760]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 value = 80.0
 
-[node name="MasterValue" type="Label" parent="SettingsView/Panels/AudioPanel/MasterBox"]
+[node name="MasterValue" type="Label" parent="SettingsView/Panels/AudioPanel/MasterBox" unique_id=1114144590]
 custom_minimum_size = Vector2(45, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "80%"
 horizontal_alignment = 2
 
-[node name="MusicBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel"]
+[node name="MusicBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel" unique_id=1300912090]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/MusicBox"]
+[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/MusicBox" unique_id=1607549527]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Muzyka w menu:"
 
-[node name="MusicSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/MusicBox"]
+[node name="MusicSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/MusicBox" unique_id=371708448]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 value = 70.0
 
-[node name="MusicValue" type="Label" parent="SettingsView/Panels/AudioPanel/MusicBox"]
+[node name="MusicValue" type="Label" parent="SettingsView/Panels/AudioPanel/MusicBox" unique_id=1817579078]
 custom_minimum_size = Vector2(45, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "70%"
 horizontal_alignment = 2
 
-[node name="LevelMusicBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel"]
+[node name="LevelMusicBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel" unique_id=540257352]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/LevelMusicBox"]
+[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/LevelMusicBox" unique_id=1046627993]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Muzyka w poziomie:"
 
-[node name="LevelMusicSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/LevelMusicBox"]
+[node name="LevelMusicSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/LevelMusicBox" unique_id=25272266]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 value = 70.0
 
-[node name="LevelMusicValue" type="Label" parent="SettingsView/Panels/AudioPanel/LevelMusicBox"]
+[node name="LevelMusicValue" type="Label" parent="SettingsView/Panels/AudioPanel/LevelMusicBox" unique_id=856026476]
 custom_minimum_size = Vector2(45, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "70%"
 horizontal_alignment = 2
 
-[node name="SfxBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel"]
+[node name="SfxBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel" unique_id=683637544]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/SfxBox"]
+[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/SfxBox" unique_id=853148461]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Efekty dźwiękowe (SFX):"
 
-[node name="SfxSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/SfxBox"]
+[node name="SfxSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/SfxBox" unique_id=1140767722]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 value = 80.0
 
-[node name="SfxValue" type="Label" parent="SettingsView/Panels/AudioPanel/SfxBox"]
+[node name="SfxValue" type="Label" parent="SettingsView/Panels/AudioPanel/SfxBox" unique_id=1349130015]
 custom_minimum_size = Vector2(45, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "80%"
 horizontal_alignment = 2
 
-[node name="MuteCheck" type="CheckBox" parent="SettingsView/Panels/AudioPanel"]
+[node name="MuteCheck" type="CheckBox" parent="SettingsView/Panels/AudioPanel" unique_id=1208487997]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Wycisz wszystkie dźwięki (Mute All)"
 
-[node name="GraphicsPanel" type="VBoxContainer" parent="SettingsView/Panels"]
+[node name="GraphicsPanel" type="VBoxContainer" parent="SettingsView/Panels" unique_id=2063397871]
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="ModeBox" type="HBoxContainer" parent="SettingsView/Panels/GraphicsPanel"]
+[node name="ModeBox" type="HBoxContainer" parent="SettingsView/Panels/GraphicsPanel" unique_id=1806490591]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/Panels/GraphicsPanel/ModeBox"]
+[node name="Label" type="Label" parent="SettingsView/Panels/GraphicsPanel/ModeBox" unique_id=1861662291]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Tryb wyświetlania:"
 
-[node name="DisplayModeOpt" type="OptionButton" parent="SettingsView/Panels/GraphicsPanel/ModeBox"]
+[node name="DisplayModeOpt" type="OptionButton" parent="SettingsView/Panels/GraphicsPanel/ModeBox" unique_id=1751827232]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 
-[node name="ResBox" type="HBoxContainer" parent="SettingsView/Panels/GraphicsPanel"]
+[node name="ResBox" type="HBoxContainer" parent="SettingsView/Panels/GraphicsPanel" unique_id=1653697936]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/Panels/GraphicsPanel/ResBox"]
+[node name="Label" type="Label" parent="SettingsView/Panels/GraphicsPanel/ResBox" unique_id=616752035]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Rozdzielczość okna:"
 
-[node name="ResolutionOpt" type="OptionButton" parent="SettingsView/Panels/GraphicsPanel/ResBox"]
+[node name="ResolutionOpt" type="OptionButton" parent="SettingsView/Panels/GraphicsPanel/ResBox" unique_id=673704092]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 
-[node name="VsyncCheck" type="CheckBox" parent="SettingsView/Panels/GraphicsPanel"]
+[node name="VsyncCheck" type="CheckBox" parent="SettingsView/Panels/GraphicsPanel" unique_id=1802075559]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 button_pressed = true
 text = "Synchronizacja pionowa (V-Sync)"
 
-[node name="FpsBox" type="HBoxContainer" parent="SettingsView/Panels/GraphicsPanel"]
+[node name="FpsBox" type="HBoxContainer" parent="SettingsView/Panels/GraphicsPanel" unique_id=54918681]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/Panels/GraphicsPanel/FpsBox"]
+[node name="Label" type="Label" parent="SettingsView/Panels/GraphicsPanel/FpsBox" unique_id=1919252850]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Limit klatek (FPS):"
 
-[node name="FpsLimitOpt" type="OptionButton" parent="SettingsView/Panels/GraphicsPanel/FpsBox"]
+[node name="FpsLimitOpt" type="OptionButton" parent="SettingsView/Panels/GraphicsPanel/FpsBox" unique_id=1233813419]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 
-[node name="ControlsPanel" type="VBoxContainer" parent="SettingsView/Panels"]
+[node name="ControlsPanel" type="VBoxContainer" parent="SettingsView/Panels" unique_id=344498202]
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Grid" type="GridContainer" parent="SettingsView/Panels/ControlsPanel"]
+[node name="Grid" type="GridContainer" parent="SettingsView/Panels/ControlsPanel" unique_id=1625738144]
 layout_mode = 2
 theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 3
 columns = 2
 
-[node name="Action1" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Action1" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=1722579352]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Ruch poziomy (Lewo / Prawo):"
 
-[node name="Key1" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Key1" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=373134705]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
 text = "A / D  (lub Strzałki)"
 
-[node name="Action2" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Action2" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=462197581]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Skok / Podwójny skok:"
 
-[node name="Key2" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Key2" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=2138427255]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
 text = "Spacja / W"
 
-[node name="Action3" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Action3" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=2112361664]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Zryw (Dash):"
 
-[node name="Key3" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Key3" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=1263110282]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
 text = "Shift / E"
 
-[node name="Action4" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Action4" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=1134601295]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Kucanie / Wślizg:"
 
-[node name="Key4" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Key4" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=1316204029]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
 text = "S / Strzałka w dół"
 
-[node name="Action5" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Action5" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=2069132601]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Wspinaczka (przy ścianie):"
 
-[node name="Key5" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Key5" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=1867792652]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
 text = "W / Shift"
 
-[node name="Action6" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Action6" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=1988805600]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Trick (w locie - ładuje staminę):"
 
-[node name="Key6" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Key6" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=855862060]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
 text = "C (przytrzymaj w locie)"
 
-[node name="Action7" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Action7" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=1505469521]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Pauza:"
 
-[node name="Key7" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid"]
+[node name="Key7" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=1837421883]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
 text = "Esc / P"
 
-[node name="LanguagePanel" type="VBoxContainer" parent="SettingsView/Panels"]
+[node name="LanguagePanel" type="VBoxContainer" parent="SettingsView/Panels" unique_id=981846459]
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="LangBox" type="HBoxContainer" parent="SettingsView/Panels/LanguagePanel"]
+[node name="LangBox" type="HBoxContainer" parent="SettingsView/Panels/LanguagePanel" unique_id=319729830]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SettingsView/Panels/LanguagePanel/LangBox"]
+[node name="Label" type="Label" parent="SettingsView/Panels/LanguagePanel/LangBox" unique_id=630997100]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Język gry (Language):"
 
-[node name="LanguageOpt" type="OptionButton" parent="SettingsView/Panels/LanguagePanel/LangBox"]
+[node name="LanguageOpt" type="OptionButton" parent="SettingsView/Panels/LanguagePanel/LangBox" unique_id=464023785]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 
-[node name="SubtitlesCheck" type="CheckBox" parent="SettingsView/Panels/LanguagePanel"]
+[node name="SubtitlesCheck" type="CheckBox" parent="SettingsView/Panels/LanguagePanel" unique_id=1545927332]
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 button_pressed = true
 text = "Wyświetlaj napisy dialogowe (Subtitles)"
 
-[node name="BackBtn" type="Button" parent="SettingsView"]
+[node name="BackBtn" type="Button" parent="SettingsView" unique_id=701349538]
 layout_mode = 0
 offset_top = 328.0
 offset_right = 160.0
@@ -697,7 +684,7 @@ texture = ExtResource("6_rtw2f")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="BackBtn" type="Button" parent="CreatorsView"]
+[node name="BackBtn" type="Button" parent="CreatorsView" unique_id=1579380593]
 layout_mode = 0
 offset_top = 328.0
 offset_right = 160.0
@@ -717,7 +704,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Bg" type="TextureRect" parent="ProfileSettingsView"]
+[node name="Bg" type="TextureRect" parent="ProfileSettingsView" unique_id=1150782588]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -728,7 +715,7 @@ texture = ExtResource("7_ustawienia")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ProfilBtn" type="Button" parent="ProfileSettingsView"]
+[node name="ProfilBtn" type="Button" parent="ProfileSettingsView" unique_id=2063309522]
 layout_mode = 0
 offset_left = 64.0
 offset_top = 128.0
@@ -740,7 +727,7 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 
-[node name="SkinSelectBtn" type="Button" parent="ProfileSettingsView"]
+[node name="SkinSelectBtn" type="Button" parent="ProfileSettingsView" unique_id=591953380]
 layout_mode = 0
 offset_left = 240.0
 offset_top = 128.0
@@ -752,7 +739,7 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 
-[node name="ZadaniaBtn" type="Button" parent="ProfileSettingsView"]
+[node name="ZadaniaBtn" type="Button" parent="ProfileSettingsView" unique_id=646609597]
 layout_mode = 0
 offset_left = 416.0
 offset_top = 128.0
@@ -764,7 +751,7 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 
-[node name="BackBtn" type="Button" parent="ProfileSettingsView"]
+[node name="BackBtn" type="Button" parent="ProfileSettingsView" unique_id=1424731914]
 layout_mode = 0
 offset_top = 328.0
 offset_right = 160.0
@@ -784,7 +771,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Bg" type="TextureRect" parent="SkinSelectView"]
+[node name="Bg" type="TextureRect" parent="SkinSelectView" unique_id=46903670]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -795,7 +782,7 @@ texture = ExtResource("8_skinselect")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Skin0Btn" type="Button" parent="SkinSelectView"]
+[node name="Skin0Btn" type="Button" parent="SkinSelectView" unique_id=1877582138]
 layout_mode = 0
 offset_left = 32.0
 offset_top = 128.0
@@ -807,7 +794,7 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 
-[node name="Badge" type="Label" parent="SkinSelectView/Skin0Btn"]
+[node name="Badge" type="Label" parent="SkinSelectView/Skin0Btn" unique_id=972530963]
 visible = false
 layout_mode = 1
 anchors_preset = 12
@@ -822,7 +809,7 @@ theme_override_font_sizes/font_size = 9
 text = "✔ WYBRANA"
 horizontal_alignment = 1
 
-[node name="Skin1Btn" type="Button" parent="SkinSelectView"]
+[node name="Skin1Btn" type="Button" parent="SkinSelectView" unique_id=1532690344]
 layout_mode = 0
 offset_left = 128.0
 offset_top = 128.0
@@ -834,7 +821,7 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 
-[node name="Badge" type="Label" parent="SkinSelectView/Skin1Btn"]
+[node name="Badge" type="Label" parent="SkinSelectView/Skin1Btn" unique_id=953865401]
 visible = false
 layout_mode = 1
 anchors_preset = 12
@@ -849,7 +836,7 @@ theme_override_font_sizes/font_size = 9
 text = "✔ WYBRANA"
 horizontal_alignment = 1
 
-[node name="Skin2Btn" type="Button" parent="SkinSelectView"]
+[node name="Skin2Btn" type="Button" parent="SkinSelectView" unique_id=340909442]
 layout_mode = 0
 offset_left = 228.0
 offset_top = 128.0
@@ -861,7 +848,7 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 
-[node name="Badge" type="Label" parent="SkinSelectView/Skin2Btn"]
+[node name="Badge" type="Label" parent="SkinSelectView/Skin2Btn" unique_id=750324160]
 visible = false
 layout_mode = 1
 anchors_preset = 12
@@ -876,7 +863,7 @@ theme_override_font_sizes/font_size = 9
 text = "✔ WYBRANA"
 horizontal_alignment = 1
 
-[node name="Skin3Btn" type="Button" parent="SkinSelectView"]
+[node name="Skin3Btn" type="Button" parent="SkinSelectView" unique_id=1169329063]
 layout_mode = 0
 offset_left = 325.0
 offset_top = 128.0
@@ -888,7 +875,7 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 
-[node name="Badge" type="Label" parent="SkinSelectView/Skin3Btn"]
+[node name="Badge" type="Label" parent="SkinSelectView/Skin3Btn" unique_id=1612913485]
 visible = false
 layout_mode = 1
 anchors_preset = 12
@@ -903,7 +890,7 @@ theme_override_font_sizes/font_size = 9
 text = "✔ WYBRANA"
 horizontal_alignment = 1
 
-[node name="Skin4Btn" type="Button" parent="SkinSelectView"]
+[node name="Skin4Btn" type="Button" parent="SkinSelectView" unique_id=1354016629]
 layout_mode = 0
 offset_left = 426.0
 offset_top = 128.0
@@ -915,7 +902,7 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 
-[node name="Badge" type="Label" parent="SkinSelectView/Skin4Btn"]
+[node name="Badge" type="Label" parent="SkinSelectView/Skin4Btn" unique_id=632396009]
 visible = false
 layout_mode = 1
 anchors_preset = 12
@@ -930,7 +917,7 @@ theme_override_font_sizes/font_size = 9
 text = "✔ WYBRANA"
 horizontal_alignment = 1
 
-[node name="Skin5Btn" type="Button" parent="SkinSelectView"]
+[node name="Skin5Btn" type="Button" parent="SkinSelectView" unique_id=131315975]
 layout_mode = 0
 offset_left = 528.0
 offset_top = 128.0
@@ -942,7 +929,7 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 
-[node name="Badge" type="Label" parent="SkinSelectView/Skin5Btn"]
+[node name="Badge" type="Label" parent="SkinSelectView/Skin5Btn" unique_id=1429189225]
 visible = false
 layout_mode = 1
 anchors_preset = 12
@@ -957,7 +944,7 @@ theme_override_font_sizes/font_size = 9
 text = "✔ WYBRANA"
 horizontal_alignment = 1
 
-[node name="ActiveSkinLabel" type="Label" parent="SkinSelectView"]
+[node name="ActiveSkinLabel" type="Label" parent="SkinSelectView" unique_id=2128752825]
 layout_mode = 0
 offset_left = 32.0
 offset_top = 250.0
@@ -968,7 +955,7 @@ theme_override_font_sizes/font_size = 11
 text = "Aktywna skórka: Klasyczna Stelly"
 horizontal_alignment = 1
 
-[node name="BackBtn" type="Button" parent="SkinSelectView"]
+[node name="BackBtn" type="Button" parent="SkinSelectView" unique_id=927449148]
 layout_mode = 0
 offset_top = 328.0
 offset_right = 160.0
@@ -988,7 +975,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Bg" type="TextureRect" parent="ProfileView"]
+[node name="Bg" type="TextureRect" parent="ProfileView" unique_id=1662394798]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -999,7 +986,7 @@ texture = ExtResource("9_profil")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="StatusLabel" type="Label" parent="ProfileView"]
+[node name="StatusLabel" type="Label" parent="ProfileView" unique_id=1393635383]
 layout_mode = 0
 offset_left = 128.0
 offset_top = 146.0
@@ -1012,15 +999,15 @@ Wpisz kod parowania z /profil lub otwórz portal w przeglądarce."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="PairingCodeInput" type="LineEdit" parent="ProfileView"]
+[node name="PairingCodeInput" type="LineEdit" parent="ProfileView" unique_id=923943386]
 layout_mode = 0
 offset_left = 134.0
 offset_top = 196.0
 offset_right = 282.0
 offset_bottom = 222.0
-theme_override_colors/caret_color = Color(0.2, 0.1, 0.25, 1)
-theme_override_colors/font_placeholder_color = Color(0.45, 0.35, 0.45, 0.75)
 theme_override_colors/font_color = Color(0.12, 0.06, 0.16, 1)
+theme_override_colors/font_placeholder_color = Color(0.45, 0.35, 0.45, 0.75)
+theme_override_colors/caret_color = Color(0.2, 0.1, 0.25, 1)
 theme_override_font_sizes/font_size = 10
 theme_override_styles/normal = SubResource("StyleBoxEmpty_qwhmk")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
@@ -1028,7 +1015,7 @@ placeholder_text = "KOD K7P2QX"
 alignment = 1
 max_length = 8
 
-[node name="PairBtn" type="Button" parent="ProfileView"]
+[node name="PairBtn" type="Button" parent="ProfileView" unique_id=1483486158]
 layout_mode = 0
 offset_left = 336.0
 offset_top = 192.0
@@ -1040,7 +1027,7 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 
-[node name="OpenPortalBtn" type="Button" parent="ProfileView"]
+[node name="OpenPortalBtn" type="Button" parent="ProfileView" unique_id=420260039]
 layout_mode = 0
 offset_left = 128.0
 offset_top = 240.0
@@ -1052,7 +1039,7 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 
-[node name="BackBtn" type="Button" parent="ProfileView"]
+[node name="BackBtn" type="Button" parent="ProfileView" unique_id=504185317]
 layout_mode = 0
 offset_top = 328.0
 offset_right = 160.0
@@ -1072,7 +1059,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Bg" type="TextureRect" parent="ZadaniaView"]
+[node name="Bg" type="TextureRect" parent="ZadaniaView" unique_id=1336476250]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -1083,7 +1070,7 @@ texture = ExtResource("10_zadania")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Task1Container" type="VBoxContainer" parent="ZadaniaView"]
+[node name="Task1Container" type="VBoxContainer" parent="ZadaniaView" unique_id=1641473690]
 layout_mode = 0
 offset_left = 36.0
 offset_top = 210.0
@@ -1091,32 +1078,32 @@ offset_right = 204.0
 offset_bottom = 284.0
 theme_override_constants/separation = 2
 
-[node name="Title" type="Label" parent="ZadaniaView/Task1Container"]
+[node name="Title" type="Label" parent="ZadaniaView/Task1Container" unique_id=908627427]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_font_sizes/font_size = 9
 text = "Pierwsze kroki"
 
-[node name="Desc" type="Label" parent="ZadaniaView/Task1Container"]
+[node name="Desc" type="Label" parent="ZadaniaView/Task1Container" unique_id=1214516664]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
 theme_override_font_sizes/font_size = 8
 text = "Ukończ pierwszy poziom."
 autowrap_mode = 2
 
-[node name="Progress" type="Label" parent="ZadaniaView/Task1Container"]
+[node name="Progress" type="Label" parent="ZadaniaView/Task1Container" unique_id=126901130]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.45, 1, 0.65, 1)
 theme_override_font_sizes/font_size = 8
 text = "Postęp: 40%"
 
-[node name="Reward" type="Label" parent="ZadaniaView/Task1Container"]
+[node name="Reward" type="Label" parent="ZadaniaView/Task1Container" unique_id=55354652]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.75, 0.25, 1)
 theme_override_font_sizes/font_size = 8
 text = "Nagroda: +50 Klejnotów"
 
-[node name="Task2Container" type="VBoxContainer" parent="ZadaniaView"]
+[node name="Task2Container" type="VBoxContainer" parent="ZadaniaView" unique_id=890938607]
 layout_mode = 0
 offset_left = 237.0
 offset_top = 210.0
@@ -1124,32 +1111,32 @@ offset_right = 405.0
 offset_bottom = 284.0
 theme_override_constants/separation = 2
 
-[node name="Title" type="Label" parent="ZadaniaView/Task2Container"]
+[node name="Title" type="Label" parent="ZadaniaView/Task2Container" unique_id=908483382]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_font_sizes/font_size = 9
 text = "Łowca klejnotów"
 
-[node name="Desc" type="Label" parent="ZadaniaView/Task2Container"]
+[node name="Desc" type="Label" parent="ZadaniaView/Task2Container" unique_id=409654832]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
 theme_override_font_sizes/font_size = 8
 text = "Zbierz wszystkie klejnoty."
 autowrap_mode = 2
 
-[node name="Progress" type="Label" parent="ZadaniaView/Task2Container"]
+[node name="Progress" type="Label" parent="ZadaniaView/Task2Container" unique_id=1783098077]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.45, 1, 0.65, 1)
 theme_override_font_sizes/font_size = 8
 text = "Postęp: 0%"
 
-[node name="Reward" type="Label" parent="ZadaniaView/Task2Container"]
+[node name="Reward" type="Label" parent="ZadaniaView/Task2Container" unique_id=105153948]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.75, 0.25, 1)
 theme_override_font_sizes/font_size = 8
 text = "Nagroda: +200 Klejnotów"
 
-[node name="Task3Container" type="VBoxContainer" parent="ZadaniaView"]
+[node name="Task3Container" type="VBoxContainer" parent="ZadaniaView" unique_id=1748923797]
 layout_mode = 0
 offset_left = 436.0
 offset_top = 210.0
@@ -1157,32 +1144,32 @@ offset_right = 604.0
 offset_bottom = 284.0
 theme_override_constants/separation = 2
 
-[node name="Title" type="Label" parent="ZadaniaView/Task3Container"]
+[node name="Title" type="Label" parent="ZadaniaView/Task3Container" unique_id=2037337238]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_font_sizes/font_size = 9
 text = "Mistrz czasu"
 
-[node name="Desc" type="Label" parent="ZadaniaView/Task3Container"]
+[node name="Desc" type="Label" parent="ZadaniaView/Task3Container" unique_id=1539781542]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.92, 1, 1)
 theme_override_font_sizes/font_size = 8
 text = "Ukończ poziom poniżej 60s."
 autowrap_mode = 2
 
-[node name="Progress" type="Label" parent="ZadaniaView/Task3Container"]
+[node name="Progress" type="Label" parent="ZadaniaView/Task3Container" unique_id=1019771063]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.45, 1, 0.65, 1)
 theme_override_font_sizes/font_size = 8
 text = "Postęp: 0%"
 
-[node name="Reward" type="Label" parent="ZadaniaView/Task3Container"]
+[node name="Reward" type="Label" parent="ZadaniaView/Task3Container" unique_id=864088124]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.75, 0.25, 1)
 theme_override_font_sizes/font_size = 8
 text = "Nagroda: +200 Klejnotów"
 
-[node name="BackBtn" type="Button" parent="ZadaniaView"]
+[node name="BackBtn" type="Button" parent="ZadaniaView" unique_id=82136615]
 layout_mode = 0
 offset_top = 328.0
 offset_right = 160.0
@@ -1193,6 +1180,6 @@ theme_override_styles/pressed = SubResource("StyleBoxEmpty_wl48s")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 
-[node name="AudioMenuSelect" type="AudioStreamPlayer" parent="."]
+[node name="AudioMenuSelect" type="AudioStreamPlayer" parent="." unique_id=1626804749]
 stream = ExtResource("11_menuselect")
 bus = &"SFX"

@@ -123,9 +123,12 @@ func _ready() -> void:
 		hud_session_label.text = "ID: %s" % session_id
 		
 	if music_level:
+		if music_level.stream is AudioStreamWAV:
+			(music_level.stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_DISABLED
 		if not music_level.finished.is_connected(music_level.play):
 			music_level.finished.connect(music_level.play)
-		music_level.play()
+		if not music_level.playing:
+			music_level.play()
 	
 	Events.player_died.connect(_on_player_died)
 	Events.player_hit.connect(_on_player_hit)
@@ -365,6 +368,8 @@ func _on_goal_entered(body: Node2D) -> void:
 		get_tree().paused = true
 		var lvl_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
 		Events.complete_level(lvl_id, elapsed_time)
+		if is_instance_valid(Events):
+			Events.return_to_level_select = true
 		if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 			Events.portal_sync.evaluate_run_against_challenges(collected_jewels, elapsed_time, true, tricks_performed_count)
 		
@@ -452,6 +457,18 @@ func _unhandled_input(event: InputEvent) -> void:
 				_switch_settings_tab((current_settings_tab + 1) % 4)
 				get_viewport().set_input_as_handled()
 				return
+			elif event.keycode == KEY_LEFT:
+				var focused = get_viewport().gui_get_focus_owner()
+				if not (focused is Slider or focused is OptionButton):
+					_switch_settings_tab((current_settings_tab - 1 + 4) % 4)
+					get_viewport().set_input_as_handled()
+					return
+			elif event.keycode == KEY_RIGHT:
+				var focused = get_viewport().gui_get_focus_owner()
+				if not (focused is Slider or focused is OptionButton):
+					_switch_settings_tab((current_settings_tab + 1) % 4)
+					get_viewport().set_input_as_handled()
+					return
 			elif event.keycode >= KEY_1 and event.keycode <= KEY_4:
 				_switch_settings_tab(event.keycode - KEY_1)
 				get_viewport().set_input_as_handled()
@@ -585,6 +602,12 @@ func _setup_settings_view() -> void:
 		tabControlsBtn.pressed.connect(func(): _switch_settings_tab(2))
 	if tabLanguageBtn and not tabLanguageBtn.pressed.is_connected(func(): _switch_settings_tab(3)):
 		tabLanguageBtn.pressed.connect(func(): _switch_settings_tab(3))
+
+	var tab_btns = [tabAudioBtn, tabGraphicsBtn, tabControlsBtn, tabLanguageBtn]
+	for idx in range(tab_btns.size()):
+		var b = tab_btns[idx]
+		if b and not b.focus_entered.is_connected(Callable(self, "_on_tab_focused").bind(idx)):
+			b.focus_entered.connect(_on_tab_focused.bind(idx))
 		
 	# Podpięcie opcji graficznych
 	var modeOpt: OptionButton = _find_in_settings("DisplayModeOpt") as OptionButton
@@ -694,6 +717,41 @@ func _setup_settings_view() -> void:
 		if not muteCheck.toggled.is_connected(_on_mute_check_toggled):
 			muteCheck.toggled.connect(_on_mute_check_toggled)
 
+	# Focus navigation dla zakładek i kontrolek settings w arenie
+	var settingsBackBtn: Button = _find_in_settings("SettingsBackBtn") as Button
+	if not settingsBackBtn: settingsBackBtn = _find_in_settings("BackBtn") as Button
+
+	if tabAudioBtn and tabGraphicsBtn and tabControlsBtn and tabLanguageBtn:
+		tabAudioBtn.focus_neighbor_left = tabLanguageBtn.get_path()
+		tabAudioBtn.focus_neighbor_right = tabGraphicsBtn.get_path()
+		tabGraphicsBtn.focus_neighbor_left = tabAudioBtn.get_path()
+		tabGraphicsBtn.focus_neighbor_right = tabControlsBtn.get_path()
+		tabControlsBtn.focus_neighbor_left = tabGraphicsBtn.get_path()
+		tabControlsBtn.focus_neighbor_right = tabLanguageBtn.get_path()
+		tabLanguageBtn.focus_neighbor_left = tabControlsBtn.get_path()
+		tabLanguageBtn.focus_neighbor_right = tabAudioBtn.get_path()
+		if masterSlider: tabAudioBtn.focus_neighbor_bottom = masterSlider.get_path()
+		if modeOpt: tabGraphicsBtn.focus_neighbor_bottom = modeOpt.get_path()
+		if langOpt: tabLanguageBtn.focus_neighbor_bottom = langOpt.get_path()
+
+	if masterSlider and tabAudioBtn:
+		masterSlider.focus_neighbor_top = tabAudioBtn.get_path()
+		if musicSlider: masterSlider.focus_neighbor_bottom = musicSlider.get_path()
+	if musicSlider and masterSlider:
+		musicSlider.focus_neighbor_top = masterSlider.get_path()
+		if levelMusicSlider: musicSlider.focus_neighbor_bottom = levelMusicSlider.get_path()
+	if levelMusicSlider and musicSlider:
+		levelMusicSlider.focus_neighbor_top = musicSlider.get_path()
+		if sfxSlider: levelMusicSlider.focus_neighbor_bottom = sfxSlider.get_path()
+	if sfxSlider and levelMusicSlider:
+		sfxSlider.focus_neighbor_top = levelMusicSlider.get_path()
+		if muteCheck: sfxSlider.focus_neighbor_bottom = muteCheck.get_path()
+	if muteCheck and sfxSlider:
+		muteCheck.focus_neighbor_top = sfxSlider.get_path()
+		if settingsBackBtn: muteCheck.focus_neighbor_bottom = settingsBackBtn.get_path()
+	if settingsBackBtn and muteCheck:
+		settingsBackBtn.focus_neighbor_top = muteCheck.get_path()
+
 func _switch_settings_tab(tabIdx: int) -> void:
 	current_settings_tab = clampi(tabIdx, 0, 3)
 	
@@ -729,6 +787,10 @@ func _switch_settings_tab(tabIdx: int) -> void:
 				
 	if buttons[current_settings_tab]:
 		buttons[current_settings_tab].grab_focus()
+
+func _on_tab_focused(idx: int) -> void:
+	if current_settings_tab != idx:
+		_switch_settings_tab(idx)
 
 func _on_master_slider_changed(v: float) -> void:
 	var masterSlider: HSlider = _find_in_settings("MasterSlider") as HSlider

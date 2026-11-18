@@ -150,10 +150,22 @@ func _ready() -> void:
 	_ensure_top_profile_button()
 	_setup_profile_navigation_ui()
 	_setup_mechanic_level_select_ui()
-	_showView(homeView)
+	if is_instance_valid(Events) and Events.get("return_to_level_select") == true:
+		Events.return_to_level_select = false
+		_showView(lvlView)
+	else:
+		_showView(homeView)
 	_update_level_select()
 	_setup_settings_mockups()
 	_apply_language(current_language)
+
+	if musicPlayer:
+		if musicPlayer.stream is AudioStreamWAV:
+			(musicPlayer.stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_DISABLED
+		if not musicPlayer.finished.is_connected(musicPlayer.play):
+			musicPlayer.finished.connect(musicPlayer.play)
+		if not musicPlayer.playing and not isMusicMuted:
+			musicPlayer.play()
 	
 	if is_instance_valid(Events):
 		if not Events.portal_profile_synced.is_connected(_on_portal_profile_synced):
@@ -163,7 +175,7 @@ func _ready() -> void:
 	
 	if profileBtn and not profileBtn.pressed.is_connected(_on_profile_btn_pressed):
 		profileBtn.pressed.connect(_on_profile_btn_pressed)
-	if playBtn: playBtn.pressed.connect(func(): _startLevelProfile(1))
+	if playBtn: playBtn.pressed.connect(_on_play_btn_pressed)
 	if lvlBtn and lvlView: lvlBtn.pressed.connect(func(): _showView(lvlView))
 	if setBtn and setView: setBtn.pressed.connect(func(): _showView(setView))
 	if creatorsBtn and creatorsView: creatorsBtn.pressed.connect(func(): _showView(creatorsView))
@@ -187,6 +199,16 @@ func _ready() -> void:
 	if tabControlsBtn: tabControlsBtn.pressed.connect(func(): _switchSettingsTab(2))
 	if tabLanguageBtn: tabLanguageBtn.pressed.connect(func(): _switchSettingsTab(3))
 	if settingsBackBtn: settingsBackBtn.pressed.connect(func(): _showView(homeView))
+
+	var tab_btns = [tabAudioBtn, tabGraphicsBtn, tabControlsBtn, tabLanguageBtn]
+	for idx in range(tab_btns.size()):
+		var b = tab_btns[idx]
+		if b and not b.focus_entered.is_connected(Callable(self, "_on_tab_focused").bind(idx)):
+			b.focus_entered.connect(_on_tab_focused.bind(idx))
+
+func _on_tab_focused(idx: int) -> void:
+	if currentSettingsTab != idx:
+		_switchSettingsTab(idx)
 
 ## Zapewnia istnienie przycisku profilu na górze po prawej stronie w HomeView.
 func _ensure_top_profile_button() -> void:
@@ -576,12 +598,6 @@ func _setup_mechanic_level_select_ui() -> void:
 		aiGenerateBtn.flat = true
 		aiGenerateBtn.add_theme_font_size_override("font_size", 9)
 		aiGenerateBtn.text = "⚡ IV. SZACHOWNICA AI + ZADANIA"
-		aiGenerateBtn.pressed.connect(func():
-			var new_seed: int = int(Time.get_unix_time_from_system()) + randi() % 10000
-			_startLevelProfile(4, new_seed)
-		)
-		aiGenerateBtn.mouse_entered.connect(func(): _preview_mechanic_profile(4))
-		aiGenerateBtn.focus_entered.connect(func(): _preview_mechanic_profile(4))
 		lvlView.add_child(aiGenerateBtn)
 	else:
 		aiGenerateBtn.position = Vector2(345, 296)
@@ -589,12 +605,19 @@ func _setup_mechanic_level_select_ui() -> void:
 		aiGenerateBtn.flat = true
 		aiGenerateBtn.add_theme_font_size_override("font_size", 9)
 		aiGenerateBtn.text = "⚡ IV. SZACHOWNICA AI + ZADANIA"
-		if not aiGenerateBtn.mouse_entered.is_connected(func(): _preview_mechanic_profile(4)):
-			aiGenerateBtn.mouse_entered.connect(func(): _preview_mechanic_profile(4))
-		if not aiGenerateBtn.focus_entered.is_connected(func(): _preview_mechanic_profile(4)):
-			aiGenerateBtn.focus_entered.connect(func(): _preview_mechanic_profile(4))
+
+	if not aiGenerateBtn.pressed.is_connected(_on_ai_generate_btn_pressed):
+		aiGenerateBtn.pressed.connect(_on_ai_generate_btn_pressed)
+	if not aiGenerateBtn.mouse_entered.is_connected(func(): _preview_mechanic_profile(4)):
+		aiGenerateBtn.mouse_entered.connect(func(): _preview_mechanic_profile(4))
+	if not aiGenerateBtn.focus_entered.is_connected(func(): _preview_mechanic_profile(4)):
+		aiGenerateBtn.focus_entered.connect(func(): _preview_mechanic_profile(4))
 
 	_preview_mechanic_profile(1)
+
+func _on_ai_generate_btn_pressed() -> void:
+	var new_seed: int = int(Time.get_unix_time_from_system()) + randi() % 10000
+	_startLevelProfile(4, new_seed)
 
 func _cycle_ai_contract() -> void:
 	if not is_instance_valid(Events) or not is_instance_valid(Events.ai_director):
@@ -611,6 +634,23 @@ func _update_contract_btn_text() -> void:
 		aiContractBtn.text = "📜 AI CONTRACT: %s" % Events.ai_director.get_contract_name()
 	else:
 		aiContractBtn.text = "📜 KONTRAKT AI: %s" % Events.ai_director.get_contract_name()
+
+func _on_play_btn_pressed() -> void:
+	# Puszcza kolejny nieukończony poziom.
+	# Jak wszystkie poziomy mają ukończony dany kontrakt (po 1 gwieździe), zmienia kontrakt na kolejny.
+	# Jak wszystkie poziomy są ukończone na maksa (każdy ma 3 gwiazdki), puszcza szachownicę AI.
+	for contract_idx in [0, 1, 2]:
+		for lvl_id in [1, 2, 3]:
+			var is_done: bool = Events.is_level_contract_completed(lvl_id, contract_idx) if is_instance_valid(Events) else false
+			if not is_done:
+				if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
+					Events.ai_director.set_contract_mode(contract_idx as AdaptiveAIDirector.ContractMode)
+					_update_contract_btn_text()
+				_startLevelProfile(lvl_id)
+				return
+
+	# Wszystkie 3 poziomy mają komplet 3 gwiazdek -> puszczamy szachownicę AI
+	_on_ai_generate_btn_pressed()
 
 func _preview_mechanic_profile(profile_id: int) -> void:
 	if not mechanicInfoLabel:
@@ -1004,6 +1044,48 @@ func _setup_settings_mockups() -> void:
 		if not muteCheck.toggled.is_connected(_on_mute_check_toggled):
 			muteCheck.toggled.connect(_on_mute_check_toggled)
 
+	# Usprawnienie nawigacji strzałkami w Settings
+	if tabAudioBtn and tabGraphicsBtn and tabControlsBtn and tabLanguageBtn:
+		tabAudioBtn.focus_neighbor_left = tabLanguageBtn.get_path()
+		tabAudioBtn.focus_neighbor_right = tabGraphicsBtn.get_path()
+		tabGraphicsBtn.focus_neighbor_left = tabAudioBtn.get_path()
+		tabGraphicsBtn.focus_neighbor_right = tabControlsBtn.get_path()
+		tabControlsBtn.focus_neighbor_left = tabGraphicsBtn.get_path()
+		tabControlsBtn.focus_neighbor_right = tabLanguageBtn.get_path()
+		tabLanguageBtn.focus_neighbor_left = tabControlsBtn.get_path()
+		tabLanguageBtn.focus_neighbor_right = tabAudioBtn.get_path()
+		if masterSlider:
+			tabAudioBtn.focus_neighbor_bottom = masterSlider.get_path()
+		if modeOpt:
+			tabGraphicsBtn.focus_neighbor_bottom = modeOpt.get_path()
+		if settingsBackBtn:
+			tabControlsBtn.focus_neighbor_bottom = settingsBackBtn.get_path()
+		if langOpt:
+			tabLanguageBtn.focus_neighbor_bottom = langOpt.get_path()
+
+	if masterSlider and tabAudioBtn:
+		masterSlider.focus_neighbor_top = tabAudioBtn.get_path()
+		if musicSlider:
+			masterSlider.focus_neighbor_bottom = musicSlider.get_path()
+	if musicSlider and masterSlider:
+		musicSlider.focus_neighbor_top = masterSlider.get_path()
+		if levelMusicSlider:
+			musicSlider.focus_neighbor_bottom = levelMusicSlider.get_path()
+	if levelMusicSlider and musicSlider:
+		levelMusicSlider.focus_neighbor_top = musicSlider.get_path()
+		if sfxSlider:
+			levelMusicSlider.focus_neighbor_bottom = sfxSlider.get_path()
+	if sfxSlider and levelMusicSlider:
+		sfxSlider.focus_neighbor_top = levelMusicSlider.get_path()
+		if muteCheck:
+			sfxSlider.focus_neighbor_bottom = muteCheck.get_path()
+	if muteCheck and sfxSlider:
+		muteCheck.focus_neighbor_top = sfxSlider.get_path()
+		if settingsBackBtn:
+			muteCheck.focus_neighbor_bottom = settingsBackBtn.get_path()
+	if settingsBackBtn and muteCheck:
+		settingsBackBtn.focus_neighbor_top = muteCheck.get_path()
+
 func _apply_language(lang_code: String) -> void:
 	current_language = lang_code
 	TranslationServer.set_locale(lang_code)
@@ -1150,6 +1232,18 @@ func _unhandled_input(event: InputEvent) -> void:
 				_switchSettingsTab((currentSettingsTab + 1) % 4)
 				get_viewport().set_input_as_handled()
 				return
+			elif event.keycode == KEY_LEFT:
+				var focused = get_viewport().gui_get_focus_owner()
+				if not (focused is Slider or focused is OptionButton):
+					_switchSettingsTab((currentSettingsTab - 1 + 4) % 4)
+					get_viewport().set_input_as_handled()
+					return
+			elif event.keycode == KEY_RIGHT:
+				var focused = get_viewport().gui_get_focus_owner()
+				if not (focused is Slider or focused is OptionButton):
+					_switchSettingsTab((currentSettingsTab + 1) % 4)
+					get_viewport().set_input_as_handled()
+					return
 			elif event.keycode >= KEY_1 and event.keycode <= KEY_4:
 				_switchSettingsTab(event.keycode - KEY_1)
 				get_viewport().set_input_as_handled()
@@ -1217,14 +1311,173 @@ func _showView(targetView: Control) -> void:
 		_refresh_zadania_ui()
 		if zadaniaBackBtn: zadaniaBackBtn.grab_focus()
 
+func _ensure_card_badge_and_lock(btn: Button, lvl_num: int) -> Dictionary:
+	if not btn:
+		return {}
+
+	var stars_count: int = Events.get_level_stars(lvl_num) if is_instance_valid(Events) else 0
+
+	var badge = btn.get_node_or_null("CompletedBadge") as Control
+	if not badge:
+		badge = ColorRect.new()
+		badge.name = "CompletedBadge"
+		badge.layout_mode = 1
+		badge.anchors_preset = Control.PRESET_BOTTOM_WIDE
+		badge.anchor_top = 1.0
+		badge.anchor_right = 1.0
+		badge.anchor_bottom = 1.0
+		badge.offset_top = -24.0
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.color = Color(0.1, 0.5, 0.2, 0.85)
+		
+		var b_text = Label.new()
+		b_text.name = "BadgeText"
+		b_text.layout_mode = 1
+		b_text.anchors_preset = Control.PRESET_FULL_RECT
+		b_text.anchor_right = 1.0
+		b_text.anchor_bottom = 1.0
+		b_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		b_text.add_theme_font_size_override("font_size", 12)
+		b_text.add_theme_color_override("font_color", Color(0.9, 1.0, 0.9, 1.0))
+		b_text.text = "✔ COMPLETED" if current_language == "en" else "✔ UKOŃCZONY"
+		badge.add_child(b_text)
+		btn.add_child(badge)
+	else:
+		var b_text = badge.get_node_or_null("BadgeText") as Label
+		if b_text:
+			b_text.text = "✔ COMPLETED" if current_language == "en" else "✔ UKOŃCZONY"
+
+	# Usuń stary pojedynczy CheckmarkIcon jeśli istnieje
+	var old_star = btn.get_node_or_null("CheckmarkIcon")
+	if old_star:
+		old_star.queue_free()
+
+	# Kontener z 3 gwiazdkami - 1 gwiazdka za każdy kontrakt AI Director
+	var stars_box = btn.get_node_or_null("StarsBox") as HBoxContainer
+	if not stars_box:
+		stars_box = HBoxContainer.new()
+		stars_box.name = "StarsBox"
+		stars_box.layout_mode = 1
+		stars_box.anchors_preset = Control.PRESET_TOP_RIGHT
+		stars_box.anchor_left = 1.0
+		stars_box.anchor_right = 1.0
+		stars_box.offset_left = -78.0
+		stars_box.offset_top = 6.0
+		stars_box.offset_right = -8.0
+		stars_box.offset_bottom = 28.0
+		stars_box.alignment = BoxContainer.ALIGNMENT_END
+		stars_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stars_box.add_theme_constant_override("separation", 2)
+		for i in range(3):
+			var s_lbl = Label.new()
+			s_lbl.name = "Star%d" % i
+			s_lbl.text = "★"
+			s_lbl.add_theme_font_size_override("font_size", 16)
+			stars_box.add_child(s_lbl)
+		btn.add_child(stars_box)
+
+	# Odświeżenie kolorów 3 gwiazdek
+	for i in range(3):
+		var s_lbl = stars_box.get_node_or_null("Star%d" % i) as Label
+		if s_lbl:
+			var has_star: bool = Events.is_level_contract_completed(lvl_num, i) if is_instance_valid(Events) else false
+			if has_star:
+				s_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2, 1.0))
+			else:
+				s_lbl.add_theme_color_override("font_color", Color(0.35, 0.40, 0.50, 0.4))
+
+	var lock = btn.get_node_or_null("LockOverlay") as Control
+	if not lock:
+		lock = ColorRect.new()
+		lock.name = "LockOverlay"
+		lock.layout_mode = 1
+		lock.anchors_preset = Control.PRESET_FULL_RECT
+		lock.anchor_right = 1.0
+		lock.anchor_bottom = 1.0
+		lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lock.color = Color(0.06, 0.08, 0.12, 0.85)
+
+		var l_text = Label.new()
+		l_text.name = "LockText"
+		l_text.layout_mode = 1
+		l_text.anchors_preset = Control.PRESET_FULL_RECT
+		l_text.anchor_right = 1.0
+		l_text.anchor_bottom = 1.0
+		l_text.offset_bottom = -14.0
+		l_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l_text.add_theme_font_size_override("font_size", 12)
+		l_text.add_theme_color_override("font_color", Color(0.95, 0.75, 0.35, 1.0))
+		l_text.text = "🔒 LOCKED" if current_language == "en" else "🔒 ZABLOKOWANY"
+		lock.add_child(l_text)
+
+		var l_sub = Label.new()
+		l_sub.name = "LockSubtext"
+		l_sub.layout_mode = 1
+		l_sub.anchors_preset = Control.PRESET_FULL_RECT
+		l_sub.anchor_right = 1.0
+		l_sub.anchor_bottom = 1.0
+		l_sub.offset_top = 22.0
+		l_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l_sub.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l_sub.add_theme_font_size_override("font_size", 9)
+		l_sub.add_theme_color_override("font_color", Color(0.7, 0.75, 0.85, 0.8))
+		if lvl_num > 1:
+			l_sub.text = "Clear Level %d to unlock" % (lvl_num - 1) if current_language == "en" else "Ukończ Poziom %d" % (lvl_num - 1)
+		lock.add_child(l_sub)
+		btn.add_child(lock)
+	else:
+		var l_text = lock.get_node_or_null("LockText") as Label
+		if l_text:
+			l_text.text = "🔒 LOCKED" if current_language == "en" else "🔒 ZABLOKOWANY"
+		var l_sub = lock.get_node_or_null("LockSubtext") as Label
+		if l_sub and lvl_num > 1:
+			l_sub.text = "Clear Level %d to unlock" % (lvl_num - 1) if current_language == "en" else "Ukończ Poziom %d" % (lvl_num - 1)
+
+	return {"badge": badge, "stars_box": stars_box, "lock": lock}
+
 func _update_level_select() -> void:
-	var is_lvl1_done = Events.is_level_completed(1) if is_instance_valid(Events) else false
-	if lvl1CompletedBadge:
-		lvl1CompletedBadge.visible = is_lvl1_done
-	if lvl1CheckmarkIcon:
-		lvl1CheckmarkIcon.visible = is_lvl1_done
+	var lvl1_done: bool = Events.is_level_completed(1) if is_instance_valid(Events) else false
+	var lvl2_done: bool = Events.is_level_completed(2) if is_instance_valid(Events) else false
+	var lvl3_done: bool = Events.is_level_completed(3) if is_instance_valid(Events) else false
+
+	# Poziom 1: zawsze odblokowany
+	var card1 = _ensure_card_badge_and_lock(lvl1Btn, 1)
+	if not card1.is_empty():
+		card1["lock"].visible = false
+		card1["badge"].visible = lvl1_done
+		card1["stars_box"].visible = lvl1_done
+		lvl1Btn.disabled = false
+		lvl1Btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+
+	# Poziom 2: odblokowany dopiero po ukończeniu poziomu 1
+	var lvl2_unlocked: bool = lvl1_done
+	var card2 = _ensure_card_badge_and_lock(lvl2Btn, 2)
+	if not card2.is_empty():
+		card2["lock"].visible = not lvl2_unlocked
+		card2["badge"].visible = lvl2_unlocked and lvl2_done
+		card2["stars_box"].visible = lvl2_unlocked and lvl2_done
+		lvl2Btn.disabled = not lvl2_unlocked
+		lvl2Btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if lvl2_unlocked else Control.CURSOR_FORBIDDEN
+
+	# Poziom 3: odblokowany dopiero po ukończeniu poziomu 2
+	var lvl3_unlocked: bool = lvl2_done
+	var card3 = _ensure_card_badge_and_lock(lvl3Btn, 3)
+	if not card3.is_empty():
+		card3["lock"].visible = not lvl3_unlocked
+		card3["badge"].visible = lvl3_unlocked and lvl3_done
+		card3["stars_box"].visible = lvl3_unlocked and lvl3_done
+		lvl3Btn.disabled = not lvl3_unlocked
+		lvl3Btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if lvl3_unlocked else Control.CURSOR_FORBIDDEN
 
 func _startLevelProfile(profile_id: int, custom_seed: int = 0) -> void:
+	if profile_id == 2 and not (Events.is_level_completed(1) if is_instance_valid(Events) else false):
+		_preview_mechanic_profile(2)
+		return
+	if profile_id == 3 and not (Events.is_level_completed(2) if is_instance_valid(Events) else false):
+		_preview_mechanic_profile(3)
+		return
 	if is_instance_valid(Events):
 		Events.selected_level_profile = profile_id
 		Events.selected_level_seed = custom_seed

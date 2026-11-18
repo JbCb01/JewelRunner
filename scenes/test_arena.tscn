@@ -12,6 +12,33 @@
 [ext_resource type="AudioStream" uid="uid://ut8hgbiyd3bo" path="res://audio/sfx/Pickup_Jewel.ogg" id="10_pickup_audio"]
 [ext_resource type="AudioStream" uid="uid://c1eqof2o4kpv7" path="res://audio/music/yessirski.wav" id="11_level_music"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/enemy_mockup.tscn" id="12_enemy_mockup"]
+[ext_resource type="Texture2D" uid="uid://7awqv16hpkld" path="res://assets/UstawieniaFix.png" id="13_settings_tex"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_set_empty"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_set_hover"]
+bg_color = Color(1, 1, 1, 0.14)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.88, 0.35, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_set_active"]
+bg_color = Color(1, 0.88, 0.35, 0.18)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.88, 0.35, 0.95)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor_left"]
 size = Vector2(400, 32)
@@ -472,7 +499,11 @@ offset_left = 220.0
 offset_top = 125.0
 offset_right = 420.0
 offset_bottom = 155.0
+focus_neighbor_top = NodePath("../QuitBtn")
+focus_neighbor_bottom = NodePath("../RestartBtn")
 mouse_default_cursor_shape = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
 flat = true
 
 [node name="RestartBtn" type="Button" parent="HUD/PauseMenu" unique_id=832233274]
@@ -481,7 +512,24 @@ offset_left = 220.0
 offset_top = 158.0
 offset_right = 420.0
 offset_bottom = 188.0
+focus_neighbor_top = NodePath("../ResumeBtn")
+focus_neighbor_bottom = NodePath("../SettingsBtn")
 mouse_default_cursor_shape = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
+flat = true
+
+[node name="SettingsBtn" type="Button" parent="HUD/PauseMenu" unique_id=129841829]
+layout_mode = 0
+offset_left = 220.0
+offset_top = 190.0
+offset_right = 420.0
+offset_bottom = 220.0
+focus_neighbor_top = NodePath("../RestartBtn")
+focus_neighbor_bottom = NodePath("../QuitBtn")
+mouse_default_cursor_shape = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
 flat = true
 
 [node name="QuitBtn" type="Button" parent="HUD/PauseMenu" unique_id=1658638144]
@@ -490,7 +538,11 @@ offset_left = 220.0
 offset_top = 222.0
 offset_right = 420.0
 offset_bottom = 252.0
+focus_neighbor_top = NodePath("../SettingsBtn")
+focus_neighbor_bottom = NodePath("../ResumeBtn")
 mouse_default_cursor_shape = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
 flat = true
 
 [node name="GameOverMenu" type="Control" parent="HUD" unique_id=45081194]
@@ -518,7 +570,11 @@ offset_left = 200.0
 offset_top = 220.0
 offset_right = 440.0
 offset_bottom = 255.0
+focus_neighbor_top = NodePath("../MainMenuBtn")
+focus_neighbor_bottom = NodePath("../MainMenuBtn")
 mouse_default_cursor_shape = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
 flat = true
 
 [node name="MainMenuBtn" type="Button" parent="HUD/GameOverMenu" unique_id=1494088904]
@@ -527,7 +583,11 @@ offset_left = 200.0
 offset_top = 265.0
 offset_right = 440.0
 offset_bottom = 300.0
+focus_neighbor_top = NodePath("../RetryBtn")
+focus_neighbor_bottom = NodePath("../RetryBtn")
 mouse_default_cursor_shape = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
 flat = true
 
 [node name="AudioPause" type="AudioStreamPlayer" parent="HUD" unique_id=732042562]
@@ -591,7 +651,11 @@ offset_left = 200.0
 offset_top = 220.0
 offset_right = 440.0
 offset_bottom = 255.0
+focus_neighbor_top = NodePath("../MainMenuBtn")
+focus_neighbor_bottom = NodePath("../MainMenuBtn")
 mouse_default_cursor_shape = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
 flat = true
 
 [node name="MainMenuBtn" type="Button" parent="HUD/WinScreen" unique_id=1749902518]
@@ -600,12 +664,379 @@ offset_left = 200.0
 offset_top = 265.0
 offset_right = 440.0
 offset_bottom = 300.0
+focus_neighbor_top = NodePath("../RetryBtn")
+focus_neighbor_bottom = NodePath("../RetryBtn")
 mouse_default_cursor_shape = 2
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
 flat = true
 
 [node name="AudioWin" type="AudioStreamPlayer" parent="HUD" unique_id=1843480329]
 process_mode = 2
 stream = ExtResource("9_win_audio")
+
+[node name="SettingsView" type="Control" parent="HUD"]
+process_mode = 2
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="HUD/SettingsView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("13_settings_tex")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TabBar" type="Control" parent="HUD/SettingsView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TabAudioBtn" type="Button" parent="HUD/SettingsView/TabBar"]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 112.0
+offset_right = 177.0
+offset_bottom = 144.0
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_set_active")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
+
+[node name="TabGraphicsBtn" type="Button" parent="HUD/SettingsView/TabBar"]
+layout_mode = 0
+offset_left = 209.0
+offset_top = 112.0
+offset_right = 305.0
+offset_bottom = 144.0
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxEmpty_set_empty")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
+
+[node name="TabControlsBtn" type="Button" parent="HUD/SettingsView/TabBar"]
+layout_mode = 0
+offset_left = 336.0
+offset_top = 112.0
+offset_right = 432.0
+offset_bottom = 144.0
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxEmpty_set_empty")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
+
+[node name="TabLanguageBtn" type="Button" parent="HUD/SettingsView/TabBar"]
+layout_mode = 0
+offset_left = 464.0
+offset_top = 112.0
+offset_right = 560.0
+offset_bottom = 144.0
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxEmpty_set_empty")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
+
+[node name="Panels" type="MarginContainer" parent="HUD/SettingsView"]
+layout_mode = 0
+offset_left = 65.0
+offset_top = 152.0
+offset_right = 575.0
+offset_bottom = 312.0
+
+[node name="AudioPanel" type="VBoxContainer" parent="HUD/SettingsView/Panels"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="MasterBox" type="HBoxContainer" parent="HUD/SettingsView/Panels/AudioPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HUD/SettingsView/Panels/AudioPanel/MasterBox"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Głośność ogólna:"
+
+[node name="MasterSlider" type="HSlider" parent="HUD/SettingsView/Panels/AudioPanel/MasterBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 80.0
+
+[node name="MasterValue" type="Label" parent="HUD/SettingsView/Panels/AudioPanel/MasterBox"]
+custom_minimum_size = Vector2(45, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "80%"
+horizontal_alignment = 2
+
+[node name="MusicBox" type="HBoxContainer" parent="HUD/SettingsView/Panels/AudioPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HUD/SettingsView/Panels/AudioPanel/MusicBox"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Muzyka w menu:"
+
+[node name="MusicSlider" type="HSlider" parent="HUD/SettingsView/Panels/AudioPanel/MusicBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 70.0
+
+[node name="MusicValue" type="Label" parent="HUD/SettingsView/Panels/AudioPanel/MusicBox"]
+custom_minimum_size = Vector2(45, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "70%"
+horizontal_alignment = 2
+
+[node name="LevelMusicBox" type="HBoxContainer" parent="HUD/SettingsView/Panels/AudioPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HUD/SettingsView/Panels/AudioPanel/LevelMusicBox"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Muzyka w poziomie:"
+
+[node name="LevelMusicSlider" type="HSlider" parent="HUD/SettingsView/Panels/AudioPanel/LevelMusicBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 70.0
+
+[node name="LevelMusicValue" type="Label" parent="HUD/SettingsView/Panels/AudioPanel/LevelMusicBox"]
+custom_minimum_size = Vector2(45, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "70%"
+horizontal_alignment = 2
+
+[node name="SfxBox" type="HBoxContainer" parent="HUD/SettingsView/Panels/AudioPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HUD/SettingsView/Panels/AudioPanel/SfxBox"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Efekty dźwiękowe (SFX):"
+
+[node name="SfxSlider" type="HSlider" parent="HUD/SettingsView/Panels/AudioPanel/SfxBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 80.0
+
+[node name="SfxValue" type="Label" parent="HUD/SettingsView/Panels/AudioPanel/SfxBox"]
+custom_minimum_size = Vector2(45, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "80%"
+horizontal_alignment = 2
+
+[node name="MuteCheck" type="CheckBox" parent="HUD/SettingsView/Panels/AudioPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Wycisz wszystkie dźwięki (Mute All)"
+
+[node name="GraphicsPanel" type="VBoxContainer" parent="HUD/SettingsView/Panels"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ModeBox" type="HBoxContainer" parent="HUD/SettingsView/Panels/GraphicsPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HUD/SettingsView/Panels/GraphicsPanel/ModeBox"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Tryb wyświetlania:"
+
+[node name="DisplayModeOpt" type="OptionButton" parent="HUD/SettingsView/Panels/GraphicsPanel/ModeBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+
+[node name="ResBox" type="HBoxContainer" parent="HUD/SettingsView/Panels/GraphicsPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HUD/SettingsView/Panels/GraphicsPanel/ResBox"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Rozdzielczość okna:"
+
+[node name="ResolutionOpt" type="OptionButton" parent="HUD/SettingsView/Panels/GraphicsPanel/ResBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+
+[node name="VsyncCheck" type="CheckBox" parent="HUD/SettingsView/Panels/GraphicsPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+button_pressed = true
+text = "Synchronizacja pionowa (V-Sync)"
+
+[node name="FpsBox" type="HBoxContainer" parent="HUD/SettingsView/Panels/GraphicsPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HUD/SettingsView/Panels/GraphicsPanel/FpsBox"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Limit klatek (FPS):"
+
+[node name="FpsLimitOpt" type="OptionButton" parent="HUD/SettingsView/Panels/GraphicsPanel/FpsBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+
+[node name="ControlsPanel" type="VBoxContainer" parent="HUD/SettingsView/Panels"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Grid" type="GridContainer" parent="HUD/SettingsView/Panels/ControlsPanel"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 4
+columns = 2
+
+[node name="Action1" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Ruch poziomy (Lewo / Prawo):"
+
+[node name="Key1" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "A / D  (lub Strzałki)"
+
+[node name="Action2" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Skok / Podwójny skok:"
+
+[node name="Key2" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "Spacja / W"
+
+[node name="Action3" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Zryw (Dash):"
+
+[node name="Key3" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "Shift / Shift prawy"
+
+[node name="Action4" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Kucanie / Wślizg:"
+
+[node name="Key4" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "S / Strzałka w dół"
+
+[node name="Action5" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Wspinaczka (przy ścianie):"
+
+[node name="Key5" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "W / Strzałka w górę"
+
+[node name="Action6" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Trick (w locie - ładuje staminę):"
+
+[node name="Key6" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "C (przytrzymaj w locie)"
+
+[node name="Action7" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Pauza:"
+
+[node name="Key7" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "Escape / P"
+
+[node name="LanguagePanel" type="VBoxContainer" parent="HUD/SettingsView/Panels"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LangBox" type="HBoxContainer" parent="HUD/SettingsView/Panels/LanguagePanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HUD/SettingsView/Panels/LanguagePanel/LangBox"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Język gry (Language):"
+
+[node name="LanguageOpt" type="OptionButton" parent="HUD/SettingsView/Panels/LanguagePanel/LangBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+
+[node name="SubtitlesCheck" type="CheckBox" parent="HUD/SettingsView/Panels/LanguagePanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+button_pressed = true
+text = "Wyświetlaj napisy dialogowe (Subtitles)"
+
+[node name="BackBtn" type="Button" parent="HUD/SettingsView"]
+layout_mode = 0
+offset_top = 328.0
+offset_right = 160.0
+offset_bottom = 360.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_set_empty")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_set_empty")
+theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
 
 [node name="AudioPickup" type="AudioStreamPlayer" parent="HUD" unique_id=1373622480]
 stream = ExtResource("10_pickup_audio")
@@ -614,3 +1045,4 @@ stream = ExtResource("10_pickup_audio")
 stream = ExtResource("11_level_music")
 volume_db = -26.0
 autoplay = true
+bus = &"MusicLevel"

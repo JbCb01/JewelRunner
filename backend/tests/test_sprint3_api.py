@@ -312,7 +312,16 @@ def test_save_appearance_with_owned_items(client, engine):
     assert body["skin"]["name"] == "Test Rycerz"
     assert body["accessories"][0]["slot"] == "głowa"
     assert body["accessories"][0]["color"]["hex"] == "#6A3FB5"
-    assert client.get("/api/me/game-state").json()["appearance"]["active_skin"] == "Test Rycerz"
+    gs = client.get("/api/me/game-state").json()["appearance"]
+    assert gs["active_skin"] == "Test Rycerz"
+    assert gs["active_skin_id"] == skin
+    assert gs["active_color_hex"] == "#6A3FB5"
+    assert gs["active_color_id"] == color
+    assert gs["equipped_accessories"] == {"głowa": "Test Kapelusz"}
+    assert gs["equipped_accessories_detail"] == [
+        {"slot": "głowa", "accessory_id": hat, "name": "Test Kapelusz", "color_id": color}
+    ]
+    assert any(item["id"] == skin for item in gs["owned_items"])
 
 
 def test_a1_locked_or_wrong_type_element_is_rejected(client, engine):
@@ -460,3 +469,14 @@ def test_full_path_portal_game_portal(client, engine):
     stats = client.get("/api/me/stats").json()
     assert stats["overall"]["levels_completed"] == 1 and stats["overall"]["gems_balance"] == 7
     assert client.get("/api/me/runs").json()["items"][0]["score"] == 420
+
+
+def test_levels_2_to_4_accept_runs(client):
+    register(client)
+    for lvl in (2, 3, 4):
+        res = run(client, level=lvl, score=150 * lvl, gems=3, enemies=1)
+        assert res["level"] == lvl
+        assert res["completed"] is True
+    stats = client.get("/api/me/stats").json()
+    assert stats["overall"]["levels_completed"] == 3
+    assert len([lvl for lvl in stats["levels"] if lvl["level"] in (2, 3, 4) and lvl["completed"]]) == 3

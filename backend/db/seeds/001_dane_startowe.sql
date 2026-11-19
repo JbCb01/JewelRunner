@@ -5,7 +5,8 @@
 BEGIN;
 
 INSERT INTO poziom (nazwa, kolejnosc, punkt_startowy, punkty_kontrolne)
-VALUES ('Poziom 1', 1, '{"x": 0, "y": 0}', '[]');
+VALUES ('Poziom 1', 1, '{"x": 0, "y": 0}', '[]')
+ON CONFLICT (kolejnosc) DO NOTHING;
 
 -- Elementy przypisywane przy rejestracji
 INSERT INTO element_personalizacji (typ, nazwa, wartosc_koloru, punkt_mocowania, czy_domyslny) VALUES

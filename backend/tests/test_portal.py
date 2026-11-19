@@ -54,6 +54,7 @@ def clean_extra_challenges(engine):
     yield
     execute(engine, "DELETE FROM gracz")
     execute(engine, "DELETE FROM wyzwanie WHERE opis = 'opis'")
+    execute(engine, "UPDATE poziom SET warunek_odblokowania = NULL WHERE kolejnosc > 1")
 
 
 @pytest.mark.parametrize(
@@ -170,7 +171,8 @@ def test_a3_accept_requires_unlocked_level(client, engine):
     execute(
         engine,
         """INSERT INTO poziom (nazwa, kolejnosc, warunek_odblokowania, punkt_startowy)
-           VALUES ('Poziom 2', 2, '{"poziom": 1}', '{}') ON CONFLICT (kolejnosc) DO NOTHING""",
+           VALUES ('Poziom 2', 2, '{"poziom": 1}', '{}')
+           ON CONFLICT (kolejnosc) DO UPDATE SET warunek_odblokowania = EXCLUDED.warunek_odblokowania""",
     )
     wid = make_challenge(engine, "Wymagające", requirements='{"poziom_odblokowany": 2}')
     response = client.post(f"/api/challenges/{wid}/accept")

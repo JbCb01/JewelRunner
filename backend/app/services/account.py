@@ -18,10 +18,9 @@ from app.db.models import (
     PortfelGracza,
     PosiadanyElement,
     TokenZmianyEmaila,
-    WygladPostaci,
     Wzmocnienie,
 )
-from app.services import challenges, mailer, player_settings, shop
+from app.services import appearance, challenges, mailer, player_settings, shop
 from app.services.auth import check_password_with_lock
 
 EMAIL_TOKEN_TTL = timedelta(hours=24)
@@ -110,24 +109,46 @@ def get_game_state(db: Session, gracz: Gracz) -> dict:
     wallet = db.get(PortfelGracza, gracz.id)
     gems = wallet.liczba_klejnotow if wallet else 0
 
-    wyglad = db.get(WygladPostaci, gracz.id)
+    look = appearance.current_look(db, gracz.id)
     active_skin = "Skórka podstawowa"
+    active_skin_id = None
     active_color_name = "Fioletowy"
     active_color_hex = "#6A3FB5"
-    if wyglad:
-        skin_el = db.get(ElementPersonalizacji, wyglad.skorka_id)
-        color_el = db.get(ElementPersonalizacji, wyglad.kolor_id)
-        if skin_el:
-            active_skin = skin_el.nazwa
-        if color_el:
-            active_color_name = color_el.nazwa
+    active_color_id = None
+    equipped_accessories: dict[str, str] = {}
+    equipped_accessories_detail: list[dict] = []
+    if look is not None:
+        active_skin = look["skin"]["name"]
+        active_skin_id = look["skin"]["id"]
+        active_color_name = look["color"]["name"]
+        active_color_hex = look["color"]["hex"] or "#6A3FB5"
+        active_color_id = look["color"]["id"]
+        equipped_accessories = {acc["slot"]: acc["accessory"]["name"] for acc in look["accessories"]}
+        equipped_accessories_detail = [
+            {
+                "slot": acc["slot"],
+                "accessory_id": acc["accessory"]["id"],
+                "name": acc["accessory"]["name"],
+                "color_id": acc["color"]["id"] if acc["color"] else None,
+            }
+            for acc in look["accessories"]
+        ]
 
     owned_rows = db.execute(
         select(ElementPersonalizacji)
         .join(PosiadanyElement, PosiadanyElement.element_id == ElementPersonalizacji.id)
         .where(PosiadanyElement.gracz_id == gracz.id)
     ).scalars().all()
-    owned_items = [{"type": el.typ, "name": el.nazwa} for el in owned_rows]
+    owned_items = [
+        {
+            "id": el.id,
+            "type": el.typ,
+            "name": el.nazwa,
+            **({"color_hex": el.wartosc_koloru} if el.wartosc_koloru else {}),
+            **({"mount_point": el.punkt_mocowania} if el.punkt_mocowania else {}),
+        }
+        for el in owned_rows
+    ]
 
     active_ch = challenges.list_mine(db, gracz.id)
     enriched_challenges = []
@@ -162,9 +183,12 @@ def get_game_state(db: Session, gracz: Gracz) -> dict:
         "settings": {k: v for k, v in player_settings.read(db, gracz.id).items() if v is not None},
         "appearance": {
             "active_skin": active_skin,
+            "active_skin_id": active_skin_id,
             "active_color_name": active_color_name,
             "active_color_hex": active_color_hex,
-            "equipped_accessories": {},
+            "active_color_id": active_color_id,
+            "equipped_accessories": equipped_accessories,
+            "equipped_accessories_detail": equipped_accessories_detail,
             "owned_items": owned_items,
         },
         "boosters": shop.owned_boosters_map(db, gracz.id),

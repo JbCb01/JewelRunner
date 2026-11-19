@@ -109,6 +109,8 @@ class ElementPersonalizacji(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     typ: Mapped[str] = mapped_column(Text)
     nazwa: Mapped[str] = mapped_column(Text)
+    wartosc_koloru: Mapped[str | None] = mapped_column(Text)
+    punkt_mocowania: Mapped[str | None] = mapped_column(Text)
     czy_domyslny: Mapped[bool] = mapped_column()
 
 

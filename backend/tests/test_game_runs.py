@@ -51,7 +51,9 @@ def accept(client, engine, name):
 def add_level_2(engine, condition='{"min_wynik": 100}'):
     execute(
         engine,
-        "INSERT INTO poziom (nazwa, kolejnosc, warunek_odblokowania, punkt_startowy) VALUES ('Poziom 2', 2, CAST(:c AS jsonb), '{}')",
+        """INSERT INTO poziom (nazwa, kolejnosc, warunek_odblokowania, punkt_startowy)
+           VALUES ('Poziom 2', 2, CAST(:c AS jsonb), '{}')
+           ON CONFLICT (kolejnosc) DO UPDATE SET warunek_odblokowania = EXCLUDED.warunek_odblokowania""",
         c=condition,
     )
 

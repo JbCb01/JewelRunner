@@ -99,6 +99,11 @@ def _current(db: Session, gracz_id: uuid.UUID) -> dict | None:
     }
 
 
+def current_look(db: Session, gracz_id: uuid.UUID) -> dict | None:
+    """Zwraca aktualny wygląd postaci (skórka, kolor, założone akcesoria)."""
+    return _current(db, gracz_id)
+
+
 def read(db: Session, gracz_id: uuid.UUID) -> dict:
     newly = unlock_earned(db, gracz_id)
     db.commit()

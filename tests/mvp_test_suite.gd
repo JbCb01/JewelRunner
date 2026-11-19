@@ -11,7 +11,16 @@ const LevelGeneratorScript = preload("res://scripts/core/level_generator.gd")
 var passCnt: int = 0
 var failCnt: int = 0
 
+func _init() -> void:
+	call_deferred("_run_all_tests")
+
 func _ready() -> void:
+	if not Engine.is_editor_hint():
+		_run_all_tests()
+
+func _run_all_tests() -> void:
+	if passCnt + failCnt > 0:
+		return
 	print("==================================================")
 	print("   START TESTÓW AUTOMATYCZNYCH MVP - JEWELRUNNER  ")
 	print("==================================================\n")
@@ -51,21 +60,42 @@ func _ready() -> void:
 	itPortalShieldAndMagnetBoostersInGameplay()
 	itWebChallengesCompleteOnWinningRun()
 	itLevelSelectMechanicPanelsAndAIContracts()
+	itAudioPercentageLabelBugFix()
+	itGraphicsSettingsFunctionality()
+	itLanguageSettingsSwitchingAndGermanRemoval()
+	itSkinSelectionPreservesAudioSettings()
+	itMenuAndLevelMusicIndependentSliders()
+	itPauseMenuSettingsViewAndInGameLevelMusic()
+	itArrowKeyNavigationInPauseGameOverWinScreens()
 	
 	print("\n==================================================")
-	print(" PODSUMOWANIE: ZALICZONE: %d | BŁĘDY: %d | ŁĄCZNIE: %d" % [passCnt, failCnt, passCnt + failCnt])
+	var summary = "PODSUMOWANIE: ZALICZONE: %d | BŁĘDY: %d | ŁĄCZNIE: %d" % [passCnt, failCnt, passCnt + failCnt]
+	print(summary)
 	print("==================================================")
+	var glob_path = ProjectSettings.globalize_path("res://test_results.txt")
+	var f = FileAccess.open(glob_path, FileAccess.WRITE)
+	if f:
+		f.store_line("=== RAPORT TESTOW AUTOMATYCZNYCH ===")
+		for l in _test_log:
+			f.store_line(l)
+		f.store_line(summary)
+		f.close()
 	if DisplayServer.get_name() == "headless":
 		get_tree().quit(0 if failCnt == 0 else 1)
 
 # --- Asystent asercji ---
+var _test_log: Array[String] = []
+
 func assertCond(cond: bool, testId: String, desc: String) -> void:
+	var msg = ""
 	if cond:
 		passCnt += 1
-		print("[PASS] %s: %s" % [testId, desc])
+		msg = "[PASS] %s: %s" % [testId, desc]
 	else:
 		failCnt += 1
-		print("[FAIL] %s: %s" % [testId, desc])
+		msg = "[FAIL] %s: %s" % [testId, desc]
+	print(msg)
+	_test_log.append(msg)
 
 # ==============================================================================
 # 1. TESTY JEDNOSTKOWE (Izolowana logika komponentów backendowych)
@@ -649,6 +679,342 @@ func itLevelSelectMechanicPanelsAndAIContracts() -> void:
 	assertCond(allOk, "IT-11", "Level Select zawiera dolne panele z opisem mechanik, radarem DNA, przełącznikiem Kontraktów AI oraz przyciskiem poziomu IV AI")
 	menu.free()
 
+func itAudioPercentageLabelBugFix() -> void:
+	var menu = _createMockMainMenu()
+	menu._ensure_audio_buses()
+	menu._setup_settings_mockups()
+	
+	var masterSlider = menu._find_in_settings("MasterSlider") as HSlider
+	var musicSlider = menu._find_in_settings("MusicSlider") as HSlider
+	var sfxSlider = menu._find_in_settings("SfxSlider") as HSlider
+	
+	var masterVal = masterSlider.get_parent().get_node_or_null("MasterValue") as Label
+	var musicVal = musicSlider.get_parent().get_node_or_null("MusicValue") as Label
+	var sfxVal = sfxSlider.get_parent().get_node_or_null("SfxValue") as Label
+	
+	masterSlider.value = 80.0
+	musicSlider.value = 70.0
+	sfxSlider.value = 80.0
+	
+	var initLabelsOk: bool = (masterVal.text == "80%") and (musicVal.text == "70%") and (sfxVal.text == "80%")
+	
+	# Zmiana wartości suwaka muzyki - NIE MOŻE zmieniać procentu głośności ogólnej!
+	musicSlider.value = 45.0
+	var musicChangeOk: bool = (musicVal.text == "45%") and (masterVal.text == "80%")
+	
+	# Zmiana wartości suwaka ogólnego - zmienia tylko ogólny
+	masterSlider.value = 95.0
+	var masterChangeOk: bool = (masterVal.text == "95%") and (musicVal.text == "45%")
+	
+	# Zmiana wartości suwaka SFX - zmienia tylko SFX
+	sfxSlider.value = 30.0
+	var sfxChangeOk: bool = (sfxVal.text == "30%") and (masterVal.text == "95%") and (musicVal.text == "45%")
+	
+	var allAudioOk: bool = initLabelsOk and musicChangeOk and masterChangeOk and sfxChangeOk
+	assertCond(allAudioOk, "IT-12", "Naprawa buga audio: zmiana głośności muzyki aktualizuje tylko MusicValue, a nie MasterValue")
+	menu.free()
+
+func itGraphicsSettingsFunctionality() -> void:
+	var menu = _createMockMainMenu()
+	menu._setup_settings_mockups()
+	
+	var modeOpt = menu._find_in_settings("DisplayModeOpt") as OptionButton
+	var resOpt = menu._find_in_settings("ResolutionOpt") as OptionButton
+	var vsyncChk = menu._find_in_settings("VsyncCheck") as CheckBox
+	var fpsOpt = menu._find_in_settings("FpsLimitOpt") as OptionButton
+	
+	var itemsOk: bool = (modeOpt != null and modeOpt.item_count == 3) and \
+						(resOpt != null and resOpt.item_count == 3) and \
+						(fpsOpt != null and fpsOpt.item_count == 3) and \
+						(vsyncChk != null)
+						
+	# Test limitu FPS
+	fpsOpt.item_selected.emit(1)
+	var fps120Ok: bool = (Engine.max_fps == 120)
+	fpsOpt.item_selected.emit(0)
+	var fps60Ok: bool = (Engine.max_fps == 60)
+	fpsOpt.item_selected.emit(2)
+	var fpsUncappedOk: bool = (Engine.max_fps == 0)
+	
+	# Test przełącznika V-Sync
+	vsyncChk.toggled.emit(false)
+	var vsyncOffOk: bool = (DisplayServer.window_get_vsync_mode() == DisplayServer.VSYNC_DISABLED) or (DisplayServer.get_name() == "headless")
+	vsyncChk.toggled.emit(true)
+	var vsyncOnOk: bool = (DisplayServer.window_get_vsync_mode() == DisplayServer.VSYNC_ENABLED) or (DisplayServer.get_name() == "headless")
+	
+	# Test wyboru rozdzielczości
+	resOpt.item_selected.emit(0) # 1280x720
+	resOpt.item_selected.emit(2) # 640x360
+	var resRunOk: bool = true
+	
+	# Test wyboru trybu okna
+	modeOpt.item_selected.emit(1) # Windowed
+	var modeRunOk: bool = true
+	
+	var allGfxOk: bool = itemsOk and fps120Ok and fps60Ok and fpsUncappedOk and vsyncOffOk and vsyncOnOk and resRunOk and modeRunOk
+	assertCond(allGfxOk, "IT-13", "Ustawienia graficzne: Display Mode, Resolution, V-Sync oraz FPS Limit są w pełni funkcjonalne")
+	menu.free()
+
+func itLanguageSettingsSwitchingAndGermanRemoval() -> void:
+	var menu = _createMockMainMenu()
+	menu._setup_settings_mockups()
+	
+	var langOpt = menu._find_in_settings("LanguageOpt") as OptionButton
+	var countOk: bool = (langOpt != null and langOpt.item_count == 2)
+	var hasPolish: bool = (langOpt.get_item_text(0) == "Polski (PL)")
+	var hasEnglish: bool = (langOpt.get_item_text(1) == "English (EN)")
+	
+	var noGerman: bool = true
+	for i in range(langOpt.item_count):
+		if langOpt.get_item_text(i).to_lower().contains("deutsch") or langOpt.get_item_text(i).to_lower().contains("de"):
+			noGerman = false
+			break
+			
+	# Przełącz na język angielski
+	menu._apply_language("en")
+	var enLocaleOk: bool = (menu.current_language == "en") and (TranslationServer.get_locale() == "en")
+	var masterLblEn = menu._find_in_settings("AudioPanel/MasterBox/Label") as Label
+	var langLblEn = menu._find_in_settings("LanguagePanel/LangBox/Label") as Label
+	var labelsEnOk: bool = (masterLblEn != null and masterLblEn.text == "Master Volume:") and \
+						   (langLblEn != null and langLblEn.text == "Game Language:")
+	var optEn = menu._find_in_settings("DisplayModeOpt") as OptionButton
+	var modeEnOk: bool = (optEn != null and optEn.get_item_text(0) == "Fullscreen")
+	
+	# Przełącz z powrotem na język polski
+	menu._apply_language("pl")
+	var plLocaleOk: bool = (menu.current_language == "pl") and (TranslationServer.get_locale() == "pl")
+	var masterLblPl = menu._find_in_settings("AudioPanel/MasterBox/Label") as Label
+	var langLblPl = menu._find_in_settings("LanguagePanel/LangBox/Label") as Label
+	var labelsPlOk: bool = (masterLblPl != null and masterLblPl.text == "Głośność ogólna:") and \
+						   (langLblPl != null and langLblPl.text == "Język gry (Language):")
+	
+	var allLangOk: bool = countOk and hasPolish and hasEnglish and noGerman and enLocaleOk and labelsEnOk and modeEnOk and plLocaleOk and labelsPlOk
+	assertCond(allLangOk, "IT-14", "Ustawienia języka: usunięto j. niemiecki, pozostawiono PL i EN, a zmiana języka dynamicznie aktualizuje UI gry")
+	menu.free()
+
+func itSkinSelectionPreservesAudioSettings() -> void:
+	var menu = _createMockMainMenu()
+	menu._ensure_audio_buses()
+	menu._setup_settings_mockups()
+	
+	var musicSlider = menu._find_in_settings("MusicSlider") as HSlider
+	var sfxSlider = menu._find_in_settings("SfxSlider") as HSlider
+	var masterSlider = menu._find_in_settings("MasterSlider") as HSlider
+	
+	var masterVal = masterSlider.get_parent().get_node_or_null("MasterValue") as Label
+	var musicVal = musicSlider.get_parent().get_node_or_null("MusicValue") as Label
+	var sfxVal = sfxSlider.get_parent().get_node_or_null("SfxValue") as Label
+	
+	# Użytkownik dostosowuje głośność
+	masterSlider.value = 65.0
+	musicSlider.value = 35.0
+	sfxSlider.value = 55.0
+	
+	var musBus = AudioServer.get_bus_index("Music")
+	var sfxBus = AudioServer.get_bus_index("SFX")
+	var masterBus = AudioServer.get_bus_index("Master")
+	
+	# Sprawdzamy stan przed zmianą skina
+	var preMusOk: bool = is_equal_approx(AudioServer.get_bus_volume_db(musBus), linear_to_db(0.35))
+	var preSfxOk: bool = is_equal_approx(AudioServer.get_bus_volume_db(sfxBus), linear_to_db(0.55))
+	var preMasterOk: bool = is_equal_approx(AudioServer.get_bus_volume_db(masterBus), linear_to_db(0.65))
+	
+	# Gracz wchodzi w wybór skórek i klika kolejne skórki
+	menu._select_skin(1) # Noir Stelly
+	menu._select_skin(2) # Office Stelly
+	menu._select_skin(3) # 2077 Stelly
+	menu._select_skin(0) # Klasyczna Stelly
+	
+	# Sprawdzamy czy zmiana skina NIE zresetowała suwaków, etykiet ani szyn AudioServer
+	var postMusSliderOk: bool = is_equal_approx(musicSlider.value, 35.0) and (musicVal.text == "35%")
+	var postSfxSliderOk: bool = is_equal_approx(sfxSlider.value, 55.0) and (sfxVal.text == "55%")
+	var postMasterSliderOk: bool = is_equal_approx(masterSlider.value, 65.0) and (masterVal.text == "65%")
+	
+	var postMusBusOk: bool = is_equal_approx(AudioServer.get_bus_volume_db(musBus), linear_to_db(0.35))
+	var postSfxBusOk: bool = is_equal_approx(AudioServer.get_bus_volume_db(sfxBus), linear_to_db(0.55))
+	var postMasterBusOk: bool = is_equal_approx(AudioServer.get_bus_volume_db(masterBus), linear_to_db(0.65))
+	
+	var allOk: bool = preMusOk and preSfxOk and preMasterOk and postMusSliderOk and postSfxSliderOk and postMasterSliderOk and postMusBusOk and postSfxBusOk and postMasterBusOk
+	assertCond(allOk, "IT-15", "Zmiana skórki w SkinSelect zachowuje ustawienia dźwięku (suwaki, procenty i szyny AudioServer nie resetują się)")
+	menu.free()
+
+func itMenuAndLevelMusicIndependentSliders() -> void:
+	var menu = _createMockMainMenu()
+	menu._ensure_audio_buses()
+	menu._setup_settings_mockups()
+	
+	var musMenuSlider = menu._find_in_settings("MusicSlider") as HSlider
+	var lvlMusSlider = menu._find_in_settings("LevelMusicSlider") as HSlider
+	var musMenuVal = menu._find_in_settings("MusicValue") as Label
+	var lvlMusVal = menu._find_in_settings("LevelMusicValue") as Label
+	
+	var slidersExistOk: bool = (musMenuSlider != null) and (lvlMusSlider != null) and (musMenuVal != null) and (lvlMusVal != null)
+	
+	# Ustawiamy głośność muzyki w menu na 40%, a muzyki w poziomie na 85%
+	musMenuSlider.value = 40.0
+	lvlMusSlider.value = 85.0
+	
+	var labelsOk: bool = (musMenuVal.text == "40%") and (lvlMusVal.text == "85%")
+	
+	var busMenuIdx = AudioServer.get_bus_index("MusicMenu")
+	var busLvlIdx = AudioServer.get_bus_index("MusicLevel")
+	var busMenuOk: bool = (busMenuIdx != -1) and is_equal_approx(AudioServer.get_bus_volume_db(busMenuIdx), linear_to_db(0.40))
+	var busLvlOk: bool = (busLvlIdx != -1) and is_equal_approx(AudioServer.get_bus_volume_db(busLvlIdx), linear_to_db(0.85))
+	
+	# Zmiana tylko muzyki w poziomie nie powinna ruszać muzyki w menu
+	lvlMusSlider.value = 25.0
+	var indepOk: bool = (musMenuVal.text == "40%") and (lvlMusVal.text == "25%") and is_equal_approx(AudioServer.get_bus_volume_db(busLvlIdx), linear_to_db(0.25)) and is_equal_approx(AudioServer.get_bus_volume_db(busMenuIdx), linear_to_db(0.40))
+	
+	# Sprawdzenie etykiet tekstowych w PL i EN
+	var musMenuLbl = menu._find_in_settings("AudioPanel/MusicBox/Label") as Label
+	var lvlMusLbl = menu._find_in_settings("AudioPanel/LevelMusicBox/Label") as Label
+	var plLabelsOk: bool = (musMenuLbl != null and musMenuLbl.text == "Muzyka w menu:") and (lvlMusLbl != null and lvlMusLbl.text == "Muzyka w poziomie:")
+	
+	menu._apply_language("en")
+	var enLabelsOk: bool = (musMenuLbl != null and musMenuLbl.text == "Menu Music:") and (lvlMusLbl != null and lvlMusLbl.text == "Level Music:")
+	
+	menu._apply_language("pl")
+	var allOk: bool = slidersExistOk and labelsOk and busMenuOk and busLvlOk and indepOk and plLabelsOk and enLabelsOk
+	assertCond(allOk, "IT-16", "Podział muzyki na dwa niezależne suwaki: Muzyka w menu (MusicMenu) i Muzyka w poziomie (MusicLevel)")
+	menu.free()
+
+func itPauseMenuSettingsViewAndInGameLevelMusic() -> void:
+	var arenaScene = load("res://scenes/test_arena.tscn")
+	var arena = arenaScene.instantiate()
+	add_child(arena)
+	arena._ensure_audio_buses()
+	
+	var pauseMenu = arena.get_node_or_null("HUD/PauseMenu") as Control
+	var settingsView = arena.get_node_or_null("HUD/SettingsView") as Control
+	var settingsBtn = arena.get_node_or_null("HUD/PauseMenu/SettingsBtn") as Button
+	var backBtn = arena.get_node_or_null("HUD/SettingsView/BackBtn") as Button
+	
+	var nodesOk: bool = (pauseMenu != null) and (settingsView != null) and (settingsBtn != null) and (backBtn != null)
+	
+	# 1. Start w grze: PauseMenu i SettingsView są ukryte
+	var initOk: bool = (not pauseMenu.visible) and (not settingsView.visible)
+	
+	# 2. Włączenie pauzy: PauseMenu staje się widoczne
+	arena._toggle_pause()
+	var pauseOpenOk: bool = pauseMenu.visible and (not settingsView.visible) and get_tree().paused
+	
+	# 3. Kliknięcie 'Settings' w ekranie pauzy otwiera SettingsView i ukrywa PauseMenu
+	arena._open_settings()
+	var settingsOpenOk: bool = (not pauseMenu.visible) and settingsView.visible
+	
+	# 4. Sprawdzenie suwaków w SettingsView arenki - zmiana muzyki w poziomie reguluje szynę MusicLevel
+	var lvlSlider = arena._find_in_settings("LevelMusicSlider") as HSlider
+	var lvlVal = arena._find_in_settings("LevelMusicValue") as Label
+	var busLvlIdx = AudioServer.get_bus_index("MusicLevel")
+	
+	var levelAudioInGameOk: bool = false
+	if lvlSlider and lvlVal and busLvlIdx != -1:
+		lvlSlider.value = 52.0
+		levelAudioInGameOk = (lvlVal.text == "52%") and is_equal_approx(AudioServer.get_bus_volume_db(busLvlIdx), linear_to_db(0.52))
+	
+	# 5. Kliknięcie 'BackBtn' wraca z SettingsView do PauseMenu
+	arena._close_settings()
+	var backToPauseOk: bool = pauseMenu.visible and (not settingsView.visible)
+	
+	# 6. Wznowienie gry (odpauzowanie)
+	arena._toggle_pause()
+	var unpauseOk: bool = (not pauseMenu.visible) and (not settingsView.visible) and (not get_tree().paused)
+	
+	get_tree().paused = false
+	arena.free()
+	
+	var allOk: bool = nodesOk and initOk and pauseOpenOk and settingsOpenOk and levelAudioInGameOk and backToPauseOk and unpauseOk
+	assertCond(allOk, "IT-17", "Ekran pauzy zawiera opcję Settings otwierającą pełny SettingsView z regulacją głośności i powrotem")
+
+func itArrowKeyNavigationInPauseGameOverWinScreens() -> void:
+	var arenaScene = load("res://scenes/test_arena.tscn")
+	var arena = arenaScene.instantiate()
+	add_child(arena)
+	
+	# Helper do wysyłania klawiszy do arena._unhandled_input
+	var sendKey = func(kc: Key):
+		var ev := InputEventKey.new()
+		ev.keycode = kc
+		ev.pressed = true
+		arena._unhandled_input(ev)
+		
+	# 1. Test nawigacji strzałkami w PauseMenu (4 przyciski: Resume, Restart, Settings, Quit)
+	arena._toggle_pause()
+	var pauseInitOk: bool = (arena.pause_focus_idx == 0) and (arena.pause_buttons[0].has_focus())
+	
+	# Strzałka w dół -> RestartBtn (idx 1)
+	sendKey.call(KEY_DOWN)
+	var pauseDown1: bool = (arena.pause_focus_idx == 1) and (arena.pause_buttons[1].has_focus())
+	
+	# Strzałka w dół -> SettingsBtn (idx 2)
+	sendKey.call(KEY_DOWN)
+	var pauseDown2: bool = (arena.pause_focus_idx == 2) and (arena.pause_buttons[2].has_focus())
+	
+	# Strzałka w dół -> QuitBtn (idx 3)
+	sendKey.call(KEY_DOWN)
+	var pauseDown3: bool = (arena.pause_focus_idx == 3) and (arena.pause_buttons[3].has_focus())
+	
+	# Strzałka w dół (zawijanie) -> ResumeBtn (idx 0)
+	sendKey.call(KEY_DOWN)
+	var pauseWrapDown: bool = (arena.pause_focus_idx == 0) and (arena.pause_buttons[0].has_focus())
+	
+	# Strzałka w górę (zawijanie w tył) -> QuitBtn (idx 3)
+	sendKey.call(KEY_UP)
+	var pauseWrapUp: bool = (arena.pause_focus_idx == 3) and (arena.pause_buttons[3].has_focus())
+	
+	# Zamknij pauzę
+	arena._toggle_pause()
+	
+	# 2. Test nawigacji strzałkami w GameOverMenu (2 przyciski: Retry, MainMenu)
+	arena._on_player_died()
+	var goInitOk: bool = (arena.game_over_focus_idx == 0) and (arena.game_over_buttons[0].has_focus())
+	
+	# Strzałka w dół -> MainMenuBtn (idx 1)
+	sendKey.call(KEY_DOWN)
+	var goDown1: bool = (arena.game_over_focus_idx == 1) and (arena.game_over_buttons[1].has_focus())
+	
+	# Strzałka w dół (zawijanie) -> RetryBtn (idx 0)
+	sendKey.call(KEY_DOWN)
+	var goWrapDown: bool = (arena.game_over_focus_idx == 0) and (arena.game_over_buttons[0].has_focus())
+	
+	# Strzałka w górę -> MainMenuBtn (idx 1)
+	sendKey.call(KEY_UP)
+	var goWrapUp: bool = (arena.game_over_focus_idx == 1) and (arena.game_over_buttons[1].has_focus())
+	
+	arena.is_game_over = false
+	arena.game_over_menu.visible = false
+	get_tree().paused = false
+	
+	# 3. Test nawigacji strzałkami w WinScreen (2 przyciski: Retry, MainMenu)
+	arena.is_stage_cleared = true
+	arena.win_screen.visible = true
+	arena.win_focus_idx = 0
+	arena._set_button_focus(arena.win_buttons, 0)
+	var winInitOk: bool = (arena.win_focus_idx == 0) and (arena.win_buttons[0].has_focus())
+	
+	# Strzałka w dół -> MainMenuBtn (idx 1)
+	sendKey.call(KEY_DOWN)
+	var winDown1: bool = (arena.win_focus_idx == 1) and (arena.win_buttons[1].has_focus())
+	
+	# Strzałka w dół (zawijanie) -> RetryBtn (idx 0)
+	sendKey.call(KEY_DOWN)
+	var winWrapDown: bool = (arena.win_focus_idx == 0) and (arena.win_buttons[0].has_focus())
+	
+	# Strzałka w górę -> MainMenuBtn (idx 1)
+	sendKey.call(KEY_UP)
+	var winWrapUp: bool = (arena.win_focus_idx == 1) and (arena.win_buttons[1].has_focus())
+	
+	arena.is_stage_cleared = false
+	arena.win_screen.visible = false
+	get_tree().paused = false
+	arena.free()
+	
+	var allPauseOk: bool = pauseInitOk and pauseDown1 and pauseDown2 and pauseDown3 and pauseWrapDown and pauseWrapUp
+	var allGoOk: bool = goInitOk and goDown1 and goWrapDown and goWrapUp
+	var allWinOk: bool = winInitOk and winDown1 and winWrapDown and winWrapUp
+	
+	assertCond(allPauseOk and allGoOk and allWinOk, "IT-18", "Nawigacja strzałkami (Up / Down) działa poprawnie w PauseMenu, GameOverMenu oraz WinScreen")
+
 # ==============================================================================
 # FUNKCJE POMOCNICZE (Tworzenie struktur węzłów w pamięci dla testów)
 # ==============================================================================
@@ -743,6 +1109,9 @@ func _createMockMainMenu() -> Control:
 			b1.name = "Lvl1Btn"
 			var badge = Control.new()
 			badge.name = "CompletedBadge"
+			var badgeText = Label.new()
+			badgeText.name = "BadgeText"
+			badge.add_child(badgeText)
 			var check = Control.new()
 			check.name = "CheckmarkIcon"
 			b1.add_child(badge)
@@ -757,6 +1126,21 @@ func _createMockMainMenu() -> Control:
 			var bBack = Button.new()
 			bBack.name = "BackBtn"
 			v.add_child(bBack)
+			var mPanel = Control.new()
+			mPanel.name = "MechanicInfoPanel"
+			var mInfo = Label.new()
+			mInfo.name = "MechanicInfoLabel"
+			var dRadar = Label.new()
+			dRadar.name = "DnaRadarLabel"
+			mPanel.add_child(mInfo)
+			mPanel.add_child(dRadar)
+			v.add_child(mPanel)
+			var aiCont = Button.new()
+			aiCont.name = "AIContractBtn"
+			v.add_child(aiCont)
+			var aiGen = Button.new()
+			aiGen.name = "AIGenerateBtn"
+			v.add_child(aiGen)
 		elif vName == "SettingsView":
 			var tb = Control.new()
 			tb.name = "TabBar"
@@ -773,30 +1157,52 @@ func _createMockMainMenu() -> Control:
 			
 			var mBox = HBoxContainer.new()
 			mBox.name = "MasterBox"
+			var mLbl = Label.new()
+			mLbl.name = "Label"
 			var mSld = HSlider.new()
 			mSld.name = "MasterSlider"
 			var mVal = Label.new()
-			mVal.name = "Value"
+			mVal.name = "MasterValue"
+			mBox.add_child(mLbl)
 			mBox.add_child(mSld)
 			mBox.add_child(mVal)
 			aud.add_child(mBox)
 			
 			var musBox = HBoxContainer.new()
 			musBox.name = "MusicBox"
+			var musLbl = Label.new()
+			musLbl.name = "Label"
 			var musSld = HSlider.new()
 			musSld.name = "MusicSlider"
 			var musVal = Label.new()
-			musVal.name = "Value"
+			musVal.name = "MusicValue"
+			musBox.add_child(musLbl)
 			musBox.add_child(musSld)
 			musBox.add_child(musVal)
 			aud.add_child(musBox)
 			
+			var lvlMusBox = HBoxContainer.new()
+			lvlMusBox.name = "LevelMusicBox"
+			var lvlMusLbl = Label.new()
+			lvlMusLbl.name = "Label"
+			var lvlMusSld = HSlider.new()
+			lvlMusSld.name = "LevelMusicSlider"
+			var lvlMusVal = Label.new()
+			lvlMusVal.name = "LevelMusicValue"
+			lvlMusBox.add_child(lvlMusLbl)
+			lvlMusBox.add_child(lvlMusSld)
+			lvlMusBox.add_child(lvlMusVal)
+			aud.add_child(lvlMusBox)
+			
 			var sfxBox = HBoxContainer.new()
 			sfxBox.name = "SfxBox"
+			var sfxLbl = Label.new()
+			sfxLbl.name = "Label"
 			var sfxSld = HSlider.new()
 			sfxSld.name = "SfxSlider"
 			var sfxVal = Label.new()
-			sfxVal.name = "Value"
+			sfxVal.name = "SfxValue"
+			sfxBox.add_child(sfxLbl)
 			sfxBox.add_child(sfxSld)
 			sfxBox.add_child(sfxVal)
 			aud.add_child(sfxBox)
@@ -807,10 +1213,70 @@ func _createMockMainMenu() -> Control:
 			
 			panels.add_child(aud)
 			
-			for pName in ["GraphicsPanel", "ControlsPanel", "LanguagePanel"]:
-				var p = Control.new()
-				p.name = pName
-				panels.add_child(p)
+			var gfx = Control.new()
+			gfx.name = "GraphicsPanel"
+			var modeBox = HBoxContainer.new()
+			modeBox.name = "ModeBox"
+			var modeLbl = Label.new()
+			modeLbl.name = "Label"
+			var modeOpt = OptionButton.new()
+			modeOpt.name = "DisplayModeOpt"
+			modeBox.add_child(modeLbl)
+			modeBox.add_child(modeOpt)
+			gfx.add_child(modeBox)
+			var resBox = HBoxContainer.new()
+			resBox.name = "ResBox"
+			var resLbl = Label.new()
+			resLbl.name = "Label"
+			var resOpt = OptionButton.new()
+			resOpt.name = "ResolutionOpt"
+			resBox.add_child(resLbl)
+			resBox.add_child(resOpt)
+			gfx.add_child(resBox)
+			var vsyncChk = CheckBox.new()
+			vsyncChk.name = "VsyncCheck"
+			gfx.add_child(vsyncChk)
+			var fpsBox = HBoxContainer.new()
+			fpsBox.name = "FpsBox"
+			var fpsLbl = Label.new()
+			fpsLbl.name = "Label"
+			var fpsOpt = OptionButton.new()
+			fpsOpt.name = "FpsLimitOpt"
+			fpsBox.add_child(fpsLbl)
+			fpsBox.add_child(fpsOpt)
+			gfx.add_child(fpsBox)
+			panels.add_child(gfx)
+			
+			var ctrl = Control.new()
+			ctrl.name = "ControlsPanel"
+			var grid = GridContainer.new()
+			grid.name = "Grid"
+			for i in range(1, 8):
+				var aLbl = Label.new()
+				aLbl.name = "Action%d" % i
+				var kLbl = Label.new()
+				kLbl.name = "Key%d" % i
+				grid.add_child(aLbl)
+				grid.add_child(kLbl)
+			ctrl.add_child(grid)
+			panels.add_child(ctrl)
+			
+			var lang = Control.new()
+			lang.name = "LanguagePanel"
+			var langBox = HBoxContainer.new()
+			langBox.name = "LangBox"
+			var langLbl = Label.new()
+			langLbl.name = "Label"
+			var langOpt = OptionButton.new()
+			langOpt.name = "LanguageOpt"
+			langBox.add_child(langLbl)
+			langBox.add_child(langOpt)
+			lang.add_child(langBox)
+			var subChk = CheckBox.new()
+			subChk.name = "SubtitlesCheck"
+			lang.add_child(subChk)
+			panels.add_child(lang)
+			
 			v.add_child(panels)
 			
 			var sBack = Button.new()

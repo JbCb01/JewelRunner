@@ -400,7 +400,7 @@ offset_bottom = 312.0
 
 [node name="AudioPanel" type="VBoxContainer" parent="SettingsView/Panels"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="MasterBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel"]
 layout_mode = 2
@@ -417,7 +417,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 value = 80.0
 
-[node name="Value" type="Label" parent="SettingsView/Panels/AudioPanel/MasterBox"]
+[node name="MasterValue" type="Label" parent="SettingsView/Panels/AudioPanel/MasterBox"]
 custom_minimum_size = Vector2(45, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
@@ -431,7 +431,7 @@ layout_mode = 2
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "Głośność muzyki:"
+text = "Muzyka w menu:"
 
 [node name="MusicSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/MusicBox"]
 layout_mode = 2
@@ -439,7 +439,29 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 value = 70.0
 
-[node name="Value" type="Label" parent="SettingsView/Panels/AudioPanel/MusicBox"]
+[node name="MusicValue" type="Label" parent="SettingsView/Panels/AudioPanel/MusicBox"]
+custom_minimum_size = Vector2(45, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "70%"
+horizontal_alignment = 2
+
+[node name="LevelMusicBox" type="HBoxContainer" parent="SettingsView/Panels/AudioPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsView/Panels/AudioPanel/LevelMusicBox"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Muzyka w poziomie:"
+
+[node name="LevelMusicSlider" type="HSlider" parent="SettingsView/Panels/AudioPanel/LevelMusicBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 70.0
+
+[node name="LevelMusicValue" type="Label" parent="SettingsView/Panels/AudioPanel/LevelMusicBox"]
 custom_minimum_size = Vector2(45, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
@@ -461,7 +483,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 value = 80.0
 
-[node name="Value" type="Label" parent="SettingsView/Panels/AudioPanel/SfxBox"]
+[node name="SfxValue" type="Label" parent="SettingsView/Panels/AudioPanel/SfxBox"]
 custom_minimum_size = Vector2(45, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
@@ -653,7 +675,7 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_btn_hover")
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=1094510268]
 stream = ExtResource("5_8ln24")
 autoplay = true
-bus = &"Music"
+bus = &"MusicMenu"
 
 [node name="CreatorsView" type="Control" parent="." unique_id=1236711604]
 visible = false

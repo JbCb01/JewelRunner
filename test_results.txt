@@ -1,0 +1,45 @@
+=== RAPORT TESTOW AUTOMATYCZNYCH ===
+[PASS] UT-01: Generator ID sesji zwraca poprawny format (SES-timestamp-rand)
+[PASS] UT-02: Stan ukończenia poziomu oraz najlepszy czas zapisują się w Events
+[PASS] UT-03: Automatyczna rejestracja akcji w InputMap działa poprawnie
+[PASS] UT-04: Formatowanie czasu przelicza 65.43s na '01:05.4'
+[PASS] UT-05: Obliczanie oscylacji (bobbing) klejnotu w funkcji _process
+[PASS] UT-06: Zmiana wymiarów hitboxa gracza między staniem (18x30) a kucaniem (18x16)
+[PASS] UT-07: Drenaż staminy podczas wspinaczki oraz blokada spadku poniżej 0.0
+[PASS] UT-08: Dekrementacja timerów coyote_time oraz dash_cooldown w każdej klatce
+[PASS] UT-09: Wszystkie ruchy specjalne (Double Jump, Dash, Climb) wymagają i zużywają staminę
+[PASS] UT-10: Tricki w powietrzu regenerują staminę, ale nie pozwalają na jej mnożenie z ruchów specjalnych
+[PASS] UT-11: System mnożników podnosi koszt używanego ruchu, obniża pozostałe i zachowuje stałą sumę z wagami
+[PASS] UT-12: AI Director blokuje przeciążony ruch i odblokowuje go po wykonaniu Tricków w powietrzu
+[PASS] UT-13: Generator poziomów tworzy geometrię, siatkę kafelków TileMapLayer oraz profil dla Analizatora AI
+[PASS] UT-14: Kontrakt AI 'Sztafeta Ruchu' (Relay Lock) wymusza przeplatanie ruchów A -> B lub Trick
+[PASS] UT-15: Zebranie Niestabilnego Klejnotu (Cursed Jewel) nakłada czasową blokadę na przypisaną mechanikę
+[PASS] UT-16: Generator 'Szachownica Stylu Gracza' buduje 1. połowę pod ulubiony ruch, a 2. połowę pod unikany ruch
+[PASS] UT-17: Analizator poziomu wylicza procentowy Radar DNA Mechanik sumujący się do 100%
+[PASS] UT-18: Synchronizacja ze stroną pobiera profil, skórkę, kolor, czapkę oraz wzmocnienia (HP, Tarcza, Magnes)
+[PASS] UT-19: Generator map dostosowuje liczbę Jeweli, limit czasu i mechanikę do aktywnych zadań ze strony
+[PASS] UT-20: SkinManager poprawnie ładuje wszystkie 6 skórek z podfolderów assets/sprites i aplikuje SpriteFrames do postaci
+[PASS] IT-01: Zebranie klejnotu aktualizuje licznik JEWELS (X/Y) na HUDzie
+[PASS] IT-02: Regeneracja staminy poprzez Trick w powietrzu aktualizuje pasek staminy na HUDzie
+[PASS] IT-03: Zmiana staminy w PlayerController aktualizuje pasek ProgressBar w HUDzie
+[PASS] IT-04: Kolizja z Hazardem przy 1 HP wywołuje śmierć i otwiera ekran Game Over w UI
+[PASS] IT-05: FinishGoal blokuje wyjście bez wszystkich Jeweli, a po ich zebraniu zlicza czas i odblokowuje odznakę
+[PASS] IT-06: Nawigacja w MainMenu poprawnie przełącza widoczność kontenerów widoków
+[PASS] IT-07: Przełącznik SFX w ustawieniach wycisza szynę SFX w AudioServer
+[PASS] IT-07B: Suwaki głośności w zakładce Muzyka/Dźwięk faktycznie regulują szyny AudioServer (Master, Music, SFX)
+[PASS] IT-08: Kliknięcie profilu w menu przenosi do Ustawień Profilu, skąd można przejść do Profilu, SkinSelect oraz Zadań i wrócić
+[PASS] IT-09: Wzmocnienia pobrane z profilu na stronie (Tarcza i Magnes) działają w rozgrywce
+[PASS] IT-10: Ukończenie poziomu z 5 klejnotami poniżej 60s zalicza zadania z portalu i przyznaje nagrody
+[PASS] IT-11: Level Select zawiera dolne panele z opisem mechanik, radarem DNA, przełącznikiem Kontraktów AI oraz przyciskiem poziomu IV AI
+[PASS] IT-12: Naprawa buga audio: zmiana głośności muzyki aktualizuje tylko MusicValue, a nie MasterValue
+[PASS] IT-13: Ustawienia graficzne: Display Mode, Resolution, V-Sync oraz FPS Limit są w pełni funkcjonalne
+[PASS] IT-14: Ustawienia języka: usunięto j. niemiecki, pozostawiono PL i EN, a zmiana języka dynamicznie aktualizuje UI gry
+[PASS] IT-15: Zmiana skórki w SkinSelect zachowuje ustawienia dźwięku (suwaki, procenty i szyny AudioServer nie resetują się)
+[PASS] IT-16: Podział muzyki na dwa niezależne suwaki: Muzyka w menu (MusicMenu) i Muzyka w poziomie (MusicLevel)
+[PASS] IT-17: Ekran pauzy zawiera opcję Settings otwierającą pełny SettingsView z regulacją głośności i powrotem
+[PASS] IT-18: Nawigacja strzałkami (Up / Down) działa poprawnie w PauseMenu, GameOverMenu oraz WinScreen
+[PASS] IT-19: Specjalne klejnoty: JewJewel (10s nieśmiertelność), SpeedJewel (2x speed 10s) oraz ImmunityJewel (tarcza na 1 hit)
+[PASS] IT-20: Mechanika wroga: unikanie dashem, pokonanie skokiem z góry (stomp z bounce) oraz obrażenia przy normalnym kontakcie
+[PASS] IT-21: Wskaźnik HP (gwiazdki) nad graczem, widoczny na start i przy hicie; kolce estetycznie powiększone
+[PASS] IT-22: Knowledge Check: pula 15 pytań ABCD, losowanie na start, blokada wyjścia, obsługa strzałek i wymóg poprawnej odpowiedzi do wygranej
+PODSUMOWANIE: ZALICZONE: 43 | BŁĘDY: 0 | ŁĄCZNIE: 43

@@ -7,6 +7,7 @@ const HazardScript = preload("res://scripts/core/hazard_area.gd")
 const ArenaScript = preload("res://scripts/core/test_arena.gd")
 const AIDirectorScript = preload("res://scripts/core/ai_director.gd")
 const LevelGeneratorScript = preload("res://scripts/core/level_generator.gd")
+const CyberQuiz = preload("res://scripts/core/cyber_quiz.gd")
 
 var passCnt: int = 0
 var failCnt: int = 0
@@ -67,6 +68,10 @@ func _run_all_tests() -> void:
 	itMenuAndLevelMusicIndependentSliders()
 	itPauseMenuSettingsViewAndInGameLevelMusic()
 	itArrowKeyNavigationInPauseGameOverWinScreens()
+	itSpecialJewelPowerupsMechanics()
+	itEnemyMockupStompDashAndDamageMechanics()
+	itStarHpIndicatorAndSpikeSprite()
+	itKnowledgeCheckCyberQuizFunctionality()
 	
 	print("\n==================================================")
 	var summary = "PODSUMOWANIE: ZALICZONE: %d | BŁĘDY: %d | ŁĄCZNIE: %d" % [passCnt, failCnt, passCnt + failCnt]
@@ -1014,6 +1019,241 @@ func itArrowKeyNavigationInPauseGameOverWinScreens() -> void:
 	var allWinOk: bool = winInitOk and winDown1 and winWrapDown and winWrapUp
 	
 	assertCond(allPauseOk and allGoOk and allWinOk, "IT-18", "Nawigacja strzałkami (Up / Down) działa poprawnie w PauseMenu, GameOverMenu oraz WinScreen")
+
+func itSpecialJewelPowerupsMechanics() -> void:
+	var plr = _createMockPlayer()
+	plr.current_health = 3
+	
+	# 1. JewJewel -> 10s nieśmiertelności (brak otrzymywania obrażeń)
+	var jJew = JewelScript.new()
+	var spr1 = Sprite2D.new()
+	spr1.name = "Sprite2D"
+	jJew.add_child(spr1)
+	add_child(jJew)
+	jJew.jewel_type = JewelScript.JewelType.JEW_JEWEL
+	jJew._setup_jewel_texture()
+	var jewTexOk: bool = (spr1.texture != null)
+	jJew._onBodyEntered(plr)
+	var invOk: bool = is_equal_approx(plr.invincibility_powerup_timer, 10.0)
+	plr.take_damage(1)
+	var invDamageIgnored: bool = (plr.current_health == 3)
+	plr.invincibility_powerup_timer = 0.0
+	jJew.free()
+	
+	# 2. SpeedJewel -> zwiększenie prędkości biegu 2x na 10s
+	var sJew = JewelScript.new()
+	var spr2 = Sprite2D.new()
+	spr2.name = "Sprite2D"
+	sJew.add_child(spr2)
+	add_child(sJew)
+	sJew.jewel_type = JewelScript.JewelType.SPEED_JEWEL
+	sJew._setup_jewel_texture()
+	var speedTexOk: bool = (spr2.texture != null)
+	sJew._onBodyEntered(plr)
+	var speedTimerOk: bool = is_equal_approx(plr.speed_powerup_timer, 10.0)
+	var speedDoubledOk: bool = is_equal_approx(plr.get_effective_speed(), plr.speed * 2.0)
+	plr.speed_powerup_timer = 0.0
+	var speedResetOk: bool = is_equal_approx(plr.get_effective_speed(), plr.speed)
+	sJew.free()
+	
+	# 3. ImmunityJewel (InvincibilityJewel) -> tarcza pochłaniająca 1 uderzenie
+	var iJew = JewelScript.new()
+	var spr3 = Sprite2D.new()
+	spr3.name = "Sprite2D"
+	iJew.add_child(spr3)
+	add_child(iJew)
+	iJew.jewel_type = JewelScript.JewelType.IMMUNITY_JEWEL
+	iJew._setup_jewel_texture()
+	var immunityTexOk: bool = (spr3.texture != null)
+	iJew._onBodyEntered(plr)
+	var shieldGivenOk: bool = (plr.has_shield == true)
+	plr.take_damage(1)
+	var shieldAbsorbedOk: bool = (plr.current_health == 3) and (plr.has_shield == false)
+	plr.is_invulnerable = false
+	plr.invulnerability_timer = 0.0
+	plr.take_damage(1)
+	var regularDamageAfterOk: bool = (plr.current_health == 2)
+	iJew.free()
+	plr.free()
+	
+	var allPowerupsOk: bool = jewTexOk and invOk and invDamageIgnored and speedTexOk and speedTimerOk and speedDoubledOk and speedResetOk and immunityTexOk and shieldGivenOk and shieldAbsorbedOk and regularDamageAfterOk
+	assertCond(allPowerupsOk, "IT-19", "Specjalne klejnoty: JewJewel (10s nieśmiertelność), SpeedJewel (2x speed 10s) oraz ImmunityJewel (tarcza na 1 hit)")
+
+func itEnemyMockupStompDashAndDamageMechanics() -> void:
+	if is_instance_valid(Events.portal_sync):
+		Events.portal_sync.cosmetics_state["boosters"] = {}
+		
+	var enemyScene = load("res://scenes/enemies/enemy_mockup.tscn")
+	var enemy1 = enemyScene.instantiate() as Area2D
+	add_child(enemy1)
+	enemy1.global_position = Vector2(300, 300)
+	
+	var plr = _createMockPlayer()
+	plr.current_health = 3
+	plr.set_meta("has_portal_shield", false)
+	plr.has_shield = false
+	plr.invincibility_powerup_timer = 0.0
+	plr.global_position = Vector2(300, 300)
+	
+	# 1. Dash przez wroga -> unikanie trafienia bez obrażeń
+	plr.current_state = PlayerScript.State.DASH
+	enemy1._on_body_entered(plr)
+	var dashAvoidHitOk: bool = (plr.current_health == 3) and (not enemy1.is_dead)
+	
+	# 2. Skok na wroga z góry (Stomp) -> pokonanie wroga i bounce gracza
+	plr.current_state = PlayerScript.State.FALL
+	plr.velocity.y = 150.0
+	plr.global_position = Vector2(300, 285) # Gracz powyżej wroga
+	enemy1._on_body_entered(plr)
+	var stompDefeatedOk: bool = enemy1.is_dead and (plr.velocity.y < 0.0) and (plr.current_health == 3)
+	
+	# 3. Zwykły kontakt poziomy bez dasha -> gracz otrzymuje obrażenia
+	var enemy2 = enemyScene.instantiate() as Area2D
+	add_child(enemy2)
+	enemy2.global_position = Vector2(300, 300)
+	plr.current_state = PlayerScript.State.RUN
+	plr.velocity.y = 0.0
+	plr.global_position = Vector2(300, 300)
+	plr.is_invulnerable = false
+	plr.invulnerability_timer = 0.0
+	plr.set_meta("has_portal_shield", false)
+	plr.has_shield = false
+	plr.invincibility_powerup_timer = 0.0
+	enemy2._on_body_entered(plr)
+	var regularContactDamageOk: bool = (plr.current_health == 2)
+	
+	enemy2.free()
+	plr.free()
+	
+	var allEnemyOk: bool = dashAvoidHitOk and stompDefeatedOk and regularContactDamageOk
+	assertCond(allEnemyOk, "IT-20", "Mechanika wroga: unikanie dashem, pokonanie skokiem z góry (stomp z bounce) oraz obrażenia przy normalnym kontakcie")
+
+func itStarHpIndicatorAndSpikeSprite() -> void:
+	if is_instance_valid(Events.portal_sync):
+		Events.portal_sync.cosmetics_state["boosters"] = {}
+		
+	# 1. Wskaźnik HP gracza używa gwiazdek (Gwiazdka.png)
+	var plrScene = load("res://scenes/player/player.tscn")
+	var plr = plrScene.instantiate() as PlayerController
+	add_child(plr)
+	
+	var hpCont = plr.get_node_or_null("HpSquares")
+	var hasHpContainer: bool = (hpCont != null)
+	var childCountOk: bool = (hpCont != null and hpCont.get_child_count() == 3)
+	var firstStar = hpCont.get_child(0) if childCountOk else null
+	var isSpriteStar: bool = (firstStar is Sprite2D) and (firstStar.texture != null)
+	
+	# Gwiazdki znajdują się nad graczem (pozycja Y < 0)
+	var posAbovePlayerOk: bool = (hpCont != null and hpCont.position.y < 0.0)
+	
+	# Gwiazdki są widoczne na początku poziomu
+	var initialVisibleOk: bool = (hpCont != null and hpCont.visible and plr.hp_display_timer > 0.0)
+	
+	# Po upływie czasu gwiazdki znikają (ukrywają się)
+	plr._update_timers(3.5)
+	var timeoutHidesOk: bool = (hpCont != null and not hpCont.visible)
+	
+	# Po otrzymaniu obrażeń gwiazdki natychmiast pojawiają się ponownie
+	plr.is_invulnerable = false
+	plr.invulnerability_timer = 0.0
+	plr.set_meta("has_portal_shield", false)
+	plr.has_shield = false
+	plr.invincibility_powerup_timer = 0.0
+	plr.take_damage(1)
+	var damageShowsOk: bool = (hpCont != null and hpCont.visible and plr.hp_display_timer > 0.0)
+	
+	# Utrata HP modyfikuje przezroczystość/kolor utraconej gwiazdki
+	plr.current_health = 2
+	plr._apply_hp_colors(2)
+	var activeStarModOk: bool = is_equal_approx(hpCont.get_child(0).modulate.a, 1.0)
+	var lostStarModOk: bool = hpCont.get_child(2).modulate.a < 0.6
+	
+	plr.free()
+	
+	# 2. Kolce w test_arena.tscn używają sprite'a Kolce.png i mają zwiększoną skalę
+	var arenaScene = load("res://scenes/test_arena.tscn")
+	var arena = arenaScene.instantiate()
+	add_child(arena)
+	
+	var sp1 = arena.get_node_or_null("Hazards/SpikesGap/TextureRect") as TextureRect
+	var sp2 = arena.get_node_or_null("Hazards/SpikesGap2/TextureRect") as TextureRect
+	var spikesSpriteOk: bool = (sp1 != null) and (sp2 != null) and (sp1.texture != null) and (sp2.texture != null)
+	var spikesTileRepeatOk: bool = (sp1.stretch_mode == TextureRect.STRETCH_TILE) and (sp2.stretch_mode == TextureRect.STRETCH_TILE)
+	var spikesScaleOk: bool = (sp1.scale.x >= 1.4) and (sp2.scale.x >= 1.4)
+	
+	arena.free()
+	
+	var allVisualsOk: bool = hasHpContainer and childCountOk and isSpriteStar and posAbovePlayerOk and initialVisibleOk and timeoutHidesOk and damageShowsOk and activeStarModOk and lostStarModOk and spikesSpriteOk and spikesTileRepeatOk and spikesScaleOk
+	assertCond(allVisualsOk, "IT-21", "Wskaźnik HP (gwiazdki) nad graczem, widoczny na start i przy hicie; kolce estetycznie powiększone")
+
+func itKnowledgeCheckCyberQuizFunctionality() -> void:
+	# 1. Sprawdzenie puli 15 pytań z cyberbezpieczeństwa
+	var allQ = CyberQuiz.get_all_questions()
+	var countOk: bool = (allQ.size() == 15)
+	var formatOk: bool = true
+	for q in allQ:
+		if q.get("question", "").is_empty() or q.get("options", []).size() != 4 or q.get("correct", -1) < 0 or q.get("correct", -1) > 3 or q.get("topic", "").is_empty():
+			formatOk = false
+			break
+			
+	var randQ1 = CyberQuiz.get_random_question()
+	var randQ2 = CyberQuiz.get_random_question(randQ1.get("id", -1))
+	var randomSelectOk: bool = (randQ1.get("id", -1) != -1) and (randQ2.get("id", -1) != -1)
+	
+	# 2. Test w test_arena.tscn
+	var arenaScene = load("res://scenes/test_arena.tscn")
+	var arena = arenaScene.instantiate()
+	add_child(arena)
+	
+	var popup = arena.knowledge_check_popup
+	var popupExists: bool = (popup != null) and (arena.quiz_buttons.size() == 4)
+	var initHidden: bool = (not popup.visible) and (not arena.is_knowledge_check_active)
+	
+	# Gracz zbiera wszystkie klejnoty i dociera do portalu
+	var plr = arena.get_node_or_null("Player")
+	arena.collected_jewels = arena.total_jewels
+	arena._on_goal_entered(plr)
+	
+	# Portal nie kończy od razu poziomu, lecz otwiera Knowledge Check
+	var quizOpenedOk: bool = popup.visible and arena.is_knowledge_check_active and (not arena.is_stage_cleared) and (not arena.win_screen.visible)
+	
+	var sendKey = func(kc: Key):
+		var ev := InputEventKey.new()
+		ev.keycode = kc
+		ev.pressed = true
+		arena._unhandled_input(ev)
+		
+	# 3. Test nawigacji strzałkami
+	arena.quiz_focus_idx = 0
+	sendKey.call(KEY_DOWN)
+	var arrowDownOk: bool = (arena.quiz_focus_idx == 1)
+	sendKey.call(KEY_UP)
+	var arrowUpOk: bool = (arena.quiz_focus_idx == 0)
+	sendKey.call(KEY_UP)
+	var arrowWrapOk: bool = (arena.quiz_focus_idx == 3)
+	
+	# 4. Blokada wyjścia (Escape nie zamyka okna)
+	sendKey.call(KEY_ESCAPE)
+	var escapeBlockedOk: bool = popup.visible and arena.is_knowledge_check_active and arena.quiz_feedback_label.text.contains("MUSISZ")
+	
+	# 5. Błędna odpowiedź nie kończy poziomu
+	var correctIdx: int = int(arena.current_quiz_question.get("correct", 0))
+	var wrongIdx: int = (correctIdx + 1) % 4
+	arena._submit_quiz_answer(wrongIdx)
+	var wrongBlockedOk: bool = popup.visible and (not arena.is_stage_cleared) and (not arena.win_screen.visible) and arena.quiz_feedback_label.text.contains("BŁĘDNA")
+	
+	# 6. Poprawna odpowiedź zalicza Knowledge Check i kończy poziom
+	arena._submit_quiz_answer(correctIdx)
+	var correctAcceptedOk: bool = arena.quiz_answered_correctly and arena.quiz_feedback_label.text.contains("POPRAWNA")
+	
+	arena._level_complete()
+	var levelCompletedOk: bool = arena.is_stage_cleared and arena.win_screen.visible
+	
+	get_tree().paused = false
+	arena.free()
+	
+	var allQuizOk: bool = countOk and formatOk and randomSelectOk and popupExists and initHidden and quizOpenedOk and arrowDownOk and arrowUpOk and arrowWrapOk and escapeBlockedOk and wrongBlockedOk and correctAcceptedOk and levelCompletedOk
+	assertCond(allQuizOk, "IT-22", "Knowledge Check: pula 15 pytań ABCD, losowanie na start, blokada wyjścia, obsługa strzałek i wymóg poprawnej odpowiedzi do wygranej")
 
 # ==============================================================================
 # FUNKCJE POMOCNICZE (Tworzenie struktur węzłów w pamięci dla testów)

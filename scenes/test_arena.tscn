@@ -13,6 +13,7 @@
 [ext_resource type="AudioStream" uid="uid://c1eqof2o4kpv7" path="res://audio/music/yessirski.wav" id="11_level_music"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/enemy_mockup.tscn" id="12_enemy_mockup"]
 [ext_resource type="Texture2D" uid="uid://7awqv16hpkld" path="res://assets/UstawieniaFix.png" id="13_settings_tex"]
+[ext_resource type="Texture2D" path="res://assets/Kolce.png" id="14_kolce_tex"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_set_empty"]
 
@@ -39,6 +40,66 @@ corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_quiz_panel"]
+bg_color = Color(0.07, 0.1, 0.16, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.2, 0.8, 0.95, 0.85)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_quiz_opt_norm"]
+bg_color = Color(0.12, 0.16, 0.25, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.35, 0.5, 0.7)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_quiz_opt_focus"]
+bg_color = Color(0.18, 0.26, 0.42, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.85, 0.25, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_quiz_opt_correct"]
+bg_color = Color(0.12, 0.45, 0.22, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.95, 0.45, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_quiz_opt_wrong"]
+bg_color = Color(0.45, 0.12, 0.15, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.35, 0.35, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor_left"]
 size = Vector2(400, 32)
@@ -281,12 +342,16 @@ script = ExtResource("2_hazard")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hazards/SpikesGap" unique_id=1447839266]
 shape = SubResource("RectangleShape2D_spikes")
 
-[node name="ColorRect" type="ColorRect" parent="Hazards/SpikesGap" unique_id=2142205913]
-offset_left = -50.0
-offset_top = -12.0
-offset_right = 50.0
-offset_bottom = 12.0
-color = Color(0.780392, 0.219608, 0.219608, 1)
+[node name="TextureRect" type="TextureRect" parent="Hazards/SpikesGap"]
+texture_repeat = 2
+offset_left = -33.3333
+offset_top = -8.0
+offset_right = 33.3333
+offset_bottom = 8.0
+scale = Vector2(1.5, 1.5)
+pivot_offset = Vector2(0, 0)
+texture = ExtResource("14_kolce_tex")
+stretch_mode = 1
 
 [node name="SpikesGap2" type="Area2D" parent="Hazards" unique_id=192752383]
 position = Vector2(1160, 324)
@@ -297,30 +362,37 @@ script = ExtResource("2_hazard")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hazards/SpikesGap2" unique_id=1116154635]
 shape = SubResource("RectangleShape2D_spikes_gap2")
 
-[node name="ColorRect" type="ColorRect" parent="Hazards/SpikesGap2" unique_id=287820639]
-offset_left = -60.0
-offset_top = -12.0
-offset_right = 60.0
-offset_bottom = 12.0
-color = Color(0.780392, 0.219608, 0.219608, 1)
+[node name="TextureRect" type="TextureRect" parent="Hazards/SpikesGap2"]
+texture_repeat = 2
+offset_left = -40.0
+offset_top = -8.0
+offset_right = 40.0
+offset_bottom = 8.0
+scale = Vector2(1.5, 1.5)
+pivot_offset = Vector2(0, 0)
+texture = ExtResource("14_kolce_tex")
+stretch_mode = 1
 
 [node name="Jewel1" parent="." unique_id=1045227512 instance=ExtResource("7_jewel_scene")]
 position = Vector2(979, 113)
 
 [node name="Jewel2" parent="." unique_id=48132452 instance=ExtResource("7_jewel_scene")]
 position = Vector2(670, 290)
+jewel_type = 2
 
 [node name="Jewel3" parent="." unique_id=1885486183 instance=ExtResource("7_jewel_scene")]
 position = Vector2(450, 260)
+jewel_type = 1
 
 [node name="Jewel4" parent="." unique_id=764417322 instance=ExtResource("7_jewel_scene")]
 position = Vector2(1160, 130)
+jewel_type = 3
 
 [node name="Jewel5" parent="." unique_id=1918318430 instance=ExtResource("7_jewel_scene")]
 position = Vector2(1480, 135)
 
 [node name="EnemyMockup" parent="." instance=ExtResource("12_enemy_mockup")]
-position = Vector2(850, 210)
+position = Vector2(850, 295)
 
 [node name="FinishGoal" type="Area2D" parent="." unique_id=1701143556]
 position = Vector2(1640, 276)
@@ -1037,6 +1109,186 @@ theme_override_styles/normal = SubResource("StyleBoxEmpty_set_empty")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_set_empty")
 theme_override_styles/hover = SubResource("StyleBoxFlat_set_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_set_hover")
+
+[node name="KnowledgeCheckPopup" type="Control" parent="HUD"]
+process_mode = 2
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dimmer" type="ColorRect" parent="HUD/KnowledgeCheckPopup"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03, 0.05, 0.09, 0.88)
+
+[node name="Panel" type="Panel" parent="HUD/KnowledgeCheckPopup"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -165.0
+offset_right = 280.0
+offset_bottom = 165.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_quiz_panel")
+
+[node name="HeaderLabel" type="Label" parent="HUD/KnowledgeCheckPopup/Panel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 15.0
+offset_top = 10.0
+offset_right = -15.0
+offset_bottom = 30.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 13
+text = "🛡️ BRAMA BEZPIECZEŃSTWA: KNOWLEDGE CHECK"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TopicBadge" type="Label" parent="HUD/KnowledgeCheckPopup/Panel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 15.0
+offset_top = 32.0
+offset_right = -15.0
+offset_bottom = 48.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.35, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 10
+text = "KATEGORIA: CYBERBEZPIECZEŃSTWO"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="QuestionLabel" type="Label" parent="HUD/KnowledgeCheckPopup/Panel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 20.0
+offset_top = 52.0
+offset_right = -20.0
+offset_bottom = 105.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.95, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "Treść pytania sprawdzającego..."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="OptionsContainer" type="VBoxContainer" parent="HUD/KnowledgeCheckPopup/Panel"]
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = 25.0
+offset_top = -55.0
+offset_right = -25.0
+offset_bottom = 95.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="Option0Btn" type="Button" parent="HUD/KnowledgeCheckPopup/Panel/OptionsContainer"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+focus_neighbor_top = NodePath("../Option3Btn")
+focus_neighbor_bottom = NodePath("../Option1Btn")
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxFlat_quiz_opt_norm")
+theme_override_styles/hover = SubResource("StyleBoxFlat_quiz_opt_focus")
+theme_override_styles/focus = SubResource("StyleBoxFlat_quiz_opt_focus")
+text = "A) Odpowiedź A"
+alignment = 0
+
+[node name="Option1Btn" type="Button" parent="HUD/KnowledgeCheckPopup/Panel/OptionsContainer"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+focus_neighbor_top = NodePath("../Option0Btn")
+focus_neighbor_bottom = NodePath("../Option2Btn")
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxFlat_quiz_opt_norm")
+theme_override_styles/hover = SubResource("StyleBoxFlat_quiz_opt_focus")
+theme_override_styles/focus = SubResource("StyleBoxFlat_quiz_opt_focus")
+text = "B) Odpowiedź B"
+alignment = 0
+
+[node name="Option2Btn" type="Button" parent="HUD/KnowledgeCheckPopup/Panel/OptionsContainer"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+focus_neighbor_top = NodePath("../Option1Btn")
+focus_neighbor_bottom = NodePath("../Option3Btn")
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxFlat_quiz_opt_norm")
+theme_override_styles/hover = SubResource("StyleBoxFlat_quiz_opt_focus")
+theme_override_styles/focus = SubResource("StyleBoxFlat_quiz_opt_focus")
+text = "C) Odpowiedź C"
+alignment = 0
+
+[node name="Option3Btn" type="Button" parent="HUD/KnowledgeCheckPopup/Panel/OptionsContainer"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+focus_neighbor_top = NodePath("../Option2Btn")
+focus_neighbor_bottom = NodePath("../Option0Btn")
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxFlat_quiz_opt_norm")
+theme_override_styles/hover = SubResource("StyleBoxFlat_quiz_opt_focus")
+theme_override_styles/focus = SubResource("StyleBoxFlat_quiz_opt_focus")
+text = "D) Odpowiedź D"
+alignment = 0
+
+[node name="FeedbackLabel" type="Label" parent="HUD/KnowledgeCheckPopup/Panel"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -54.0
+offset_right = -20.0
+offset_bottom = -36.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 10
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HintLabel" type="Label" parent="HUD/KnowledgeCheckPopup/Panel"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -34.0
+offset_right = -20.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.65, 0.72, 0.85, 0.75)
+theme_override_font_sizes/font_size = 9
+text = "[▲ / ▼ / W / S] Wybór odpowiedzi    |    [ENTER / SPACJA] Zatwierdź odpowiedź"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="AudioPickup" type="AudioStreamPlayer" parent="HUD" unique_id=1373622480]
 stream = ExtResource("10_pickup_audio")

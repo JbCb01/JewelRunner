@@ -8,6 +8,7 @@ extends Node2D
 ## - Integrację z Generatorem Poziomów AI oraz adapterem pod przyszły TileSet (TileMapLayer)
 
 const LevelGenerator = preload("res://scripts/core/level_generator.gd")
+const CyberQuizScript = preload("res://scripts/core/cyber_quiz.gd")
 
 @export var custom_tileset: TileSet = null
 
@@ -24,6 +25,12 @@ const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 @onready var win_time_label: Label = get_node_or_null("HUD/WinScreen/TimeResultText")
 @onready var win_session_label: Label = get_node_or_null("HUD/WinScreen/SessionResultText")
 
+@onready var knowledge_check_popup: Control = get_node_or_null("HUD/KnowledgeCheckPopup")
+@onready var quiz_topic_label: Label = get_node_or_null("HUD/KnowledgeCheckPopup/Panel/TopicBadge")
+@onready var quiz_question_label: Label = get_node_or_null("HUD/KnowledgeCheckPopup/Panel/QuestionLabel")
+@onready var quiz_feedback_label: Label = get_node_or_null("HUD/KnowledgeCheckPopup/Panel/FeedbackLabel")
+@onready var quiz_options_container: VBoxContainer = get_node_or_null("HUD/KnowledgeCheckPopup/Panel/OptionsContainer")
+
 @onready var audio_pause: AudioStreamPlayer = get_node_or_null("HUD/AudioPause")
 @onready var audio_win: AudioStreamPlayer = get_node_or_null("HUD/AudioWin")
 @onready var audio_pickup: AudioStreamPlayer = get_node_or_null("HUD/AudioPickup")
@@ -32,6 +39,12 @@ const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 @onready var finish_goal: Area2D = get_node_or_null("FinishGoal")
 
 var hud_ai_label: Label = null
+
+var is_knowledge_check_active: bool = false
+var current_quiz_question: Dictionary = {}
+var quiz_focus_idx: int = 0
+var quiz_buttons: Array[Button] = []
+var quiz_answered_correctly: bool = false
 
 var total_score: int = 0
 var collected_jewels: int = 0
@@ -213,6 +226,8 @@ func _ready() -> void:
 		b.focus_entered.connect(func():
 			win_focus_idx = cap_i
 		)
+	
+	_init_knowledge_check()
 
 func _process(delta: float) -> void:
 	if is_timer_running and not get_tree().paused:
@@ -350,8 +365,105 @@ func _on_stamina_action_rejected(move_name: String, _req: float, _cur: float) ->
 			hud_ai_label.text = "[!] BRAK STAMINY NA %s! Wykonaj skok + Trick [C] w powietrzu, aby zregenerować!" % move_name.to_upper()
 		hud_ai_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4, 1.0))
 
+func _init_knowledge_check() -> void:
+	quiz_buttons.clear()
+	quiz_answered_correctly = false
+	is_knowledge_check_active = false
+	
+	if knowledge_check_popup:
+		knowledge_check_popup.visible = false
+		
+	if quiz_options_container:
+		for child in quiz_options_container.get_children():
+			if child is Button:
+				quiz_buttons.append(child)
+				var cap_i = quiz_buttons.size() - 1
+				if not child.pressed.is_connected(_on_quiz_option_pressed):
+					child.pressed.connect(_on_quiz_option_pressed.bind(cap_i))
+				child.mouse_entered.connect(func():
+					if is_knowledge_check_active:
+						quiz_focus_idx = cap_i
+						child.grab_focus()
+				)
+				child.focus_entered.connect(func():
+					if is_knowledge_check_active:
+						quiz_focus_idx = cap_i
+				)
+					
+	_pick_random_quiz_question()
+
+func _pick_random_quiz_question(excluded_id: int = -1) -> void:
+	current_quiz_question = CyberQuizScript.get_random_question(excluded_id)
+	_apply_quiz_question_to_ui()
+
+func _apply_quiz_question_to_ui() -> void:
+	if current_quiz_question.is_empty():
+		return
+	if quiz_topic_label:
+		quiz_topic_label.text = "KATEGORIA: %s" % String(current_quiz_question.get("topic", "Cyberbezpieczeństwo")).to_upper()
+	if quiz_question_label:
+		quiz_question_label.text = String(current_quiz_question.get("question", ""))
+	var opts: Array = current_quiz_question.get("options", [])
+	for i in range(quiz_buttons.size()):
+		var b = quiz_buttons[i]
+		if i < opts.size():
+			b.text = String(opts[i])
+			b.visible = true
+		else:
+			b.visible = false
+		_reset_quiz_button_style(b)
+	if quiz_feedback_label:
+		quiz_feedback_label.text = ""
+
+func _reset_quiz_button_style(btn: Button) -> void:
+	if not btn:
+		return
+	btn.remove_theme_color_override("font_color")
+
+func _open_knowledge_check() -> void:
+	if not knowledge_check_popup:
+		_level_complete()
+		return
+		
+	is_knowledge_check_active = true
+	is_timer_running = false
+	get_tree().paused = true
+	knowledge_check_popup.visible = true
+	_apply_quiz_question_to_ui()
+	quiz_focus_idx = 0
+	_set_button_focus(quiz_buttons, 0)
+
+func _on_quiz_option_pressed(idx: int) -> void:
+	_submit_quiz_answer(idx)
+
+func _submit_quiz_answer(idx: int) -> void:
+	if not is_knowledge_check_active or current_quiz_question.is_empty():
+		return
+		
+	var correct_idx: int = int(current_quiz_question.get("correct", 0))
+	if idx == correct_idx:
+		quiz_answered_correctly = true
+		if quiz_feedback_label:
+			quiz_feedback_label.text = "[V] POPRAWNA ODPOWIEDŹ! KOD AUTORYZACYJNY PRZYJĘTY."
+			quiz_feedback_label.add_theme_color_override("font_color", Color(0.25, 0.95, 0.45, 1.0))
+		if idx < quiz_buttons.size():
+			quiz_buttons[idx].add_theme_color_override("font_color", Color(0.3, 1.0, 0.5, 1.0))
+			
+		await get_tree().create_timer(0.35).timeout
+		if is_instance_valid(self):
+			if knowledge_check_popup:
+				knowledge_check_popup.visible = false
+			is_knowledge_check_active = false
+			_level_complete()
+	else:
+		if quiz_feedback_label:
+			quiz_feedback_label.text = "[X] BŁĘDNA ODPOWIEDŹ! Zastanów się i wybierz poprawną opcję."
+			quiz_feedback_label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.35, 1.0))
+		if idx < quiz_buttons.size():
+			quiz_buttons[idx].add_theme_color_override("font_color", Color(1.0, 0.4, 0.4, 1.0))
+
 func _on_goal_entered(body: Node2D) -> void:
-	if body.is_in_group("player") and not is_game_over and not is_stage_cleared:
+	if body.is_in_group("player") and not is_game_over and not is_stage_cleared and not is_knowledge_check_active:
 		# Sprawdzenie, czy zebrano wszystkie klejnoty na poziomie!
 		if not can_exit_level():
 			if finish_goal:
@@ -363,37 +475,71 @@ func _on_goal_entered(body: Node2D) -> void:
 				hud_ai_label.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3, 1.0))
 			return
 			
-		is_stage_cleared = true
-		is_timer_running = false
-		get_tree().paused = true
-		var lvl_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
-		Events.complete_level(lvl_id, elapsed_time)
-		if is_instance_valid(Events):
-			Events.return_to_level_select = true
-		if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
-			Events.portal_sync.evaluate_run_against_challenges(collected_jewels, elapsed_time, true, tricks_performed_count)
+		# Knowledge Check warunkiem ukończenia poziomu:
+		if knowledge_check_popup and not quiz_answered_correctly:
+			_open_knowledge_check()
+			return
+			
+		_level_complete()
+
+func _level_complete() -> void:
+	is_stage_cleared = true
+	is_timer_running = false
+	get_tree().paused = true
+	var lvl_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
+	Events.complete_level(lvl_id, elapsed_time)
+	if is_instance_valid(Events):
+		Events.return_to_level_select = true
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.evaluate_run_against_challenges(collected_jewels, elapsed_time, true, tricks_performed_count)
+	
+	if music_level:
+		music_level.stop()
 		
-		if music_level:
-			music_level.stop()
-			
-		if win_score_label:
-			win_score_label.text = "JEWELS: %d / %d" % [collected_jewels, total_jewels]
-			
-		if win_time_label:
-			win_time_label.text = "TIME: %s" % _format_time(elapsed_time)
-			
-		if win_session_label:
-			win_session_label.text = "SESSION: %s" % session_id
-			
-		if win_screen:
-			win_screen.visible = true
-			win_focus_idx = 0
-			_set_button_focus(win_buttons, 0)
-			
-		if audio_win:
-			audio_win.play()
+	if win_score_label:
+		win_score_label.text = "JEWELS: %d / %d" % [collected_jewels, total_jewels]
+		
+	if win_time_label:
+		win_time_label.text = "TIME: %s" % _format_time(elapsed_time)
+		
+	if win_session_label:
+		win_session_label.text = "SESSION: %s" % session_id
+		
+	if win_screen:
+		win_screen.visible = true
+		win_focus_idx = 0
+		_set_button_focus(win_buttons, 0)
+		
+	if audio_win:
+		audio_win.play()
 
 func _unhandled_input(event: InputEvent) -> void:
+	# 0. Obsługa Knowledge Check (Cyber Quiz) - nie można wyjść z okna, dopóki nie zaznaczy się odpowiedzi!
+	if is_knowledge_check_active and knowledge_check_popup and knowledge_check_popup.visible:
+		# Blokada wyjścia z okna (klawisz ESC ani ui_cancel nie może zamknąć okna dopóki nie ma odpowiedzi!)
+		if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
+			if quiz_feedback_label:
+				quiz_feedback_label.text = "[!] MUSISZ ZAZNACZYĆ POPRAWNĄ ODPOWIEDŹ, ABY UKOŃCZYĆ POZIOM!"
+				quiz_feedback_label.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3, 1.0))
+			get_viewport().set_input_as_handled()
+			return
+			
+		# Nawigacja strzałkami (Up / Down / W / S)
+		if event.is_action_pressed("ui_down") or (event is InputEventKey and event.pressed and (event.keycode == KEY_DOWN or event.keycode == KEY_S)):
+			quiz_focus_idx = _set_button_focus(quiz_buttons, quiz_focus_idx + 1)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.is_action_pressed("ui_up") or (event is InputEventKey and event.pressed and (event.keycode == KEY_UP or event.keycode == KEY_W)):
+			quiz_focus_idx = _set_button_focus(quiz_buttons, quiz_focus_idx - 1)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and (event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE)):
+			_submit_quiz_answer(quiz_focus_idx)
+			get_viewport().set_input_as_handled()
+			return
+		get_viewport().set_input_as_handled()
+		return
+
 	# 1. Obsługa nawigacji strzałkami w WinScreen
 	if is_stage_cleared and win_screen and win_screen.visible:
 		if event.is_action_pressed("ui_down") or (event is InputEventKey and event.pressed and (event.keycode == KEY_DOWN or event.keycode == KEY_S)):

@@ -129,7 +129,9 @@ var available_skins: Array[Dictionary] = [
 ]
 
 var currentSettingsTab: int = 0
-var tabNames: Array[String] = ["MUZYKA", "GRAFIKA", "STEROWANIE", "JEZYK"]
+var tabNames: Array = ["MUZYKA", "GRAFIKA", "STEROWANIE", "JĘZYK"]
+var current_language: String = "pl"
+var subtitles_enabled: bool = true
 
 var isMasterMuted: bool = false
 var isMusicMuted: bool = false
@@ -141,6 +143,9 @@ var aiGenerateBtn: Button = null
 var aiContractBtn: Button = null
 
 func _ready() -> void:
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		if Events.portal_sync.cosmetics_state.has("language"):
+			current_language = String(Events.portal_sync.cosmetics_state.get("language", "pl"))
 	_ensure_audio_buses()
 	_ensure_top_profile_button()
 	_setup_profile_navigation_ui()
@@ -148,6 +153,7 @@ func _ready() -> void:
 	_showView(homeView)
 	_update_level_select()
 	_setup_settings_mockups()
+	_apply_language(current_language)
 	
 	if is_instance_valid(Events):
 		if not Events.portal_profile_synced.is_connected(_on_portal_profile_synced):
@@ -286,7 +292,10 @@ func _select_skin(skin_idx: int) -> void:
 		Events.portal_sync.cosmetics_state["active_skin_key"] = s["key"]
 		Events.portal_sync.cosmetics_state["active_color_name"] = s["color_name"]
 		Events.portal_sync.cosmetics_state["active_color_hex"] = s["color_hex"]
-		Events.portal_profile_synced.emit(Events.portal_sync.build_current_state_payload())
+		var payload: Dictionary = Events.portal_sync.build_current_state_payload()
+		payload["source"] = "skin_select"
+		payload["is_local_skin_change"] = true
+		Events.portal_profile_synced.emit(payload)
 	_play_menu_sfx()
 	_refresh_skin_select_ui()
 
@@ -307,22 +316,30 @@ func _refresh_skin_select_ui() -> void:
 		var badge: Label = btn.get_node_or_null("Badge") as Label
 		if badge:
 			badge.visible = is_sel
+			badge.text = "✔ SELECTED" if current_language == "en" else "✔ WYBRANA"
 	if skinSelectActiveLabel and cur_idx >= 0 and cur_idx < available_skins.size():
 		var s: Dictionary = available_skins[cur_idx]
-		skinSelectActiveLabel.text = "Aktywna skórka: %s (%s) — %s" % [s["display_name"], s["color_name"], s["desc"]]
+		var prefix = "Active Skin:" if current_language == "en" else "Aktywna skórka:"
+		skinSelectActiveLabel.text = "%s %s (%s) — %s" % [prefix, s["display_name"], s["color_name"], s["desc"]]
 
 func _refresh_profile_screen_ui() -> void:
 	if not profileStatusLabel:
 		return
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 		var ps: Node = Events.portal_sync
-		var uname: String = String(ps.player_profile.get("username", "Gość"))
+		var uname: String = String(ps.player_profile.get("username", "Gość" if current_language == "pl" else "Guest"))
 		var gems: int = int(ps.player_profile.get("gems", 0))
-		var skin: String = String(ps.cosmetics_state.get("active_skin", "Skórka podstawowa"))
+		var skin: String = String(ps.cosmetics_state.get("active_skin", "Skórka podstawowa" if current_language == "pl" else "Default Skin"))
 		if ps.is_linked:
-			profileStatusLabel.text = "Połączono z kontem: %s | Klejnoty: %d 💎 | Skórka: %s\nStatus: Aktywna sesja portalu webowego" % [uname, gems, skin]
+			if current_language == "en":
+				profileStatusLabel.text = "Linked to account: %s | Jewels: %d 💎 | Skin: %s\nStatus: Active web portal session" % [uname, gems, skin]
+			else:
+				profileStatusLabel.text = "Połączono z kontem: %s | Klejnoty: %d 💎 | Skórka: %s\nStatus: Aktywna sesja portalu webowego" % [uname, gems, skin]
 		else:
-			profileStatusLabel.text = "Status: Konto niepołączone (Tryb Gościa)\nWpisz 6-znakowy kod z /profil lub kliknij 'Otwórz Portal w Przeglądarce'."
+			if current_language == "en":
+				profileStatusLabel.text = "Status: Account not linked (Guest Mode)\nEnter 6-character code from /profile or click 'Open Portal in Browser'."
+			else:
+				profileStatusLabel.text = "Status: Konto niepołączone (Tryb Gościa)\nWpisz 6-znakowy kod z /profil lub kliknij 'Otwórz Portal w Przeglądarce'."
 
 func _on_profile_pair_btn_pressed() -> void:
 	_play_menu_sfx()
@@ -335,17 +352,26 @@ func _on_profile_pair_btn_pressed() -> void:
 	var ok: bool = Events.portal_sync.pair_with_code(code_txt)
 	if ok:
 		if profileStatusLabel:
-			profileStatusLabel.text = "Trwa łączenie z kontem portalu (Kod: %s)..." % code_txt.to_upper()
+			if current_language == "en":
+				profileStatusLabel.text = "Connecting to portal account (Code: %s)..." % code_txt.to_upper()
+			else:
+				profileStatusLabel.text = "Trwa łączenie z kontem portalu (Kod: %s)..." % code_txt.to_upper()
 	else:
 		if profileStatusLabel:
-			profileStatusLabel.text = "Błąd: Kod musi mieć 6 znaków alfanumerycznych (np. K7P2QX)."
+			if current_language == "en":
+				profileStatusLabel.text = "Error: Code must be 6 alphanumeric characters (e.g. K7P2QX)."
+			else:
+				profileStatusLabel.text = "Błąd: Kod musi mieć 6 znaków alfanumerycznych (np. K7P2QX)."
 
 func _on_profile_open_web_pressed() -> void:
 	_play_menu_sfx()
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 		Events.portal_sync.open_profile_webpage("/profil")
 		if profileStatusLabel:
-			profileStatusLabel.text = "Otwarto Portal Gracza w przeglądarce (/profil)..."
+			if current_language == "en":
+				profileStatusLabel.text = "Player Portal opened in browser (/profile)..."
+			else:
+				profileStatusLabel.text = "Otwarto Portal Gracza w przeglądarce (/profil)..."
 
 func _refresh_zadania_ui() -> void:
 	var challenges: Array = []
@@ -364,33 +390,35 @@ func _refresh_zadania_ui() -> void:
 		
 		if idx < challenges.size() and challenges[idx] is Dictionary:
 			var ch: Dictionary = challenges[idx]
-			if titleLbl: titleLbl.text = String(ch.get("name", "Zadanie %d" % (idx + 1)))
+			if titleLbl:
+				var t_name: String = String(ch.get("name", "Task %d" % (idx + 1) if current_language == "en" else "Zadanie %d" % (idx + 1)))
+				titleLbl.text = t_name
 			if descLbl: descLbl.text = String(ch.get("description", ""))
 			var pct: int = int(ch.get("progress_percent", 0))
 			var is_done: bool = String(ch.get("status", "")) == "Ukończone" or pct >= 100
 			if progLbl:
 				if is_done:
-					progLbl.text = "✔ UKOŃCZONE"
+					progLbl.text = "✔ COMPLETED" if current_language == "en" else "✔ UKOŃCZONE"
 					progLbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5, 1.0))
 				else:
-					progLbl.text = "Postęp: %d%%" % pct
+					progLbl.text = ("Progress: %d%%" if current_language == "en" else "Postęp: %d%%") % pct
 					progLbl.add_theme_color_override("font_color", Color(0.45, 1.0, 0.65, 1.0))
 			if rewLbl:
 				var r: Dictionary = ch.get("reward", {}) if ch.get("reward") is Dictionary else {}
 				var r_type: String = String(r.get("type", ""))
 				if r_type == "klejnoty":
-					rewLbl.text = "Nagroda: +%d Klejnotów 💎" % int(r.get("gems", 0))
+					rewLbl.text = ("Reward: +%d Jewels 💎" if current_language == "en" else "Nagroda: +%d Klejnotów 💎") % int(r.get("gems", 0))
 				elif r_type == "skórka":
 					var sname: String = String(r.get("element_name", "Specjalna"))
 					if sname == "Złoty biegacz":
 						sname = "Bursztynowa Stelly"
-					rewLbl.text = "Nagroda: Skórka %s" % sname
+					rewLbl.text = ("Reward: Skin %s" if current_language == "en" else "Nagroda: Skórka %s") % sname
 				elif r_type == "akcesorium":
-					rewLbl.text = "Nagroda: %s" % String(r.get("element_name", "Akcesorium"))
+					rewLbl.text = ("Reward: %s" if current_language == "en" else "Nagroda: %s") % String(r.get("element_name", "Accessory" if current_language == "en" else "Akcesorium"))
 				elif r_type == "wzmocnienie":
-					rewLbl.text = "Nagroda: Wzmocnienie %s" % String(r.get("booster_type", ""))
+					rewLbl.text = ("Reward: Booster %s" if current_language == "en" else "Nagroda: Wzmocnienie %s") % String(r.get("booster_type", ""))
 				else:
-					rewLbl.text = "Nagroda: +200 Klejnotów"
+					rewLbl.text = "Reward: +200 Jewels" if current_language == "en" else "Nagroda: +200 Klejnotów"
 
 func _play_menu_sfx() -> void:
 	if sfxMenuSelect and not isSfxMuted:
@@ -399,28 +427,56 @@ func _play_menu_sfx() -> void:
 func _on_portal_profile_synced(profile_state: Dictionary) -> void:
 	_refresh_profile_screen_ui()
 	_refresh_skin_select_ui()
+	
+	# Zmiana skórki w menu nie może resetować ani modyfikować ustawień audio/języka!
+	if profile_state.get("is_local_skin_change", false) or String(profile_state.get("source", "")) == "skin_select":
+		return
+		
 	if profile_state.has("settings") and profile_state["settings"] is Dictionary:
 		var s := profile_state["settings"] as Dictionary
 		var musicSlider: HSlider = _find_in_settings("MusicSlider") as HSlider
 		if musicSlider and s.has("music_volume"):
-			musicSlider.value = float(s["music_volume"]) * 100.0
+			var raw_m = float(s["music_volume"])
+			var target_m = raw_m * 100.0 if raw_m <= 1.0 else raw_m
+			musicSlider.value = clampf(target_m, 0.0, 100.0)
+			_set_bus_volume_percent("MusicMenu", musicSlider.value)
 			_set_bus_volume_percent("Music", musicSlider.value)
+		var levelMusicSlider: HSlider = _find_in_settings("LevelMusicSlider") as HSlider
+		if levelMusicSlider and s.has("level_music_volume"):
+			var raw_lm = float(s["level_music_volume"])
+			var target_lm = raw_lm * 100.0 if raw_lm <= 1.0 else raw_lm
+			levelMusicSlider.value = clampf(target_lm, 0.0, 100.0)
+			_set_bus_volume_percent("MusicLevel", levelMusicSlider.value)
 		var sfxSlider: HSlider = _find_in_settings("SfxSlider") as HSlider
 		if sfxSlider and s.has("sfx_volume"):
-			sfxSlider.value = float(s["sfx_volume"]) * 100.0
+			var raw_s = float(s["sfx_volume"])
+			var target_s = raw_s * 100.0 if raw_s <= 1.0 else raw_s
+			sfxSlider.value = clampf(target_s, 0.0, 100.0)
 			_set_bus_volume_percent("SFX", sfxSlider.value)
+		if s.has("language"):
+			_apply_language(String(s["language"]))
 
 func _on_portal_challenges_synced(_challenges: Array) -> void:
 	_refresh_zadania_ui()
 	_preview_mechanic_profile(Events.selected_level_profile if is_instance_valid(Events) else 1)
 
-## Upewnia się, że szyny audio Master, Music i SFX istnieją w AudioServerze.
+## Upewnia się, że szyny audio Master, Music, MusicMenu, MusicLevel i SFX istnieją w AudioServerze.
 func _ensure_audio_buses() -> void:
 	if AudioServer.get_bus_index("Music") == -1:
 		var idx = AudioServer.bus_count
 		AudioServer.add_bus(idx)
 		AudioServer.set_bus_name(idx, "Music")
 		AudioServer.set_bus_send(idx, "Master")
+	if AudioServer.get_bus_index("MusicMenu") == -1:
+		var idx = AudioServer.bus_count
+		AudioServer.add_bus(idx)
+		AudioServer.set_bus_name(idx, "MusicMenu")
+		AudioServer.set_bus_send(idx, "Music")
+	if AudioServer.get_bus_index("MusicLevel") == -1:
+		var idx = AudioServer.bus_count
+		AudioServer.add_bus(idx)
+		AudioServer.set_bus_name(idx, "MusicLevel")
+		AudioServer.set_bus_send(idx, "Music")
 	if AudioServer.get_bus_index("SFX") == -1:
 		var idx = AudioServer.bus_count
 		AudioServer.add_bus(idx)
@@ -551,34 +607,73 @@ func _cycle_ai_contract() -> void:
 func _update_contract_btn_text() -> void:
 	if not aiContractBtn or not is_instance_valid(Events) or not is_instance_valid(Events.ai_director):
 		return
-	aiContractBtn.text = "📜 KONTRAKT AI: %s" % Events.ai_director.get_contract_name()
+	if current_language == "en":
+		aiContractBtn.text = "📜 AI CONTRACT: %s" % Events.ai_director.get_contract_name()
+	else:
+		aiContractBtn.text = "📜 KONTRAKT AI: %s" % Events.ai_director.get_contract_name()
 
 func _preview_mechanic_profile(profile_id: int) -> void:
 	if not mechanicInfoLabel:
 		return
 	var meta: Dictionary = LevelGenerator.get_profile_metadata(profile_id)
 	var best_t: float = Events.get_level_best_time(profile_id) if is_instance_valid(Events) else -1.0
-	var time_str: String = " | Rekord: %02d:%02d.%d" % [int(best_t) / 60, int(best_t) % 60, int((best_t - int(best_t)) * 10)] if best_t >= 0.0 else " | Zbierz wszystkie Jewele na czas!"
+	var time_str: String
+	if current_language == "en":
+		time_str = " | Record: %02d:%02d.%d" % [int(best_t) / 60, int(best_t) % 60, int((best_t - int(best_t)) * 10)] if best_t >= 0.0 else " | Collect all Jewels in time!"
+	else:
+		time_str = " | Rekord: %02d:%02d.%d" % [int(best_t) / 60, int(best_t) % 60, int((best_t - int(best_t)) * 10)] if best_t >= 0.0 else " | Zbierz wszystkie Jewele na czas!"
+
+	var title: String = String(meta.get("title", ""))
+	var subtitle: String = String(meta.get("subtitle", ""))
+	var desc: String = String(meta.get("description", ""))
+	if current_language == "en":
+		match profile_id:
+			1:
+				title = "I. MOVEMENT SYNERGY (FLOW)"
+				subtitle = "Balance: Climb + Dash + Double Jump"
+				desc = "A balanced course combining climbing shafts, low tunnels, and chasms. Ideal for learning stamina rotation."
+			2:
+				title = "II. VERTICAL PEAKS (VERTICALITY)"
+				subtitle = "Dominance: Wall Climb & Jump"
+				desc = "Vertical shafts with strict climb windows and micro-ledges. Learn wall jump chaining without stamina burnout."
+			3:
+				title = "III. SPEED HYPERDRIVE (VELOCITY)"
+				subtitle = "Dominance: Air Dash & Speed"
+				desc = "Long horizontal sections requiring consecutive dashes and aerial trick recoveries."
+			_:
+				title = "AI ADAPTIVE RUN"
+				subtitle = "Dynamic Profile"
+				desc = "Custom generated challenge tailored to your playstyle."
+
 	mechanicInfoLabel.text = "%s: %s%s\n%s" % [
-		String(meta["title"]),
-		String(meta["subtitle"]),
+		title,
+		subtitle,
 		time_str,
-		String(meta["description"])
+		desc
 	]
 	if dnaRadarLabel:
 		var dna: Dictionary = meta.get("dna", {"wall_climb": 33, "dash": 33, "double_jump": 34})
-		var ch_info: String = "Brak"
+		var ch_info: String = "None" if current_language == "en" else "Brak"
 		if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 			var reqs: Dictionary = Events.portal_sync.get_aggregated_challenge_requirements()
 			var names: Array = reqs.get("active_challenge_names", [])
 			if not names.is_empty():
-				ch_info = ", ".join(names) + (" [min %d Jeweli]" % int(reqs.get("min_jewels", 0)))
-		dnaRadarLabel.text = "RADAR DNA: Wspinaczka %d%% | Dash %d%% | Skoki %d%%   |   ZADANIA Z PORTALU: %s" % [
-			int(dna.get("wall_climb", 33)),
-			int(dna.get("dash", 33)),
-			int(dna.get("double_jump", 34)),
-			ch_info
-		]
+				var min_jewels_str: String = " [min %d Jewels]" if current_language == "en" else " [min %d Jeweli]"
+				ch_info = ", ".join(names) + (min_jewels_str % int(reqs.get("min_jewels", 0)))
+		if current_language == "en":
+			dnaRadarLabel.text = "DNA RADAR: Wall Climb %d%% | Dash %d%% | Jumps %d%%   |   PORTAL QUESTS: %s" % [
+				int(dna.get("wall_climb", 33)),
+				int(dna.get("dash", 33)),
+				int(dna.get("double_jump", 34)),
+				ch_info
+			]
+		else:
+			dnaRadarLabel.text = "RADAR DNA: Wspinaczka %d%% | Dash %d%% | Skoki %d%%   |   ZADANIA Z PORTALU: %s" % [
+				int(dna.get("wall_climb", 33)),
+				int(dna.get("dash", 33)),
+				int(dna.get("double_jump", 34)),
+				ch_info
+			]
 
 func _find_in_settings(child_path: String) -> Node:
 	if not setView:
@@ -586,67 +681,248 @@ func _find_in_settings(child_path: String) -> Node:
 	var direct = setView.get_node_or_null(child_path)
 	if direct:
 		return direct
-	return setView.find_child(child_path.get_file(), true, false)
+	var in_panels = setView.get_node_or_null("Panels/" + child_path)
+	if in_panels:
+		return in_panels
+	for cat in ["AudioPanel", "GraphicsPanel", "ControlsPanel", "LanguagePanel"]:
+		var p_node = setView.get_node_or_null("Panels/" + cat + "/" + child_path)
+		if p_node:
+			return p_node
+	var fname = child_path.get_file()
+	if fname == "Label" or fname == "Value":
+		return null
+	return setView.find_child(fname, true, false)
+
+func _populate_display_mode_opt(opt: OptionButton) -> void:
+	opt.clear()
+	if current_language == "en":
+		opt.add_item("Fullscreen")
+		opt.add_item("Windowed")
+		opt.add_item("Borderless Window")
+	else:
+		opt.add_item("Pełny ekran (Fullscreen)")
+		opt.add_item("Okno (Windowed)")
+		opt.add_item("Okno bez ramek (Borderless)")
+	
+	var cur_mode = DisplayServer.window_get_mode()
+	var is_borderless = DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_BORDERLESS)
+	if cur_mode == DisplayServer.WINDOW_MODE_FULLSCREEN or cur_mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
+		opt.selected = 0
+	elif is_borderless:
+		opt.selected = 2
+	else:
+		opt.selected = 1
+		
+	if not opt.item_selected.is_connected(_on_display_mode_selected):
+		opt.item_selected.connect(_on_display_mode_selected)
+
+func _on_display_mode_selected(idx: int) -> void:
+	match idx:
+		0:
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		1:
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		2:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+
+func _populate_resolution_opt(opt: OptionButton) -> void:
+	opt.clear()
+	if current_language == "en":
+		opt.add_item("1280 x 720 (HD)")
+		opt.add_item("1920 x 1080 (FHD)")
+		opt.add_item("640 x 360 (Native)")
+	else:
+		opt.add_item("1280 x 720 (HD)")
+		opt.add_item("1920 x 1080 (FHD)")
+		opt.add_item("640 x 360 (Natywna)")
+		
+	var cur_size = DisplayServer.window_get_size()
+	if cur_size == Vector2i(1920, 1080):
+		opt.selected = 1
+	elif cur_size == Vector2i(640, 360):
+		opt.selected = 2
+	else:
+		opt.selected = 0
+		
+	if not opt.item_selected.is_connected(_on_resolution_selected):
+		opt.item_selected.connect(_on_resolution_selected)
+
+func _on_resolution_selected(idx: int) -> void:
+	var target_size := Vector2i(1280, 720)
+	match idx:
+		0: target_size = Vector2i(1280, 720)
+		1: target_size = Vector2i(1920, 1080)
+		2: target_size = Vector2i(640, 360)
+		
+	var cur_mode = DisplayServer.window_get_mode()
+	if cur_mode == DisplayServer.WINDOW_MODE_FULLSCREEN or cur_mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		var modeOpt: OptionButton = _find_in_settings("DisplayModeOpt") as OptionButton
+		if modeOpt:
+			modeOpt.selected = 1
+			
+	DisplayServer.window_set_size(target_size)
+	var screen_id = DisplayServer.window_get_current_screen()
+	var screen_size = DisplayServer.screen_get_size(screen_id)
+	DisplayServer.window_set_position((screen_size - target_size) / 2)
+
+func _populate_fps_limit_opt(opt: OptionButton) -> void:
+	opt.clear()
+	if current_language == "en":
+		opt.add_item("60 FPS")
+		opt.add_item("120 FPS")
+		opt.add_item("Uncapped")
+	else:
+		opt.add_item("60 FPS")
+		opt.add_item("120 FPS")
+		opt.add_item("Bez limitu (Uncapped)")
+		
+	if Engine.max_fps == 60:
+		opt.selected = 0
+	elif Engine.max_fps == 120:
+		opt.selected = 1
+	else:
+		opt.selected = 2
+		
+	if not opt.item_selected.is_connected(_on_fps_limit_selected):
+		opt.item_selected.connect(_on_fps_limit_selected)
+
+func _on_fps_limit_selected(idx: int) -> void:
+	match idx:
+		0: Engine.max_fps = 60
+		1: Engine.max_fps = 120
+		2: Engine.max_fps = 0
+
+func _on_vsync_toggled(on: bool) -> void:
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if on else DisplayServer.VSYNC_DISABLED)
+
+func _on_subtitles_toggled(on: bool) -> void:
+	subtitles_enabled = on
+
+func _on_language_selected(idx: int) -> void:
+	var code = "pl" if idx == 0 else "en"
+	_apply_language(code)
+
+func _on_master_slider_changed(v: float) -> void:
+	var masterSlider: HSlider = _find_in_settings("MasterSlider") as HSlider
+	var masterVal: Label = null
+	if masterSlider:
+		masterVal = masterSlider.get_parent().get_node_or_null("MasterValue") as Label
+		if not masterVal:
+			masterVal = masterSlider.get_parent().get_node_or_null("Value") as Label
+	if not masterVal:
+		masterVal = _find_in_settings("MasterValue") as Label
+	if masterVal:
+		masterVal.text = "%d%%" % int(v)
+	_set_bus_volume_percent("Master", v)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.profile_settings["master_volume"] = v
+
+func _on_music_slider_changed(v: float) -> void:
+	var musicSlider: HSlider = _find_in_settings("MusicSlider") as HSlider
+	var musicVal: Label = null
+	if musicSlider:
+		musicVal = musicSlider.get_parent().get_node_or_null("MusicValue") as Label
+		if not musicVal:
+			musicVal = musicSlider.get_parent().get_node_or_null("Value") as Label
+	if not musicVal:
+		musicVal = _find_in_settings("MusicValue") as Label
+	if musicVal:
+		musicVal.text = "%d%%" % int(v)
+	_set_bus_volume_percent("MusicMenu", v)
+	_set_bus_volume_percent("Music", v)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.profile_settings["music_volume"] = v
+		Events.portal_sync.cosmetics_state["music_volume"] = v / 100.0
+
+func _on_level_music_slider_changed(v: float) -> void:
+	var levelMusicSlider: HSlider = _find_in_settings("LevelMusicSlider") as HSlider
+	var levelMusicVal: Label = null
+	if levelMusicSlider:
+		levelMusicVal = levelMusicSlider.get_parent().get_node_or_null("LevelMusicValue") as Label
+		if not levelMusicVal:
+			levelMusicVal = levelMusicSlider.get_parent().get_node_or_null("Value") as Label
+	if not levelMusicVal:
+		levelMusicVal = _find_in_settings("LevelMusicValue") as Label
+	if levelMusicVal:
+		levelMusicVal.text = "%d%%" % int(v)
+	_set_bus_volume_percent("MusicLevel", v)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.profile_settings["level_music_volume"] = v
+
+func _on_sfx_slider_changed(v: float) -> void:
+	var sfxSlider: HSlider = _find_in_settings("SfxSlider") as HSlider
+	var sfxVal: Label = null
+	if sfxSlider:
+		sfxVal = sfxSlider.get_parent().get_node_or_null("SfxValue") as Label
+		if not sfxVal:
+			sfxVal = sfxSlider.get_parent().get_node_or_null("Value") as Label
+	if not sfxVal:
+		sfxVal = _find_in_settings("SfxValue") as Label
+	if sfxVal:
+		sfxVal.text = "%d%%" % int(v)
+	_set_bus_volume_percent("SFX", v)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.profile_settings["sfx_volume"] = v
+		Events.portal_sync.cosmetics_state["sfx_volume"] = v / 100.0
+	_play_menu_sfx()
+
+func _on_mute_check_toggled(toggled_on: bool) -> void:
+	var m_idx = AudioServer.get_bus_index("Master")
+	if m_idx != -1:
+		AudioServer.set_bus_mute(m_idx, toggled_on)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.profile_settings["is_muted"] = toggled_on
 
 func _setup_settings_mockups() -> void:
 	_ensure_audio_buses()
 	
 	var modeOpt: OptionButton = _find_in_settings("DisplayModeOpt") as OptionButton
-	if modeOpt and modeOpt.item_count == 0:
-		modeOpt.add_item("Pełny ekran (Fullscreen)")
-		modeOpt.add_item("Okno (Windowed)")
-		modeOpt.add_item("Okno bez ramek (Borderless)")
-		modeOpt.selected = 1
-		modeOpt.item_selected.connect(func(idx):
-			match idx:
-				0: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-				1: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-				2: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
-		)
+	if modeOpt:
+		_populate_display_mode_opt(modeOpt)
 		
 	var resOpt: OptionButton = _find_in_settings("ResolutionOpt") as OptionButton
-	if resOpt and resOpt.item_count == 0:
-		resOpt.add_item("1280 x 720 (HD)")
-		resOpt.add_item("1920 x 1080 (FHD)")
-		resOpt.add_item("640 x 360 (Natywna)")
-		resOpt.selected = 0
-		resOpt.item_selected.connect(func(idx):
-			if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_WINDOWED:
-				match idx:
-					0: DisplayServer.window_set_size(Vector2i(1280, 720))
-					1: DisplayServer.window_set_size(Vector2i(1920, 1080))
-					2: DisplayServer.window_set_size(Vector2i(640, 360))
-		)
+	if resOpt:
+		_populate_resolution_opt(resOpt)
 		
 	var vsyncCheck: CheckBox = _find_in_settings("VsyncCheck") as CheckBox
 	if vsyncCheck:
-		vsyncCheck.toggled.connect(func(on: bool):
-			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if on else DisplayServer.VSYNC_DISABLED)
-		)
+		vsyncCheck.button_pressed = (DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED)
+		if not vsyncCheck.toggled.is_connected(_on_vsync_toggled):
+			vsyncCheck.toggled.connect(_on_vsync_toggled)
 
 	var fpsOpt: OptionButton = _find_in_settings("FpsLimitOpt") as OptionButton
-	if fpsOpt and fpsOpt.item_count == 0:
-		fpsOpt.add_item("60 FPS")
-		fpsOpt.add_item("120 FPS")
-		fpsOpt.add_item("Bez limitu (Uncapped)")
-		fpsOpt.selected = 0
-		fpsOpt.item_selected.connect(func(idx):
-			match idx:
-				0: Engine.max_fps = 60
-				1: Engine.max_fps = 120
-				2: Engine.max_fps = 0
-		)
+	if fpsOpt:
+		_populate_fps_limit_opt(fpsOpt)
 		
 	var langOpt: OptionButton = _find_in_settings("LanguageOpt") as OptionButton
-	if langOpt and langOpt.item_count == 0:
+	if langOpt:
+		langOpt.clear()
 		langOpt.add_item("Polski (PL)")
 		langOpt.add_item("English (EN)")
-		langOpt.add_item("Deutsch (DE)")
-		langOpt.selected = 0
+		langOpt.selected = 0 if current_language == "pl" else 1
+		if not langOpt.item_selected.is_connected(_on_language_selected):
+			langOpt.item_selected.connect(_on_language_selected)
+
+	var subsCheck: CheckBox = _find_in_settings("SubtitlesCheck") as CheckBox
+	if subsCheck:
+		subsCheck.button_pressed = subtitles_enabled
+		if not subsCheck.toggled.is_connected(_on_subtitles_toggled):
+			subsCheck.toggled.connect(_on_subtitles_toggled)
 		
 	# --- Rzeczywista regulacja głośności szyn AudioServer ---
 	var masterSlider: HSlider = _find_in_settings("MasterSlider") as HSlider
-	var masterVal: Label = _find_in_settings("MasterBox/Value") as Label
+	var masterVal: Label = null
+	if masterSlider:
+		masterVal = masterSlider.get_parent().get_node_or_null("MasterValue") as Label
+		if not masterVal:
+			masterVal = masterSlider.get_parent().get_node_or_null("Value") as Label
+	if not masterVal:
+		masterVal = _find_in_settings("MasterValue") as Label
+		
 	if masterSlider:
 		var m_idx = AudioServer.get_bus_index("Master")
 		if m_idx != -1:
@@ -655,30 +931,60 @@ func _setup_settings_mockups() -> void:
 			masterSlider.value = 0.0 if is_muted else clampf(db_to_linear(cur_db) * 100.0, 0.0, 100.0)
 		if masterVal:
 			masterVal.text = "%d%%" % int(masterSlider.value)
-		masterSlider.value_changed.connect(func(v):
-			if masterVal: masterVal.text = "%d%%" % int(v)
-			_set_bus_volume_percent("Master", v)
-		)
+		if not masterSlider.value_changed.is_connected(_on_master_slider_changed):
+			masterSlider.value_changed.connect(_on_master_slider_changed)
 		
 	var musicSlider: HSlider = _find_in_settings("MusicSlider") as HSlider
-	var musicVal: Label = _find_in_settings("MusicBox/Value") as Label
+	var musicVal: Label = null
 	if musicSlider:
-		var mus_idx = AudioServer.get_bus_index("Music")
+		musicVal = musicSlider.get_parent().get_node_or_null("MusicValue") as Label
+		if not musicVal:
+			musicVal = musicSlider.get_parent().get_node_or_null("Value") as Label
+	if not musicVal:
+		musicVal = _find_in_settings("MusicValue") as Label
+		
+	if musicSlider:
+		var mus_idx = AudioServer.get_bus_index("MusicMenu")
+		if mus_idx == -1:
+			mus_idx = AudioServer.get_bus_index("Music")
 		if mus_idx != -1:
 			var cur_db = AudioServer.get_bus_volume_db(mus_idx)
 			var is_muted = AudioServer.is_bus_mute(mus_idx)
 			musicSlider.value = 0.0 if is_muted else clampf(db_to_linear(cur_db) * 100.0, 0.0, 100.0)
 		if musicVal:
 			musicVal.text = "%d%%" % int(musicSlider.value)
-		musicSlider.value_changed.connect(func(v):
-			if musicVal: musicVal.text = "%d%%" % int(v)
-			_set_bus_volume_percent("Music", v)
-			if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
-				Events.portal_sync.cosmetics_state["music_volume"] = v / 100.0
-		)
+		if not musicSlider.value_changed.is_connected(_on_music_slider_changed):
+			musicSlider.value_changed.connect(_on_music_slider_changed)
+		
+	var levelMusicSlider: HSlider = _find_in_settings("LevelMusicSlider") as HSlider
+	var levelMusicVal: Label = null
+	if levelMusicSlider:
+		levelMusicVal = levelMusicSlider.get_parent().get_node_or_null("LevelMusicValue") as Label
+		if not levelMusicVal:
+			levelMusicVal = levelMusicSlider.get_parent().get_node_or_null("Value") as Label
+	if not levelMusicVal:
+		levelMusicVal = _find_in_settings("LevelMusicValue") as Label
+		
+	if levelMusicSlider:
+		var lvl_idx = AudioServer.get_bus_index("MusicLevel")
+		if lvl_idx != -1:
+			var cur_db = AudioServer.get_bus_volume_db(lvl_idx)
+			var is_muted = AudioServer.is_bus_mute(lvl_idx)
+			levelMusicSlider.value = 0.0 if is_muted else clampf(db_to_linear(cur_db) * 100.0, 0.0, 100.0)
+		if levelMusicVal:
+			levelMusicVal.text = "%d%%" % int(levelMusicSlider.value)
+		if not levelMusicSlider.value_changed.is_connected(_on_level_music_slider_changed):
+			levelMusicSlider.value_changed.connect(_on_level_music_slider_changed)
 		
 	var sfxSlider: HSlider = _find_in_settings("SfxSlider") as HSlider
-	var sfxVal: Label = _find_in_settings("SfxBox/Value") as Label
+	var sfxVal: Label = null
+	if sfxSlider:
+		sfxVal = sfxSlider.get_parent().get_node_or_null("SfxValue") as Label
+		if not sfxVal:
+			sfxVal = sfxSlider.get_parent().get_node_or_null("Value") as Label
+	if not sfxVal:
+		sfxVal = _find_in_settings("SfxValue") as Label
+		
 	if sfxSlider:
 		var sfx_idx = AudioServer.get_bus_index("SFX")
 		if sfx_idx != -1:
@@ -687,23 +993,118 @@ func _setup_settings_mockups() -> void:
 			sfxSlider.value = 0.0 if is_muted else clampf(db_to_linear(cur_db) * 100.0, 0.0, 100.0)
 		if sfxVal:
 			sfxVal.text = "%d%%" % int(sfxSlider.value)
-		sfxSlider.value_changed.connect(func(v):
-			if sfxVal: sfxVal.text = "%d%%" % int(v)
-			_set_bus_volume_percent("SFX", v)
-			if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
-				Events.portal_sync.cosmetics_state["sfx_volume"] = v / 100.0
-			_play_menu_sfx()
-		)
+		if not sfxSlider.value_changed.is_connected(_on_sfx_slider_changed):
+			sfxSlider.value_changed.connect(_on_sfx_slider_changed)
 		
 	var muteCheck: CheckBox = _find_in_settings("MuteCheck") as CheckBox
 	if muteCheck:
 		var m_idx = AudioServer.get_bus_index("Master")
 		if m_idx != -1:
 			muteCheck.button_pressed = AudioServer.is_bus_mute(m_idx)
-		muteCheck.toggled.connect(func(toggled_on: bool):
-			if m_idx != -1:
-				AudioServer.set_bus_mute(m_idx, toggled_on)
-		)
+		if not muteCheck.toggled.is_connected(_on_mute_check_toggled):
+			muteCheck.toggled.connect(_on_mute_check_toggled)
+
+func _apply_language(lang_code: String) -> void:
+	current_language = lang_code
+	TranslationServer.set_locale(lang_code)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.cosmetics_state["language"] = lang_code
+	
+	tabNames = ["AUDIO", "GRAPHICS", "CONTROLS", "LANGUAGE"] if current_language == "en" else ["MUZYKA", "GRAFIKA", "STEROWANIE", "JĘZYK"]
+	
+	# Update Audio Panel labels
+	var masterLabel = _find_in_settings("AudioPanel/MasterBox/Label") as Label
+	if masterLabel: masterLabel.text = "Master Volume:" if current_language == "en" else "Głośność ogólna:"
+	var musicLabel = _find_in_settings("AudioPanel/MusicBox/Label") as Label
+	if musicLabel: musicLabel.text = "Menu Music:" if current_language == "en" else "Muzyka w menu:"
+	var levelMusicLabel = _find_in_settings("AudioPanel/LevelMusicBox/Label") as Label
+	if levelMusicLabel: levelMusicLabel.text = "Level Music:" if current_language == "en" else "Muzyka w poziomie:"
+	var sfxLabel = _find_in_settings("AudioPanel/SfxBox/Label") as Label
+	if sfxLabel: sfxLabel.text = "Sound Effects (SFX):" if current_language == "en" else "Efekty dźwiękowe (SFX):"
+	var muteCheck = _find_in_settings("AudioPanel/MuteCheck") as CheckBox
+	if muteCheck: muteCheck.text = "Mute All Sounds" if current_language == "en" else "Wycisz wszystkie dźwięki (Mute All)"
+	
+	# Update Graphics Panel labels and options
+	var modeLabel = _find_in_settings("GraphicsPanel/ModeBox/Label") as Label
+	if modeLabel: modeLabel.text = "Display Mode:" if current_language == "en" else "Tryb wyświetlania:"
+	var modeOpt = _find_in_settings("DisplayModeOpt") as OptionButton
+	if modeOpt:
+		var saved_mode = modeOpt.selected
+		_populate_display_mode_opt(modeOpt)
+		if saved_mode >= 0 and saved_mode < modeOpt.item_count:
+			modeOpt.selected = saved_mode
+			
+	var resLabel = _find_in_settings("GraphicsPanel/ResBox/Label") as Label
+	if resLabel: resLabel.text = "Window Resolution:" if current_language == "en" else "Rozdzielczość okna:"
+	var resOpt = _find_in_settings("ResolutionOpt") as OptionButton
+	if resOpt:
+		var saved_res = resOpt.selected
+		_populate_resolution_opt(resOpt)
+		if saved_res >= 0 and saved_res < resOpt.item_count:
+			resOpt.selected = saved_res
+			
+	var vsyncCheck = _find_in_settings("GraphicsPanel/VsyncCheck") as CheckBox
+	if vsyncCheck: vsyncCheck.text = "Vertical Sync (V-Sync)" if current_language == "en" else "Synchronizacja pionowa (V-Sync)"
+	
+	var fpsLabel = _find_in_settings("GraphicsPanel/FpsBox/Label") as Label
+	if fpsLabel: fpsLabel.text = "Frame Rate Limit (FPS):" if current_language == "en" else "Limit klatek (FPS):"
+	var fpsOpt = _find_in_settings("FpsLimitOpt") as OptionButton
+	if fpsOpt:
+		var saved_fps = fpsOpt.selected
+		_populate_fps_limit_opt(fpsOpt)
+		if saved_fps >= 0 and saved_fps < fpsOpt.item_count:
+			fpsOpt.selected = saved_fps
+			
+	# Update Controls Panel labels
+	var ctrlGrid = _find_in_settings("ControlsPanel/Grid")
+	if ctrlGrid:
+		var a1 = ctrlGrid.get_node_or_null("Action1") as Label
+		if a1: a1.text = "Horizontal Movement (Left / Right):" if current_language == "en" else "Ruch poziomy (Lewo / Prawo):"
+		var k1 = ctrlGrid.get_node_or_null("Key1") as Label
+		if k1: k1.text = "A / D  (or Arrows)" if current_language == "en" else "A / D  (lub Strzałki)"
+		var a2 = ctrlGrid.get_node_or_null("Action2") as Label
+		if a2: a2.text = "Jump / Double Jump:" if current_language == "en" else "Skok / Podwójny skok:"
+		var k2 = ctrlGrid.get_node_or_null("Key2") as Label
+		if k2: k2.text = "Space / W" if current_language == "en" else "Spacja / W"
+		var a3 = ctrlGrid.get_node_or_null("Action3") as Label
+		if a3: a3.text = "Dash:" if current_language == "en" else "Zryw (Dash):"
+		var a4 = ctrlGrid.get_node_or_null("Action4") as Label
+		if a4: a4.text = "Crouch / Slide:" if current_language == "en" else "Kucanie / Wślizg:"
+		var k4 = ctrlGrid.get_node_or_null("Key4") as Label
+		if k4: k4.text = "S / Down Arrow" if current_language == "en" else "S / Strzałka w dół"
+		var a5 = ctrlGrid.get_node_or_null("Action5") as Label
+		if a5: a5.text = "Wall Climb:" if current_language == "en" else "Wspinaczka (przy ścianie):"
+		var a6 = ctrlGrid.get_node_or_null("Action6") as Label
+		if a6: a6.text = "Mid-air Trick (Charges stamina):" if current_language == "en" else "Trick (w locie - ładuje staminę):"
+		var k6 = ctrlGrid.get_node_or_null("Key6") as Label
+		if k6: k6.text = "C (Hold in mid-air)" if current_language == "en" else "C (przytrzymaj w locie)"
+		var a7 = ctrlGrid.get_node_or_null("Action7") as Label
+		if a7: a7.text = "Pause:" if current_language == "en" else "Pauza:"
+		
+	# Update Language Panel labels
+	var langLabel = _find_in_settings("LanguagePanel/LangBox/Label") as Label
+	if langLabel: langLabel.text = "Game Language:" if current_language == "en" else "Język gry (Language):"
+	var subsCheck = _find_in_settings("LanguagePanel/SubtitlesCheck") as CheckBox
+	if subsCheck: subsCheck.text = "Display Subtitles" if current_language == "en" else "Wyświetlaj napisy dialogowe (Subtitles)"
+	
+	# Update LanguageOpt selection
+	var langOpt = _find_in_settings("LanguageOpt") as OptionButton
+	if langOpt:
+		langOpt.selected = 0 if current_language == "pl" else 1
+	
+	# Update Level Select texts
+	var lvl1BadgeText = get_node_or_null("LevelSelectView/Lvl1Btn/CompletedBadge/BadgeText") as Label
+	if lvl1BadgeText: lvl1BadgeText.text = "✔ COMPLETED" if current_language == "en" else "✔ UKOŃCZONY"
+	var aiGenBtn = get_node_or_null("LevelSelectView/AIGenerateBtn") as Button
+	if aiGenBtn: aiGenBtn.text = "⚡ IV. AI CHESSBOARD + QUESTS" if current_language == "en" else "⚡ IV. SZACHOWNICA AI + ZADANIA"
+	_update_contract_btn_text()
+	var prof_id = Events.selected_level_profile if is_instance_valid(Events) else 1
+	_preview_mechanic_profile(prof_id)
+	
+	# Update Skins, Profile, Zadania views
+	_refresh_skin_select_ui()
+	_refresh_profile_screen_ui()
+	_refresh_zadania_ui()
 
 func _switchSettingsTab(tabIdx: int) -> void:
 	currentSettingsTab = clampi(tabIdx, 0, 3)

@@ -115,7 +115,7 @@ func _init_default_portal_challenges() -> void:
 			"status": "Aktywne",
 			"progress_percent": 0,
 			"completion_conditions": {"max_czas_s": 60},
-			"reward": {"type": "skórka", "gems": null, "element_name": "Złoty biegacz", "booster_type": null}
+			"reward": {"type": "skórka", "gems": null, "element_name": "Bursztynowa Stelly", "booster_type": null}
 		}
 	]
 
@@ -180,13 +180,13 @@ func simulate_successful_pairing(code: String) -> void:
 			"keybindings": {}
 		},
 		"appearance": {
-			"active_skin": "Złoty biegacz",
+			"active_skin": "Bursztynowa Stelly",
 			"active_color_name": "Fioletowy",
 			"active_color_hex": "#6A3FB5",
 			"equipped_accessories": {"głowa": "Czapka"},
 			"owned_items": [
 				{"type": "skórka", "name": "Skórka podstawowa"},
-				{"type": "skórka", "name": "Złoty biegacz"},
+				{"type": "skórka", "name": "Bursztynowa Stelly"},
 				{"type": "kolor", "name": "Fioletowy", "color_hex": "#6A3FB5"},
 				{"type": "akcesorium", "name": "Czapka", "mount_point": "głowa"}
 			]
@@ -452,21 +452,14 @@ func apply_cosmetics_and_boosters_to_player(player: Node2D) -> void:
 	var visuals: Node2D = player.get_node_or_null("Visuals")
 	var anim_sprite: AnimatedSprite2D = player.get_node_or_null("Visuals/AnimatedSprite2D")
 	
-	# 1. Kolor i skórka postaci pobrane z profilu
-	var skin_name: String = String(cosmetics_state.get("active_skin", "Skórka podstawowa"))
-	var color_hex: String = String(cosmetics_state.get("active_color_hex", "#6A3FB5"))
-	var base_tint := Color.from_string(color_hex, Color(1, 1, 1, 1))
-	# Mieszamy delikatnie z bielą, aby zachować czytelność detali sprite'a
-	var sprite_tint: Color = Color(1, 1, 1, 1).lerp(base_tint, 0.35)
-	if skin_name == "Złoty biegacz":
-		sprite_tint = Color(1.0, 0.90, 0.38, 1.0)
-	elif skin_name == "Cyber Stelly":
-		sprite_tint = Color(0.45, 0.96, 1.0, 1.0)
-		
-	player.set_meta("portal_skin_tint", sprite_tint)
+	# 1. Faktyczna podmiana assetów SpriteFrames w AnimatedSprite2D dla wybranej skórki
+	var skin_name: String = String(cosmetics_state.get("active_skin", "Klasyczna Stelly"))
+	SkinManager.apply_skin_to_player(player, skin_name)
+	player.set_meta("portal_skin_tint", Color.WHITE)
 	player.set_meta("portal_active_skin", skin_name)
-	if anim_sprite:
-		anim_sprite.self_modulate = sprite_tint
+	
+	var color_hex: String = String(cosmetics_state.get("active_color_hex", "#6A3FB5"))
+	var base_tint: Color = Color.from_string(color_hex, Color(0.42, 0.25, 0.71, 1.0))
 		
 	# 2. Akcesoria (np. "Czapka" na punkcie mocowania "głowa")
 	if visuals:
@@ -481,7 +474,7 @@ func apply_cosmetics_and_boosters_to_player(player: Node2D) -> void:
 				brim.name = "Brim"
 				brim.position = Vector2(-7, -18)
 				brim.size = Vector2(15, 3)
-				brim.color = Color(0.95, 0.78, 0.15, 1.0) if skin_name == "Złoty biegacz" else base_tint.lightened(0.2)
+				brim.color = Color(0.95, 0.78, 0.15, 1.0) if (skin_name == "Bursztynowa Stelly" or skin_name == "Złoty biegacz") else base_tint.lightened(0.2)
 				var crown := ColorRect.new()
 				crown.name = "Crown"
 				crown.position = Vector2(-5, -23)

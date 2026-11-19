@@ -2,7 +2,7 @@ extends Control
 
 const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 
-@export_file("*.tscn") var arenaScenePath: String = "res://TestArena.tscn"
+@export_file("*.tscn") var arenaScenePath: String = "res://scenes/test_arena.tscn"
 
 @onready var homeView: Control = get_node_or_null("HomeView")
 @onready var lvlView: Control = get_node_or_null("LevelSelectView")
@@ -20,6 +20,7 @@ const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 @onready var lvl1Btn: Button = get_node_or_null("LevelSelectView/Lvl1Btn")
 @onready var lvl2Btn: Button = get_node_or_null("LevelSelectView/Lvl2Btn")
 @onready var lvl3Btn: Button = get_node_or_null("LevelSelectView/Lvl3Btn")
+@onready var lvlBackBtn: Button = get_node_or_null("LevelSelectView/BackBtn")
 @onready var lvl1CompletedBadge: Control = get_node_or_null("LevelSelectView/Lvl1Btn/CompletedBadge")
 @onready var lvl1CheckmarkIcon: Control = get_node_or_null("LevelSelectView/Lvl1Btn/CheckmarkIcon")
 
@@ -35,6 +36,98 @@ const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 @onready var controlsPanel: Control = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/ControlsPanel")
 @onready var languagePanel: Control = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/LanguagePanel")
 
+# --- Widoki i kontrolery Profilu (Ustawienia Profilu, SkinSelect, Profil, Zadania) ---
+@onready var profileSettingsView: Control = get_node_or_null("ProfileSettingsView")
+@onready var skinSelectView: Control = get_node_or_null("SkinSelectView")
+@onready var profileView: Control = get_node_or_null("ProfileView")
+@onready var zadaniaView: Control = get_node_or_null("ZadaniaView")
+
+@onready var profSettingsProfileBtn: Button = get_node_or_null("ProfileSettingsView/ProfilBtn")
+@onready var profSettingsSkinBtn: Button = get_node_or_null("ProfileSettingsView/SkinSelectBtn")
+@onready var profSettingsZadaniaBtn: Button = get_node_or_null("ProfileSettingsView/ZadaniaBtn")
+@onready var profSettingsBackBtn: Button = get_node_or_null("ProfileSettingsView/BackBtn")
+
+@onready var skinButtons: Array[Button] = [
+	get_node_or_null("SkinSelectView/Skin0Btn") as Button,
+	get_node_or_null("SkinSelectView/Skin1Btn") as Button,
+	get_node_or_null("SkinSelectView/Skin2Btn") as Button,
+	get_node_or_null("SkinSelectView/Skin3Btn") as Button,
+	get_node_or_null("SkinSelectView/Skin4Btn") as Button,
+	get_node_or_null("SkinSelectView/Skin5Btn") as Button
+]
+@onready var skinSelectBackBtn: Button = get_node_or_null("SkinSelectView/BackBtn")
+@onready var skinSelectActiveLabel: Label = get_node_or_null("SkinSelectView/ActiveSkinLabel")
+
+@onready var profileCodeInput: LineEdit = get_node_or_null("ProfileView/PairingCodeInput")
+@onready var profilePairBtn: Button = get_node_or_null("ProfileView/PairBtn")
+@onready var profileOpenPortalBtn: Button = get_node_or_null("ProfileView/OpenPortalBtn")
+@onready var profileStatusLabel: Label = get_node_or_null("ProfileView/StatusLabel")
+@onready var profileBackBtn: Button = get_node_or_null("ProfileView/BackBtn")
+
+@onready var zadaniaBackBtn: Button = get_node_or_null("ZadaniaView/BackBtn")
+@onready var zadaniaTask1Box: Control = get_node_or_null("ZadaniaView/Task1Container")
+@onready var zadaniaTask2Box: Control = get_node_or_null("ZadaniaView/Task2Container")
+@onready var zadaniaTask3Box: Control = get_node_or_null("ZadaniaView/Task3Container")
+
+@onready var sfxMenuSelect: AudioStreamPlayer = get_node_or_null("AudioMenuSelect")
+
+var available_skins: Array[Dictionary] = [
+	{
+		"id": 0,
+		"key": "base",
+		"name": "Klasyczna Stelly",
+		"display_name": "Klasyczna Stelly",
+		"color_name": "Fioletowy",
+		"color_hex": "#6A3FB5",
+		"desc": "Klasyczny fioletowy strój bohaterki."
+	},
+	{
+		"id": 1,
+		"key": "noir",
+		"name": "Noir Stelly",
+		"display_name": "Noir Stelly",
+		"color_name": "Monochrom",
+		"color_hex": "#505050",
+		"desc": "Elegancki czarno-biały styl film noir."
+	},
+	{
+		"id": 2,
+		"key": "office",
+		"name": "Office Stelly",
+		"display_name": "Office Stelly",
+		"color_name": "Granatowy",
+		"color_hex": "#2B3A4A",
+		"desc": "Formalny garnitur korporacyjny."
+	},
+	{
+		"id": 3,
+		"key": "2077",
+		"name": "2077 Stelly",
+		"display_name": "2077 Stelly",
+		"color_name": "Cyjan",
+		"color_hex": "#2CE0D2",
+		"desc": "Futurystyczny kombinezon z neonowymi akcentami."
+	},
+	{
+		"id": 4,
+		"key": "promissed",
+		"name": "Promissed Stelly",
+		"display_name": "Promissed Stelly",
+		"color_name": "Morski",
+		"color_hex": "#00B4D8",
+		"desc": "Morski pancerz strażnika obietnicy."
+	},
+	{
+		"id": 5,
+		"key": "retro",
+		"name": "Retro Stelly",
+		"display_name": "Retro Stelly",
+		"color_name": "Bursztynowy",
+		"color_hex": "#F5A623",
+		"desc": "Ciepłe barwy vintage z brzoskwiniowym odcieniem."
+	}
+]
+
 var currentSettingsTab: int = 0
 var tabNames: Array[String] = ["Dźwięk", "Grafika", "Sterowanie", "Język"]
 
@@ -45,13 +138,10 @@ var mechanicInfoLabel: Label = null
 var dnaRadarLabel: Label = null
 var aiGenerateBtn: Button = null
 var aiContractBtn: Button = null
-var portalStatusBadge: Label = null
-var portalDrawer: Control = null
-var pairingCodeInput: LineEdit = null
 
 func _ready() -> void:
 	_ensure_top_profile_button()
-	_setup_portal_sync_bar()
+	_setup_profile_navigation_ui()
 	_setup_mechanic_level_select_ui()
 	_showView(homeView)
 	_update_level_select()
@@ -102,100 +192,211 @@ func _ensure_top_profile_button() -> void:
 			profileBtn.flat = true
 			homeView.add_child(profileBtn)
 
-## Kliknięcie przycisku profilu na górze w menu: przenosi do strony internetowej profilu
-## oraz uruchamia synchronizację z aplikacją webową!
+## Kliknięcie przycisku profilu na górze w menu (Prawy górny róg):
+## Przenosi gracza do ekranu Ustawienia Profilu (UstawieniaProfilu.png),
+## z którego ma dostęp do: Profil, Skórki (SkinSelect) oraz Zadania!
 func _on_profile_btn_pressed() -> void:
+	_play_menu_sfx()
+	if profileSettingsView:
+		_showView(profileSettingsView)
+
+## Konfiguruje przyciski nawigacyjne dla ekranu Ustawienia Profilu oraz ekranów potomnych:
+## SkinSelect, Profil, Zadania, LevelSelect oraz Twórcy.
+func _setup_profile_navigation_ui() -> void:
+	# 1. Ekran główny Ustawień Profilu (UstawieniaProfilu.png)
+	if profSettingsProfileBtn and not profSettingsProfileBtn.pressed.is_connected(_on_nav_to_profile):
+		profSettingsProfileBtn.pressed.connect(_on_nav_to_profile)
+	if profSettingsSkinBtn and not profSettingsSkinBtn.pressed.is_connected(_on_nav_to_skin_select):
+		profSettingsSkinBtn.pressed.connect(_on_nav_to_skin_select)
+	if profSettingsZadaniaBtn and not profSettingsZadaniaBtn.pressed.is_connected(_on_nav_to_zadania):
+		profSettingsZadaniaBtn.pressed.connect(_on_nav_to_zadania)
+	if profSettingsBackBtn and not profSettingsBackBtn.pressed.is_connected(_on_nav_back_to_home):
+		profSettingsBackBtn.pressed.connect(_on_nav_back_to_home)
+		
+	# 2. Ekran wyboru skórki (SkinSelect.png)
+	for idx in range(skinButtons.size()):
+		var btn: Button = skinButtons[idx]
+		if btn:
+			var s_idx: int = idx
+			if not btn.pressed.is_connected(func(): _select_skin(s_idx)):
+				btn.pressed.connect(func(): _select_skin(s_idx))
+	if skinSelectBackBtn and not skinSelectBackBtn.pressed.is_connected(_on_nav_back_to_profile_settings):
+		skinSelectBackBtn.pressed.connect(_on_nav_back_to_profile_settings)
+		
+	# 3. Ekran szczegółów profilu (Profil.png)
+	if profilePairBtn and not profilePairBtn.pressed.is_connected(_on_profile_pair_btn_pressed):
+		profilePairBtn.pressed.connect(_on_profile_pair_btn_pressed)
+	if profileOpenPortalBtn and not profileOpenPortalBtn.pressed.is_connected(_on_profile_open_web_pressed):
+		profileOpenPortalBtn.pressed.connect(_on_profile_open_web_pressed)
+	if profileBackBtn and not profileBackBtn.pressed.is_connected(_on_nav_back_to_profile_settings):
+		profileBackBtn.pressed.connect(_on_nav_back_to_profile_settings)
+	if profileCodeInput and not profileCodeInput.text_submitted.is_connected(_on_profile_code_submitted):
+		profileCodeInput.text_submitted.connect(_on_profile_code_submitted)
+		
+	# 4. Ekran zadań (Zadania.png)
+	if zadaniaBackBtn and not zadaniaBackBtn.pressed.is_connected(_on_nav_back_to_profile_settings):
+		zadaniaBackBtn.pressed.connect(_on_nav_back_to_profile_settings)
+		
+	# 5. Ekran wyboru poziomu (LevelSelect.png) - Powrót
+	if lvlBackBtn and not lvlBackBtn.pressed.is_connected(_on_nav_back_to_home):
+		lvlBackBtn.pressed.connect(_on_nav_back_to_home)
+		
+	# 6. Ekran twórców (CreatorsScreen)
+	var creatorsBackBtn: Button = get_node_or_null("CreatorsView/BackBtn")
+	if creatorsBackBtn and not creatorsBackBtn.pressed.is_connected(_on_nav_back_to_home):
+		creatorsBackBtn.pressed.connect(_on_nav_back_to_home)
+
+func _on_nav_to_profile() -> void:
+	_play_menu_sfx()
+	if profileView:
+		_showView(profileView)
+
+func _on_nav_to_skin_select() -> void:
+	_play_menu_sfx()
+	if skinSelectView:
+		_showView(skinSelectView)
+
+func _on_nav_to_zadania() -> void:
+	_play_menu_sfx()
+	if zadaniaView:
+		_showView(zadaniaView)
+
+func _on_nav_back_to_profile_settings() -> void:
+	_play_menu_sfx()
+	if profileSettingsView:
+		_showView(profileSettingsView)
+	else:
+		_showView(homeView)
+
+func _on_nav_back_to_home() -> void:
+	_play_menu_sfx()
+	_showView(homeView)
+
+func _on_profile_code_submitted(_txt: String) -> void:
+	_on_profile_pair_btn_pressed()
+
+func _select_skin(skin_idx: int) -> void:
+	if skin_idx < 0 or skin_idx >= available_skins.size():
+		return
+	var s: Dictionary = available_skins[skin_idx]
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.cosmetics_state["active_skin"] = s["name"]
+		Events.portal_sync.cosmetics_state["active_skin_key"] = s["key"]
+		Events.portal_sync.cosmetics_state["active_color_name"] = s["color_name"]
+		Events.portal_sync.cosmetics_state["active_color_hex"] = s["color_hex"]
+		Events.portal_profile_synced.emit(Events.portal_sync.build_current_state_payload())
+	_play_menu_sfx()
+	_refresh_skin_select_ui()
+
+func _get_active_skin_index() -> int:
+	var active_name: String = "Klasyczna Stelly"
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		active_name = String(Events.portal_sync.cosmetics_state.get("active_skin", "Klasyczna Stelly"))
+	var info: Dictionary = SkinManager.get_skin_info(active_name)
+	return int(info.get("id", 0))
+
+func _refresh_skin_select_ui() -> void:
+	var cur_idx: int = _get_active_skin_index()
+	for idx in range(skinButtons.size()):
+		var btn: Button = skinButtons[idx]
+		if not btn:
+			continue
+		var is_sel: bool = (idx == cur_idx)
+		var badge: Label = btn.get_node_or_null("Badge") as Label
+		if badge:
+			badge.visible = is_sel
+	if skinSelectActiveLabel and cur_idx >= 0 and cur_idx < available_skins.size():
+		var s: Dictionary = available_skins[cur_idx]
+		skinSelectActiveLabel.text = "Aktywna skórka: %s (%s) — %s" % [s["display_name"], s["color_name"], s["desc"]]
+
+func _refresh_profile_screen_ui() -> void:
+	if not profileStatusLabel:
+		return
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		var ps: Node = Events.portal_sync
+		var uname: String = String(ps.player_profile.get("username", "Gość"))
+		var gems: int = int(ps.player_profile.get("gems", 0))
+		var skin: String = String(ps.cosmetics_state.get("active_skin", "Skórka podstawowa"))
+		if ps.is_linked:
+			profileStatusLabel.text = "Połączono z kontem: %s | Klejnoty: %d 💎 | Skórka: %s\nStatus: Aktywna sesja portalu webowego" % [uname, gems, skin]
+		else:
+			profileStatusLabel.text = "Status: Konto niepołączone (Tryb Gościa)\nWpisz 6-znakowy kod z /profil lub kliknij 'Otwórz Portal w Przeglądarce'."
+
+func _on_profile_pair_btn_pressed() -> void:
+	_play_menu_sfx()
+	if not is_instance_valid(Events) or not is_instance_valid(Events.portal_sync):
+		return
+	var code_txt: String = "DEMO99"
+	if profileCodeInput and not profileCodeInput.text.strip_edges().is_empty():
+		code_txt = profileCodeInput.text.strip_edges()
+		
+	var ok: bool = Events.portal_sync.pair_with_code(code_txt)
+	if ok:
+		if profileStatusLabel:
+			profileStatusLabel.text = "Trwa łączenie z kontem portalu (Kod: %s)..." % code_txt.to_upper()
+	else:
+		if profileStatusLabel:
+			profileStatusLabel.text = "Błąd: Kod musi mieć 6 znaków alfanumerycznych (np. K7P2QX)."
+
+func _on_profile_open_web_pressed() -> void:
+	_play_menu_sfx()
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 		Events.portal_sync.open_profile_webpage("/profil")
-		Events.portal_sync.request_sync_from_web()
-	if portalDrawer:
-		portalDrawer.visible = not portalDrawer.visible
-	_refresh_portal_badge()
+		if profileStatusLabel:
+			profileStatusLabel.text = "Otwarto Portal Gracza w przeglądarce (/profil)..."
 
-## Buduje górny pasek statusu konta webowego oraz wysuwany panel parowania / synchronizacji z portalem.
-func _setup_portal_sync_bar() -> void:
-	if not homeView:
-		return
-	if not homeView.has_node("PortalStatusBadge"):
-		portalStatusBadge = Label.new()
-		portalStatusBadge.name = "PortalStatusBadge"
-		portalStatusBadge.position = Vector2(360, 12)
-		portalStatusBadge.size = Vector2(198, 22)
-		portalStatusBadge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		portalStatusBadge.add_theme_font_size_override("font_size", 10)
-		portalStatusBadge.add_theme_color_override("font_color", Color(0.95, 0.92, 1.0, 0.95))
-		homeView.add_child(portalStatusBadge)
+func _refresh_zadania_ui() -> void:
+	var challenges: Array = []
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		challenges = Events.portal_sync.get_active_challenges()
 		
-	if not homeView.has_node("PortalSyncDrawer"):
-		portalDrawer = ColorRect.new()
-		portalDrawer.name = "PortalSyncDrawer"
-		portalDrawer.visible = false
-		portalDrawer.position = Vector2(330, 46)
-		portalDrawer.size = Vector2(296, 106)
-		portalDrawer.color = Color(0.06, 0.08, 0.14, 0.94)
+	var containers = [zadaniaTask1Box, zadaniaTask2Box, zadaniaTask3Box]
+	for idx in range(containers.size()):
+		var c = containers[idx]
+		if not c:
+			continue
+		var titleLbl: Label = c.get_node_or_null("Title") as Label
+		var descLbl: Label = c.get_node_or_null("Desc") as Label
+		var progLbl: Label = c.get_node_or_null("Progress") as Label
+		var rewLbl: Label = c.get_node_or_null("Reward") as Label
 		
-		var info_lbl := Label.new()
-		info_lbl.name = "DrawerInfoLabel"
-		info_lbl.position = Vector2(8, 6)
-		info_lbl.size = Vector2(280, 34)
-		info_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		info_lbl.add_theme_font_size_override("font_size", 9)
-		info_lbl.text = "Portal Webowy: wpisz 6-znakowy kod z /profil lub kliknij Synchronizuj."
-		portalDrawer.add_child(info_lbl)
-		
-		pairingCodeInput = LineEdit.new()
-		pairingCodeInput.name = "PairingCodeInput"
-		pairingCodeInput.placeholder_text = "KOD (np. K7P2QX)"
-		pairingCodeInput.max_length = 8
-		pairingCodeInput.position = Vector2(8, 42)
-		pairingCodeInput.size = Vector2(130, 26)
-		pairingCodeInput.add_theme_font_size_override("font_size", 10)
-		portalDrawer.add_child(pairingCodeInput)
-		
-		var pair_btn := Button.new()
-		pair_btn.name = "PairSubmitBtn"
-		pair_btn.position = Vector2(144, 42)
-		pair_btn.size = Vector2(144, 26)
-		pair_btn.add_theme_font_size_override("font_size", 10)
-		pair_btn.text = "Połącz i Pobierz Dane"
-		pair_btn.pressed.connect(func():
-			if is_instance_valid(Events) and is_instance_valid(Events.portal_sync) and pairingCodeInput:
-				var code_txt: String = pairingCodeInput.text.strip_edges()
-				if code_txt.is_empty():
-					code_txt = "DEMO99"
-				Events.portal_sync.pair_with_code(code_txt)
-				_refresh_portal_badge()
-		)
-		portalDrawer.add_child(pair_btn)
-		
-		var open_web_btn := Button.new()
-		open_web_btn.name = "OpenWebPortalBtn"
-		open_web_btn.position = Vector2(8, 72)
-		open_web_btn.size = Vector2(280, 26)
-		open_web_btn.add_theme_font_size_override("font_size", 10)
-		open_web_btn.text = "🌐 Otwórz Portal w Przeglądarce (/profil)"
-		open_web_btn.pressed.connect(func():
-			if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
-				Events.portal_sync.open_profile_webpage("/profil")
-		)
-		portalDrawer.add_child(open_web_btn)
-		
-		homeView.add_child(portalDrawer)
-		
-	_refresh_portal_badge()
+		if idx < challenges.size() and challenges[idx] is Dictionary:
+			var ch: Dictionary = challenges[idx]
+			if titleLbl: titleLbl.text = String(ch.get("name", "Zadanie %d" % (idx + 1)))
+			if descLbl: descLbl.text = String(ch.get("description", ""))
+			var pct: int = int(ch.get("progress_percent", 0))
+			var is_done: bool = String(ch.get("status", "")) == "Ukończone" or pct >= 100
+			if progLbl:
+				if is_done:
+					progLbl.text = "✔ UKOŃCZONE"
+					progLbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5, 1.0))
+				else:
+					progLbl.text = "Postęp: %d%%" % pct
+					progLbl.add_theme_color_override("font_color", Color(0.45, 1.0, 0.65, 1.0))
+			if rewLbl:
+				var r: Dictionary = ch.get("reward", {}) if ch.get("reward") is Dictionary else {}
+				var r_type: String = String(r.get("type", ""))
+				if r_type == "klejnoty":
+					rewLbl.text = "Nagroda: +%d Klejnotów 💎" % int(r.get("gems", 0))
+				elif r_type == "skórka":
+					var sname: String = String(r.get("element_name", "Specjalna"))
+					if sname == "Złoty biegacz":
+						sname = "Bursztynowa Stelly"
+					rewLbl.text = "Nagroda: Skórka %s" % sname
+				elif r_type == "akcesorium":
+					rewLbl.text = "Nagroda: %s" % String(r.get("element_name", "Akcesorium"))
+				elif r_type == "wzmocnienie":
+					rewLbl.text = "Nagroda: Wzmocnienie %s" % String(r.get("booster_type", ""))
+				else:
+					rewLbl.text = "Nagroda: +200 Klejnotów"
 
-func _refresh_portal_badge() -> void:
-	if not portalStatusBadge or not is_instance_valid(Events) or not is_instance_valid(Events.portal_sync):
-		return
-	var ps: Node = Events.portal_sync
-	var uname: String = String(ps.player_profile.get("username", "Gość"))
-	var skin: String = String(ps.cosmetics_state.get("active_skin", "Podstawowa"))
-	var ch_cnt: int = ps.get_active_challenges().size()
-	portalStatusBadge.text = "👤 %s | %s | Zadania: %d ↗" % [uname, skin, ch_cnt]
+func _play_menu_sfx() -> void:
+	if sfxMenuSelect and not isSfxMuted:
+		sfxMenuSelect.play()
 
 func _on_portal_profile_synced(profile_state: Dictionary) -> void:
-	_refresh_portal_badge()
-	# Aktualizacja widżetów w zakładce Ustawienia pobranymi ze strony wartościami
+	_refresh_profile_screen_ui()
+	_refresh_skin_select_ui()
 	if profile_state.has("settings") and profile_state["settings"] is Dictionary:
 		var s := profile_state["settings"] as Dictionary
 		var musicSlider: HSlider = get_node_or_null("SettingsView/DarkOverlay/SettingsContent/Panels/AudioPanel/MusicBox/MusicSlider")
@@ -206,7 +407,7 @@ func _on_portal_profile_synced(profile_state: Dictionary) -> void:
 			sfxSlider.value = float(s["sfx_volume"])
 
 func _on_portal_challenges_synced(_challenges: Array) -> void:
-	_refresh_portal_badge()
+	_refresh_zadania_ui()
 	_preview_mechanic_profile(Events.selected_level_profile if is_instance_valid(Events) else 1)
 
 ## Rozbudowuje karty Level Select o Żywioły Ruchu (Trials of Flow), Dynamiczny Radar DNA Mechanik,
@@ -314,6 +515,7 @@ func _setup_mechanic_level_select_ui() -> void:
 			_startLevelProfile(4, new_seed)
 		)
 		aiGenerateBtn.mouse_entered.connect(func(): _preview_mechanic_profile(4))
+		aiGenerateBtn.focus_entered.connect(func(): _preview_mechanic_profile(4))
 		lvlView.add_child(aiGenerateBtn)
 		
 	_preview_mechanic_profile(1)
@@ -427,6 +629,7 @@ func _switchSettingsTab(tabIdx: int) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if setView and setView.visible:
 		if event.is_action_pressed("ui_cancel"):
+			_play_menu_sfx()
 			_showView(homeView)
 			get_viewport().set_input_as_handled()
 			return
@@ -445,28 +648,69 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 
 	if event.is_action_pressed("ui_cancel"):
-		if homeView and not homeView.visible:
+		if (skinSelectView and skinSelectView.visible) or \
+		   (profileView and profileView.visible) or \
+		   (zadaniaView and zadaniaView.visible):
+			_play_menu_sfx()
+			_showView(profileSettingsView)
+			get_viewport().set_input_as_handled()
+			return
+		if profileSettingsView and profileSettingsView.visible:
+			_play_menu_sfx()
 			_showView(homeView)
 			get_viewport().set_input_as_handled()
+			return
+		if lvlView and lvlView.visible:
+			_play_menu_sfx()
+			_showView(homeView)
+			get_viewport().set_input_as_handled()
+			return
+		if creatorsView and creatorsView.visible:
+			_play_menu_sfx()
+			_showView(homeView)
+			get_viewport().set_input_as_handled()
+			return
+		if homeView and not homeView.visible:
+			_play_menu_sfx()
+			_showView(homeView)
+			get_viewport().set_input_as_handled()
+			return
 
 func _showView(targetView: Control) -> void:
 	if homeView: homeView.visible = (targetView == homeView)
 	if lvlView: lvlView.visible = (targetView == lvlView)
 	if setView: setView.visible = (targetView == setView)
 	if creatorsView: creatorsView.visible = (targetView == creatorsView)
+	if profileSettingsView: profileSettingsView.visible = (targetView == profileSettingsView)
+	if skinSelectView: skinSelectView.visible = (targetView == skinSelectView)
+	if profileView: profileView.visible = (targetView == profileView)
+	if zadaniaView: zadaniaView.visible = (targetView == zadaniaView)
 	
-	if targetView == homeView and playBtn:
-		playBtn.grab_focus()
+	if targetView == homeView:
+		if playBtn: playBtn.grab_focus()
 	elif targetView == lvlView:
 		_update_level_select()
 		_update_contract_btn_text()
-		if lvl1Btn:
-			lvl1Btn.grab_focus()
+		_preview_mechanic_profile(1)
+		if lvl1Btn: lvl1Btn.grab_focus()
 	elif targetView == setView:
 		_switchSettingsTab(currentSettingsTab)
+	elif targetView == profileSettingsView:
+		if profSettingsProfileBtn: profSettingsProfileBtn.grab_focus()
+	elif targetView == skinSelectView:
+		_refresh_skin_select_ui()
+		var s_idx: int = _get_active_skin_index()
+		if s_idx >= 0 and s_idx < skinButtons.size() and skinButtons[s_idx]:
+			skinButtons[s_idx].grab_focus()
+	elif targetView == profileView:
+		_refresh_profile_screen_ui()
+		if profileCodeInput: profileCodeInput.grab_focus()
+	elif targetView == zadaniaView:
+		_refresh_zadania_ui()
+		if zadaniaBackBtn: zadaniaBackBtn.grab_focus()
 
 func _update_level_select() -> void:
-	var is_lvl1_done = Events.is_level_completed(1)
+	var is_lvl1_done = Events.is_level_completed(1) if is_instance_valid(Events) else false
 	if lvl1CompletedBadge:
 		lvl1CompletedBadge.visible = is_lvl1_done
 	if lvl1CheckmarkIcon:

@@ -149,6 +149,8 @@ func _ready() -> void:
 			move_multipliers = Events.ai_director.multipliers.duplicate()
 		if is_instance_valid(Events.portal_sync):
 			Events.portal_sync.apply_cosmetics_and_boosters_to_player(self)
+		else:
+			SkinManager.apply_skin_to_player(self, "base")
 			
 	_update_stamina_bar()
 	_update_hp_indicator()

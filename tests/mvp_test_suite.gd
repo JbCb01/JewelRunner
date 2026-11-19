@@ -36,6 +36,7 @@ func _ready() -> void:
 	utMechanicDnaRadarCalculation()
 	utPortalSyncProfileSkinsBoostersAndSettings()
 	utMapGeneratorAdaptsToWebChallenges()
+	utSkinManagerLoadsAllSkinsWithCorrectSpriteFrames()
 	
 	print("\n--- [2] TESTY INTEGRACYJNE (FRONTEND <-> BACKEND <-> WEB PORTAL) ---")
 	itJewelPickupUpdatesHudProgress()
@@ -48,6 +49,7 @@ func _ready() -> void:
 	itTopProfileButtonOpensWebPortalAndSyncs()
 	itPortalShieldAndMagnetBoostersInGameplay()
 	itWebChallengesCompleteOnWinningRun()
+	itLevelSelectMechanicPanelsAndAIContracts()
 	
 	print("\n==================================================")
 	print(" PODSUMOWANIE: ZALICZONE: %d | BŁĘDY: %d | ŁĄCZNIE: %d" % [passCnt, failCnt, passCnt + failCnt])
@@ -342,7 +344,7 @@ func utPortalSyncProfileSkinsBoostersAndSettings() -> void:
 	ps.apply_cosmetics_and_boosters_to_player(plr)
 	
 	var profileOk: bool = (ps.player_profile["username"] == "Demo") and (int(ps.player_profile["gems"]) == 450)
-	var skinOk: bool = (String(plr.get_meta("portal_active_skin", "")) == "Złoty biegacz")
+	var skinOk: bool = (String(plr.get_meta("portal_active_skin", "")) == "Bursztynowa Stelly" or String(plr.get_meta("portal_active_skin", "")) == "Złoty biegacz")
 	var hatNode: Node2D = plr.visuals.get_node_or_null("PortalAccessoryHat")
 	var hatOk: bool = (hatNode != null) and hatNode.visible
 	var boostersOk: bool = (plr.max_health == 4) and bool(plr.get_meta("has_portal_shield", false)) and bool(plr.get_meta("has_portal_magnet", false))
@@ -378,6 +380,32 @@ func utMapGeneratorAdaptsToWebChallenges() -> void:
 	
 	assertCond(jewelCnt >= 8 and is_equal_approx(maxTime, 45.0) and secondMech == "wall_climb", "UT-19", "Generator map dostosowuje liczbę Jeweli, limit czasu i mechanikę do aktywnych zadań ze strony")
 	mockArena.free()
+
+func utSkinManagerLoadsAllSkinsWithCorrectSpriteFrames() -> void:
+	var skinKeys = ["base", "noir", "office", "2077", "promissed", "retro"]
+	var anims = ["appear", "dash", "double_jump", "idle", "jump", "fall", "run", "slide", "crouch", "wall_climb", "wall_slide", "trick"]
+	var allSkinsValid: bool = true
+	
+	for key in skinKeys:
+		var frames: SpriteFrames = SkinManager.get_sprite_frames(key)
+		if not frames:
+			allSkinsValid = false
+			break
+		for a in anims:
+			if not frames.has_animation(a) or frames.get_frame_count(a) == 0:
+				allSkinsValid = false
+				break
+				
+	var plr = _createMockPlayer()
+	var animSpr := AnimatedSprite2D.new()
+	animSpr.name = "AnimatedSprite2D"
+	plr.visuals.add_child(animSpr)
+	
+	var appliedOk: bool = SkinManager.apply_skin_to_player(plr, "2077")
+	var isSpriteFramesUpdated: bool = (animSpr.sprite_frames != null) and (plr.get_meta("active_skin_key", "") == "2077") and (animSpr.self_modulate == Color.WHITE)
+	
+	assertCond(allSkinsValid and appliedOk and isSpriteFramesUpdated, "UT-20", "SkinManager poprawnie ładuje wszystkie 6 skórek z podfolderów assets/sprites i aplikuje SpriteFrames do postaci")
+	plr.free()
 
 # ==============================================================================
 # 2. TESTY INTEGRACYJNE (Frontend UI/HUD <-> Event Bus <-> Backend & Web Portal)
@@ -501,12 +529,38 @@ func itTopProfileButtonOpensWebPortalAndSyncs() -> void:
 	var menu = _createMockMainMenu()
 	Events.portal_sync.last_opened_url = ""
 	
-	# Symulacja kliknięcia przycisku profilu na górze w menu głównym
+	# 1. Kliknięcie w ikonkę profilu w HomeView (prawy górny róg) przenosi do ProfileSettingsView
 	menu.profileBtn.pressed.emit()
+	var profSettingsOpened: bool = (menu.profileSettingsView != null) and menu.profileSettingsView.visible and not menu.homeView.visible
 	
+	# 2. Z ekranu ProfileSettings przechodzimy do ProfileView (Profil)
+	menu.profSettingsProfileBtn.pressed.emit()
+	var profileOpened: bool = (menu.profileView != null) and menu.profileView.visible and not menu.profileSettingsView.visible
+	
+	# 3. Z ekranu Profile otwarcie portalu i powrót do ProfileSettingsView
+	menu.profileOpenPortalBtn.pressed.emit()
 	var urlOpenedOk: bool = Events.portal_sync.last_opened_url.ends_with("/profil")
-	var drawerOpenedOk: bool = (menu.portalDrawer != null) and menu.portalDrawer.visible
-	assertCond(urlOpenedOk and drawerOpenedOk, "IT-08", "Przycisk profilu na górze w menu przenosi do strony internetowej (/profil) i otwiera panel synchronizacji")
+	menu.profileBackBtn.pressed.emit()
+	var backToSettings1: bool = menu.profileSettingsView.visible and not menu.profileView.visible
+	
+	# 4. Z ProfileSettings przejście do SkinSelectView (Skinselect) i powrót
+	menu.profSettingsSkinBtn.pressed.emit()
+	var skinOpened: bool = (menu.skinSelectView != null) and menu.skinSelectView.visible and not menu.profileSettingsView.visible
+	menu.skinSelectBackBtn.pressed.emit()
+	var backToSettings2: bool = menu.profileSettingsView.visible and not menu.skinSelectView.visible
+	
+	# 5. Z ProfileSettings przejście do ZadaniaView (Zadania) i powrót
+	menu.profSettingsZadaniaBtn.pressed.emit()
+	var zadaniaOpened: bool = (menu.zadaniaView != null) and menu.zadaniaView.visible and not menu.profileSettingsView.visible
+	menu.zadaniaBackBtn.pressed.emit()
+	var backToSettings3: bool = menu.profileSettingsView.visible and not menu.zadaniaView.visible
+	
+	# 6. Powrót z ProfileSettings do HomeView
+	menu.profSettingsBackBtn.pressed.emit()
+	var backToHome: bool = menu.homeView.visible and not menu.profileSettingsView.visible
+	
+	var allNavOk: bool = profSettingsOpened and profileOpened and urlOpenedOk and backToSettings1 and skinOpened and backToSettings2 and zadaniaOpened and backToSettings3 and backToHome
+	assertCond(allNavOk, "IT-08", "Kliknięcie profilu w menu przenosi do Ustawień Profilu, skąd można przejść do Profilu, SkinSelect oraz Zadań i wrócić")
 	menu.free()
 
 func itPortalShieldAndMagnetBoostersInGameplay() -> void:
@@ -544,6 +598,28 @@ func itWebChallengesCompleteOnWinningRun() -> void:
 	var allThreeDone: bool = completedNames.has("Pierwsze kroki") and completedNames.has("Łowca klejnotów") and completedNames.has("Mistrz czasu")
 	assertCond(allThreeDone and completed.size() == 3, "IT-10", "Ukończenie poziomu z 5 klejnotami poniżej 60s zalicza zadania z portalu i przyznaje nagrody")
 	Events.portal_sync._init_default_portal_challenges()
+
+func itLevelSelectMechanicPanelsAndAIContracts() -> void:
+	var menu = _createMockMainMenu()
+	var lvlView: Control = menu.lvlView
+	
+	var hasPanel: bool = (lvlView != null) and lvlView.has_node("MechanicInfoPanel")
+	var hasLabels: bool = (menu.mechanicInfoLabel != null) and (menu.dnaRadarLabel != null)
+	var hasContractBtn: bool = (menu.aiContractBtn != null) and lvlView.has_node("AIContractBtn")
+	var hasGenBtn: bool = (menu.aiGenerateBtn != null) and lvlView.has_node("AIGenerateBtn")
+	
+	var textBefore: String = menu.aiContractBtn.text if menu.aiContractBtn else ""
+	if menu.aiContractBtn:
+		menu.aiContractBtn.pressed.emit()
+	var textAfter: String = menu.aiContractBtn.text if menu.aiContractBtn else ""
+	var contractCyclesOk: bool = (textBefore != textAfter)
+	
+	menu._preview_mechanic_profile(4)
+	var previewLvl4Ok: bool = menu.mechanicInfoLabel.text.contains("SZACHOWNICA") and menu.dnaRadarLabel.text.contains("RADAR DNA")
+	
+	var allOk: bool = hasPanel and hasLabels and hasContractBtn and hasGenBtn and contractCyclesOk and previewLvl4Ok
+	assertCond(allOk, "IT-11", "Level Select zawiera dolne panele z opisem mechanik, radarem DNA, przełącznikiem Kontraktów AI oraz przyciskiem poziomu IV AI")
+	menu.free()
 
 # ==============================================================================
 # FUNKCJE POMOCNICZE (Tworzenie struktur węzłów w pamięci dla testów)
@@ -627,7 +703,7 @@ func _createMockArena(jewel_count: int = 0) -> Node2D:
 
 func _createMockMainMenu() -> Control:
 	var menu = MainMenuScript.new()
-	for vName in ["HomeView", "LevelSelectView", "SettingsView", "CreatorsView"]:
+	for vName in ["HomeView", "LevelSelectView", "SettingsView", "CreatorsView", "ProfileSettingsView", "SkinSelectView", "ProfileView", "ZadaniaView"]:
 		var v = Control.new()
 		v.name = vName
 		if vName == "HomeView":
@@ -644,6 +720,62 @@ func _createMockMainMenu() -> Control:
 			b1.add_child(badge)
 			b1.add_child(check)
 			v.add_child(b1)
+			var b2 = Button.new()
+			b2.name = "Lvl2Btn"
+			v.add_child(b2)
+			var b3 = Button.new()
+			b3.name = "Lvl3Btn"
+			v.add_child(b3)
+			var bBack = Button.new()
+			bBack.name = "BackBtn"
+			v.add_child(bBack)
+		elif vName == "ProfileSettingsView":
+			for bName in ["ProfilBtn", "SkinSelectBtn", "ZadaniaBtn", "BackBtn"]:
+				var b = Button.new()
+				b.name = bName
+				v.add_child(b)
+		elif vName == "SkinSelectView":
+			for i in range(6):
+				var sb = Button.new()
+				sb.name = "Skin%dBtn" % i
+				var badge = Label.new()
+				badge.name = "Badge"
+				sb.add_child(badge)
+				v.add_child(sb)
+			var sbBack = Button.new()
+			sbBack.name = "BackBtn"
+			v.add_child(sbBack)
+			var lbl = Label.new()
+			lbl.name = "ActiveSkinLabel"
+			v.add_child(lbl)
+		elif vName == "ProfileView":
+			var inp = LineEdit.new()
+			inp.name = "PairingCodeInput"
+			v.add_child(inp)
+			var pBtn = Button.new()
+			pBtn.name = "PairBtn"
+			v.add_child(pBtn)
+			var oBtn = Button.new()
+			oBtn.name = "OpenPortalBtn"
+			v.add_child(oBtn)
+			var statLbl = Label.new()
+			statLbl.name = "StatusLabel"
+			v.add_child(statLbl)
+			var bBtn = Button.new()
+			bBtn.name = "BackBtn"
+			v.add_child(bBtn)
+		elif vName == "ZadaniaView":
+			for i in range(1, 4):
+				var box = VBoxContainer.new()
+				box.name = "Task%dContainer" % i
+				for lName in ["Title", "Desc", "Progress", "Reward"]:
+					var l = Label.new()
+					l.name = lName
+					box.add_child(l)
+				v.add_child(box)
+			var bBtn = Button.new()
+			bBtn.name = "BackBtn"
+			v.add_child(bBtn)
 		menu.add_child(v)
 	add_child(menu)
 	return menu

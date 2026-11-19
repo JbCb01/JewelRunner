@@ -129,6 +129,15 @@ var current_health: int = 3
 var is_invulnerable: bool = false
 var invulnerability_timer: float = 0.0
 
+# --- Wyświetlanie Wskaźnika HP (Gwiazdek) ---
+@export var hp_display_duration: float = 2.5
+var hp_display_timer: float = 3.0 ## Widoczne przez 3s na początku poziomu oraz po otrzymaniu obrażeń
+
+# --- Power-upy (Klejnoty Specjalne) ---
+var invincibility_powerup_timer: float = 0.0
+var speed_powerup_timer: float = 0.0
+var has_shield: bool = false
+
 # Domyślne rozmiary collidera (stojący vs kucający/wślizg)
 var standing_shape_size: Vector2 = Vector2(18, 30)
 var standing_shape_position: Vector2 = Vector2(0, 0)
@@ -345,20 +354,73 @@ func _update_timers(delta: float) -> void:
 		if invulnerability_timer <= 0.0:
 			is_invulnerable = false
 
+	if invincibility_powerup_timer > 0.0:
+		invincibility_powerup_timer = max(0.0, invincibility_powerup_timer - delta)
+
+	if speed_powerup_timer > 0.0:
+		speed_powerup_timer = max(0.0, speed_powerup_timer - delta)
+
+	# Obsługa widoczności gwiazdek HP (początek poziomu oraz obrażenia)
+	var hp_container: Node2D = get_node_or_null("HpSquares")
+	if hp_container:
+		if hp_display_timer > 0.0:
+			hp_display_timer = max(0.0, hp_display_timer - delta)
+			if hp_display_timer <= 0.0:
+				hp_container.visible = false
+			else:
+				hp_container.visible = true
+				if hp_display_timer < 0.5:
+					hp_container.modulate.a = hp_display_timer / 0.5
+				else:
+					hp_container.modulate.a = 1.0
+		else:
+			hp_container.visible = false
+
+func show_hp_indicator(duration: float = -1.0) -> void:
+	if duration <= 0.0:
+		duration = hp_display_duration
+	hp_display_timer = max(hp_display_timer, duration)
+	var hp_container: Node2D = get_node_or_null("HpSquares")
+	if hp_container:
+		hp_container.visible = true
+		hp_container.modulate.a = 1.0
+
+func apply_invincibility(duration: float = 10.0) -> void:
+	invincibility_powerup_timer = max(invincibility_powerup_timer, duration)
+
+func apply_speed_boost(duration: float = 10.0) -> void:
+	speed_powerup_timer = max(speed_powerup_timer, duration)
+
+func apply_shield() -> void:
+	has_shield = true
+
+func is_dashing() -> bool:
+	return current_state == State.DASH
+
+func get_effective_speed() -> float:
+	return speed * (2.0 if speed_powerup_timer > 0.0 else 1.0)
+
 func take_damage(amount: int, source_position: Vector2 = Vector2.ZERO) -> void:
 	if is_invulnerable or current_health <= 0:
 		return
 		
-	# Obsługa wzmocnienia "tarcza" pobranego z profilu gracza na stronie internetowej
-	if get_meta("has_portal_shield", false):
+	# Power-up JewJewel: brak otrzymywania obrażeń przez 10s
+	if invincibility_powerup_timer > 0.0:
+		return
+		
+	# Obsługa wzmocnienia "tarcza" (z klejnotu ImmunityJewel/InvincibilityJewel lub z profilu portalu)
+	if has_shield or get_meta("has_portal_shield", false):
+		has_shield = false
 		set_meta("has_portal_shield", false)
 		is_invulnerable = true
 		invulnerability_timer = invulnerability_duration
+		show_hp_indicator()
 		return
 		
 	current_health = max(0, current_health - amount)
 	is_invulnerable = true
 	invulnerability_timer = invulnerability_duration
+	show_hp_indicator()
 	
 	# Odrzut gracza (Knockback) od źródła obrażeń
 	if source_position != Vector2.ZERO:
@@ -379,6 +441,7 @@ func heal(amount: int) -> void:
 	if current_health <= 0:
 		return
 	current_health = clampi(current_health + amount, 0, max_health)
+	show_hp_indicator()
 	_update_hp_indicator()
 	Events.player_health_changed.emit(current_health, max_health)
 
@@ -388,6 +451,7 @@ func set_max_health(new_max: int, refill: bool = false) -> void:
 		current_health = max_health
 	else:
 		current_health = clampi(current_health, 1, max_health)
+	show_hp_indicator()
 	_update_hp_indicator()
 	Events.player_health_changed.emit(current_health, max_health)
 
@@ -399,21 +463,32 @@ func _update_hp_indicator() -> void:
 	var existing = hp_container.get_children()
 	if existing.size() != max_health:
 		for child in existing:
+			hp_container.remove_child(child)
 			child.queue_free()
 		
-		var sq_w = 5.0
-		var sq_h = 4.0
-		var spacing = 2.0
-		var total_w = max_health * sq_w + (max_health - 1) * spacing
+		var star_tex: Texture2D = null
+		if ResourceLoader.exists("res://assets/Gwiazdka.png"):
+			star_tex = load("res://assets/Gwiazdka.png")
+		
+		var spacing = 13.0
+		var total_w = (max_health - 1) * spacing
 		var start_x = -total_w / 2.0
 		
 		for i in range(max_health):
-			var rect = ColorRect.new()
-			rect.name = "Square%d" % (i + 1)
-			rect.size = Vector2(sq_w, sq_h)
-			rect.position = Vector2(start_x + i * (sq_w + spacing), 0)
-			rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			hp_container.add_child(rect)
+			if star_tex:
+				var spr = Sprite2D.new()
+				spr.name = "Star%d" % (i + 1)
+				spr.texture = star_tex
+				spr.scale = Vector2(0.65, 0.65)
+				spr.position = Vector2(start_x + i * spacing, 0)
+				hp_container.add_child(spr)
+			else:
+				var rect = ColorRect.new()
+				rect.name = "Square%d" % (i + 1)
+				rect.size = Vector2(5.0, 4.0)
+				rect.position = Vector2(start_x + i * spacing, 0)
+				rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				hp_container.add_child(rect)
 		call_deferred("_apply_hp_colors", current_health)
 		return
 		
@@ -425,12 +500,12 @@ func _apply_hp_colors(health: int) -> void:
 		return
 	var children = hp_container.get_children()
 	for i in range(children.size()):
-		var sq = children[i] as ColorRect
-		if sq:
-			if i < health:
-				sq.color = Color(0.9, 0.2, 0.2, 1.0)
-			else:
-				sq.color = Color(0.2, 0.2, 0.2, 0.35)
+		var node = children[i]
+		var is_active = (i < health)
+		if node is Sprite2D or node is TextureRect:
+			node.modulate = Color(1.0, 1.0, 1.0, 1.0) if is_active else Color(0.25, 0.25, 0.25, 0.35)
+		elif node is ColorRect:
+			node.color = Color(0.9, 0.2, 0.2, 1.0) if is_active else Color(0.2, 0.2, 0.2, 0.35)
 
 ## Aktualizuje drenaż staminy podczas wspinaczki (z uwzględnieniem mnożnika wall_climb).
 func _update_stamina(delta: float, is_draining: bool) -> void:
@@ -561,7 +636,7 @@ func _state_ground(delta: float) -> void:
 		is_tricking = false
 		trick_point_buffer = 0.0
 		facing_direction = input_x
-		velocity.x = move_toward(velocity.x, input_x * speed, acceleration * delta)
+		velocity.x = move_toward(velocity.x, input_x * get_effective_speed(), acceleration * delta)
 		_change_state(State.RUN)
 	else:
 		is_tricking = false
@@ -578,7 +653,7 @@ func _state_air(delta: float) -> void:
 	
 	if input_x != 0.0:
 		facing_direction = input_x
-		velocity.x = move_toward(velocity.x, input_x * speed, air_acceleration * delta)
+		velocity.x = move_toward(velocity.x, input_x * get_effective_speed(), air_acceleration * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, air_friction * delta)
 		
@@ -851,6 +926,14 @@ func _update_visuals() -> void:
 	visuals.scale.y = 1.0
 	if is_invulnerable:
 		visuals.modulate = Color(1.0, 1.0, 1.0, 0.35 if fmod(invulnerability_timer, 0.2) > 0.1 else 1.0)
+	elif invincibility_powerup_timer > 0.0:
+		var pulse = (sin(Time.get_ticks_msec() * 0.015) + 1.0) * 0.5
+		visuals.modulate = Color(1.0, 0.82 + pulse * 0.18, 0.2 + pulse * 0.6, 1.0)
+	elif speed_powerup_timer > 0.0:
+		var pulse = (sin(Time.get_ticks_msec() * 0.02) + 1.0) * 0.5
+		visuals.modulate = Color(0.4 + pulse * 0.3, 0.9, 1.0, 1.0)
+	elif has_shield:
+		visuals.modulate = Color(0.7, 0.95, 1.0, 1.0)
 	else:
 		visuals.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	

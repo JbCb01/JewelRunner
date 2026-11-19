@@ -5,6 +5,7 @@
 [ext_resource type="AudioStream" path="res://audio/sfx/jump.wav" id="3_audio_jump"]
 [ext_resource type="AudioStream" path="res://audio/sfx/stardash.wav" id="4_audio_dash"]
 [ext_resource type="AudioStream" path="res://audio/sfx/star_appear.wav" id="5_audio_appear"]
+[ext_resource type="Texture2D" path="res://assets/Gwiazdka.png" id="6_gwiazdka"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
 size = Vector2(18, 30)
@@ -79,22 +80,19 @@ stream = ExtResource("4_audio_dash")
 stream = ExtResource("5_audio_appear")
 
 [node name="HpSquares" type="Node2D" parent="."]
-position = Vector2(0, 18)
+position = Vector2(0, -28)
 
-[node name="Square1" type="ColorRect" parent="HpSquares"]
-offset_left = -9.0
-offset_right = -4.0
-offset_bottom = 4.0
-color = Color(0.9, 0.2, 0.2, 1)
+[node name="Star1" type="Sprite2D" parent="HpSquares"]
+position = Vector2(-13, 0)
+scale = Vector2(0.65, 0.65)
+texture = ExtResource("6_gwiazdka")
 
-[node name="Square2" type="ColorRect" parent="HpSquares"]
-offset_left = -2.5
-offset_right = 2.5
-offset_bottom = 4.0
-color = Color(0.9, 0.2, 0.2, 1)
+[node name="Star2" type="Sprite2D" parent="HpSquares"]
+position = Vector2(0, 0)
+scale = Vector2(0.65, 0.65)
+texture = ExtResource("6_gwiazdka")
 
-[node name="Square3" type="ColorRect" parent="HpSquares"]
-offset_left = 4.0
-offset_right = 9.0
-offset_bottom = 4.0
-color = Color(0.9, 0.2, 0.2, 1)
+[node name="Star3" type="Sprite2D" parent="HpSquares"]
+position = Vector2(13, 0)
+scale = Vector2(0.65, 0.65)
+texture = ExtResource("6_gwiazdka")

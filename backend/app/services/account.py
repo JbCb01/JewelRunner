@@ -112,6 +112,7 @@ def get_game_state(db: Session, gracz: Gracz) -> dict:
     look = appearance.current_look(db, gracz.id)
     active_skin = "Skórka podstawowa"
     active_skin_id = None
+    active_skin_asset = None
     active_color_name = "Fioletowy"
     active_color_hex = "#6A3FB5"
     active_color_id = None
@@ -120,6 +121,7 @@ def get_game_state(db: Session, gracz: Gracz) -> dict:
     if look is not None:
         active_skin = look["skin"]["name"]
         active_skin_id = look["skin"]["id"]
+        active_skin_asset = look["skin"]["asset"]
         active_color_name = look["color"]["name"]
         active_color_hex = look["color"]["hex"] or "#6A3FB5"
         active_color_id = look["color"]["id"]
@@ -184,6 +186,7 @@ def get_game_state(db: Session, gracz: Gracz) -> dict:
         "appearance": {
             "active_skin": active_skin,
             "active_skin_id": active_skin_id,
+            "active_skin_asset": active_skin_asset,
             "active_color_name": active_color_name,
             "active_color_hex": active_color_hex,
             "active_color_id": active_color_id,

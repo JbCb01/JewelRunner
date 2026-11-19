@@ -21,7 +21,7 @@ const SKIN_DATA: Dictionary = {
 		"id": 1,
 		"key": "noir",
 		"name": "Noir Stelly",
-		"aliases": ["Noir Stelly", "NoirStelly", "noir", "Monochrom"],
+		"aliases": ["Noir Stelly", "NoirStelly", "noir_stelly", "noir", "Monochrom"],
 		"frames_path": "res://scenes/player/skins/noir_stelly.tres",
 		"display_name": "Noir Stelly",
 		"desc": "Elegancki czarno-biały styl film noir.",
@@ -32,7 +32,7 @@ const SKIN_DATA: Dictionary = {
 		"id": 2,
 		"key": "office",
 		"name": "Office Stelly",
-		"aliases": ["Office Stelly", "OfficeStelly", "office", "Biznesowy"],
+		"aliases": ["Office Stelly", "OfficeStelly", "office_stelly", "office", "Biznesowy"],
 		"frames_path": "res://scenes/player/skins/office_stelly.tres",
 		"display_name": "Office Stelly",
 		"desc": "Formalny garnitur korporacyjny.",
@@ -43,7 +43,7 @@ const SKIN_DATA: Dictionary = {
 		"id": 3,
 		"key": "2077",
 		"name": "2077 Stelly",
-		"aliases": ["2077 Stelly", "2077Stelly", "Cyber 2077", "Cyber Stelly", "2077", "cyber"],
+		"aliases": ["2077 Stelly", "2077Stelly", "2077_stelly", "Cyber 2077", "Cyber Stelly", "2077", "cyber"],
 		"frames_path": "res://scenes/player/skins/2077_stelly.tres",
 		"display_name": "2077 Stelly",
 		"desc": "Futurystyczny kombinezon z neonowymi akcentami.",
@@ -54,7 +54,7 @@ const SKIN_DATA: Dictionary = {
 		"id": 4,
 		"key": "promissed",
 		"name": "Promissed Stelly",
-		"aliases": ["Promissed Stelly", "PromissedStelly", "promissed", "Aqua Stelly", "Głębia Oceanu"],
+		"aliases": ["Promissed Stelly", "PromissedStelly", "promissed_stelly", "promissed", "Aqua Stelly", "Głębia Oceanu"],
 		"frames_path": "res://scenes/player/skins/promissed_stelly.tres",
 		"display_name": "Promissed Stelly",
 		"desc": "Morski pancerz strażnika obietnicy.",
@@ -65,7 +65,7 @@ const SKIN_DATA: Dictionary = {
 		"id": 5,
 		"key": "retro",
 		"name": "Retro Stelly",
-		"aliases": ["Retro Stelly", "RetroStelly", "retro", "Bursztynowa Stelly", "Złoty biegacz"],
+		"aliases": ["Retro Stelly", "RetroStelly", "retro_stelly", "retro", "Bursztynowa Stelly", "Złoty biegacz"],
 		"frames_path": "res://scenes/player/skins/retro_stelly.tres",
 		"display_name": "Retro Stelly",
 		"desc": "Ciepłe barwy vintage z brzoskwiniowym odcieniem.",
@@ -145,7 +145,14 @@ static func apply_skin_to_player(player: Node, skin_identifier: Variant) -> bool
 	var frames: SpriteFrames = get_sprite_frames(info.get("key", "base"))
 	if not frames:
 		return false
-		
+
+	if anim_sprite.sprite_frames == frames and String(player.get_meta("active_skin_key", "")) == String(info["key"]):
+		anim_sprite.self_modulate = Color(1.0, 1.0, 1.0, 1.0)
+		player.set_meta("active_skin_key", String(info["key"]))
+		player.set_meta("active_skin_name", String(info["name"]))
+		player.set_meta("portal_active_skin", String(info["name"]))
+		return true
+
 	var cur_anim: StringName = anim_sprite.animation
 	var cur_frame: int = anim_sprite.frame
 	var was_playing: bool = anim_sprite.is_playing()

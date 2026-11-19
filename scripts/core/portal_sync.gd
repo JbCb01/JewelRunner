@@ -16,6 +16,8 @@ const DEFAULT_PORTAL_WEB_URL: String = "https://jewelrunner-app.azurewebsites.ne
 const DEFAULT_API_BASE_URL: String = "https://jewelrunner-app.azurewebsites.net/api"
 const HTTP_TIMEOUT_S: float = 30.0
 const RUNS_RETRY_INTERVAL_S: float = 30.0
+const AUTO_SYNC_INTERVAL_S: float = 15.0
+const MIN_AUTO_SYNC_GAP_S: float = 2.0
 const SETTINGS_DEBOUNCE_S: float = 0.7
 const GAME_VERSION: String = "0.3.0"
 
@@ -26,6 +28,9 @@ var session_token: String = ""
 var is_linked: bool = false
 var last_sync_timestamp: String = ""
 var last_opened_url: String = ""
+var _last_sync_request_msec: int = 0
+var _is_sync_in_flight: bool = false
+var _is_silent_sync: bool = false
 var runs_queue_path: String = RUNS_QUEUE_PATH
 var boosters_queue_path: String = BOOSTERS_QUEUE_PATH
 var pending_runs: Array[Dictionary] = []
@@ -94,6 +99,7 @@ var _http_booster: HTTPRequest = null
 var _http_daily: HTTPRequest = null
 var _http_save: HTTPRequest = null
 var _runs_retry_timer: Timer = null
+var _auto_sync_timer: Timer = null
 var _settings_debounce_timer: Timer = null
 
 func _ready() -> void:
@@ -103,14 +109,17 @@ func _ready() -> void:
 	_load_saved_session()
 	load_pending_runs()
 	load_pending_booster_uses()
-	# Domyślne przykładowe wyzwania zgodne z bazą (001_dane_startowe.sql / 002_dane_przykladowe.sql),
-	# które są aktualizowane natychmiast po połączeniu z API
-	if not is_linked and active_challenges.is_empty():
+	# Domyślne przykładowe wyzwania tylko dla testów headless przed parowaniem
+	if DisplayServer.get_name() == "headless" and not is_linked and active_challenges.is_empty():
 		_init_default_portal_challenges()
 	if is_linked and not session_token.is_empty() and DisplayServer.get_name() != "headless":
-		request_sync_from_web.call_deferred()
+		sync_if_needed.call_deferred(0.0, true)
 		flush_pending_runs.call_deferred()
 		flush_pending_booster_uses.call_deferred()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_IN or what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
+		sync_if_needed(1.5)
 
 func _apply_env_url_overrides() -> void:
 	var env_portal: String = OS.get_environment("JEWELRUNNER_PORTAL_URL").strip_edges()
@@ -155,6 +164,13 @@ func _setup_http_nodes() -> void:
 		_runs_retry_timer.autostart = true
 		add_child(_runs_retry_timer)
 		_runs_retry_timer.timeout.connect(_on_retry_timer_timeout)
+	if not _auto_sync_timer:
+		_auto_sync_timer = Timer.new()
+		_auto_sync_timer.name = "AutoSyncTimer"
+		_auto_sync_timer.wait_time = AUTO_SYNC_INTERVAL_S
+		_auto_sync_timer.autostart = true
+		add_child(_auto_sync_timer)
+		_auto_sync_timer.timeout.connect(_on_auto_sync_timer_timeout)
 	if not _settings_debounce_timer:
 		_settings_debounce_timer = Timer.new()
 		_settings_debounce_timer.name = "SettingsDebounceTimer"
@@ -166,6 +182,13 @@ func _setup_http_nodes() -> void:
 func _on_retry_timer_timeout() -> void:
 	flush_pending_runs()
 	flush_pending_booster_uses()
+
+func _on_auto_sync_timer_timeout() -> void:
+	if not is_linked or session_token.is_empty() or DisplayServer.get_name() == "headless" or not is_inside_tree():
+		return
+	if not get_tree().get_nodes_in_group("player").is_empty():
+		return
+	sync_if_needed(10.0)
 
 func _init_default_portal_challenges() -> void:
 	active_challenges = [
@@ -290,10 +313,31 @@ func simulate_successful_pairing(code: String) -> void:
 	}
 	apply_synced_payload(demo_payload)
 
+## Pobiera aktualny stan profilu w tle, jeśli spełnione są warunki bezpieczeństwa i odstępu czasowego.
+func sync_if_needed(min_interval_s: float = MIN_AUTO_SYNC_GAP_S, force: bool = false) -> bool:
+	if not is_linked or session_token.is_empty() or DisplayServer.get_name() == "headless" or not is_inside_tree():
+		return false
+	if not force:
+		if _is_sync_in_flight:
+			return false
+		if _http_appearance != null and _http_appearance.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
+			return false
+		if _http_settings != null and _http_settings.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
+			return false
+		if not _pending_settings_patch.is_empty() or not _inflight_settings_patch.is_empty():
+			return false
+		if _last_sync_request_msec > 0 and (Time.get_ticks_msec() - _last_sync_request_msec) < int(min_interval_s * 1000.0):
+			return false
+	flush_pending_runs()
+	flush_pending_booster_uses()
+	if is_instance_valid(Events) and is_instance_valid(Events.wallet_sync):
+		Events.wallet_sync.flush()
+	return request_sync_from_web(true)
+
 ## Wysyła żądanie pobrania aktualnego stanu profilu, skórek, ustawień i wyzwań ze strony (/api/me/game-state).
-func request_sync_from_web() -> bool:
+func request_sync_from_web(silent: bool = false) -> bool:
 	if session_token.is_empty():
-		if is_instance_valid(Events):
+		if not silent and is_instance_valid(Events):
 			Events.portal_sync_failed.emit("unauthorized", "Gra nie jest jeszcze sparowana z kontem portalu.")
 		return false
 		
@@ -310,9 +354,12 @@ func request_sync_from_web() -> bool:
 		])
 		var err: Error = _http_sync.request(api_base_url.trim_suffix("/") + "/me/game-state", headers, HTTPClient.METHOD_GET)
 		if err == OK:
+			_is_sync_in_flight = true
+			_is_silent_sync = silent
+			_last_sync_request_msec = Time.get_ticks_msec()
 			return true
 
-	if is_instance_valid(Events):
+	if not silent and is_instance_valid(Events):
 		Events.portal_sync_failed.emit("request_error", "Nie udało się wysłać żądania synchronizacji.")
 	return false
 
@@ -348,6 +395,9 @@ func _on_pair_request_completed(_result: int, response_code: int, _headers: Pack
 		Events.portal_sync_failed.emit(err_info["code"], err_info["message"])
 
 func _on_sync_request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	var was_silent := _is_silent_sync
+	_is_sync_in_flight = false
+	_is_silent_sync = false
 	var parsed: Variant = safe_parse_json(body.get_string_from_utf8())
 	if response_code == 200 and parsed is Dictionary:
 		apply_synced_payload(parsed as Dictionary)
@@ -356,7 +406,7 @@ func _on_sync_request_completed(_result: int, response_code: int, _headers: Pack
 		flush_pending_booster_uses()
 	elif response_code == 401:
 		handle_unauthorized()
-	elif is_instance_valid(Events):
+	elif not was_silent and is_instance_valid(Events):
 		if response_code == 0:
 			Events.portal_sync_failed.emit("network_error", "Nie udało się połączyć z serwerem Azure (timeout lub brak sieci).")
 		else:
@@ -405,6 +455,12 @@ func apply_synced_payload(payload: Dictionary) -> void:
 		cosmetics_state["active_skin"] = String(app.get("active_skin", cosmetics_state["active_skin"]))
 		if app.has("active_skin_id") and app["active_skin_id"] != null:
 			cosmetics_state["active_skin_id"] = int(app["active_skin_id"])
+		var skin_asset: String = String(app.get("active_skin_asset", "")) if app.get("active_skin_asset") != null else ""
+		cosmetics_state["active_skin_asset"] = skin_asset
+		var resolved_skin_key: String = SkinManager.get_skin_key(cosmetics_state["active_skin"])
+		if resolved_skin_key == "base" and not skin_asset.is_empty():
+			resolved_skin_key = SkinManager.get_skin_key(skin_asset)
+		cosmetics_state["active_skin_key"] = resolved_skin_key
 		cosmetics_state["active_color_name"] = String(app.get("active_color_name", cosmetics_state["active_color_name"]))
 		cosmetics_state["active_color_hex"] = String(app.get("active_color_hex", cosmetics_state["active_color_hex"]))
 		if app.has("active_color_id") and app["active_color_id"] != null:
@@ -598,7 +654,11 @@ func apply_cosmetics_and_boosters_to_player(player: Node2D) -> void:
 	
 	# 1. Faktyczna podmiana assetów SpriteFrames w AnimatedSprite2D dla wybranej skórki
 	var skin_name: String = String(cosmetics_state.get("active_skin", "Klasyczna Stelly"))
-	SkinManager.apply_skin_to_player(player, skin_name)
+	var skin_asset: String = String(cosmetics_state.get("active_skin_asset", ""))
+	var skin_target: String = skin_name
+	if SkinManager.get_skin_key(skin_target) == "base" and not skin_asset.is_empty():
+		skin_target = skin_asset
+	SkinManager.apply_skin_to_player(player, skin_target)
 	player.set_meta("portal_skin_tint", Color.WHITE)
 	player.set_meta("portal_active_skin", skin_name)
 	
@@ -631,21 +691,24 @@ func apply_cosmetics_and_boosters_to_player(player: Node2D) -> void:
 		elif existing_hat:
 			existing_hat.visible = false
 			
-	# 3. Wzmocnienia (Boosters) z profilu webowego:
+	# 3. Wzmocnienia (Boosters) z profilu webowego (aplikowane raz na spawn gracza):
 	# - "dodatkowe życie": zwiększa max_health o +1
 	# - "tarcza": daje tarczę ochronną pochłaniającą 1 obrażenie
 	# - "magnes": zwiększa zasięg przyciągania klejnotów
 	# - "podwójne punkty": podwaja zdobywane punkty na poziomie
-	var boosters: Dictionary = cosmetics_state.get("boosters", {})
-	if int(boosters.get("dodatkowe życie", 0)) > 0 and player.has_method("set_max_health"):
-		player.call("set_max_health", 4, true)
-		player.set_meta("has_portal_extra_life", true)
-	if int(boosters.get("tarcza", 0)) > 0:
-		player.set_meta("has_portal_shield", true)
-	if int(boosters.get("magnes", 0)) > 0:
-		player.set_meta("has_portal_magnet", true)
-	if int(boosters.get("podwójne punkty", 0)) > 0:
-		player.set_meta("has_portal_double_points", true)
+	if not bool(player.get_meta("portal_boosters_applied", false)):
+		var boosters: Dictionary = cosmetics_state.get("boosters", {})
+		if int(boosters.get("dodatkowe życie", 0)) > 0 and player.has_method("set_max_health"):
+			player.call("set_max_health", 4, true)
+			player.set_meta("has_portal_extra_life", true)
+		if int(boosters.get("tarcza", 0)) > 0:
+			player.set_meta("has_portal_shield", true)
+		if int(boosters.get("magnes", 0)) > 0:
+			player.set_meta("has_portal_magnet", true)
+		if int(boosters.get("podwójne punkty", 0)) > 0:
+			player.set_meta("has_portal_double_points", true)
+		if is_linked:
+			player.set_meta("portal_boosters_applied", true)
 
 func build_current_state_payload() -> Dictionary:
 	var mus_idx = AudioServer.get_bus_index("MusicMenu")
@@ -705,6 +768,9 @@ func _clear_local_session() -> void:
 	session_token = ""
 	is_linked = false
 	last_sync_timestamp = ""
+	_last_sync_request_msec = 0
+	_is_sync_in_flight = false
+	_is_silent_sync = false
 	daily_reward_state = {}
 	cloud_save = {}
 	save_conflict_server = {}
@@ -720,6 +786,8 @@ func _clear_local_session() -> void:
 	}
 	cosmetics_state = {
 		"active_skin": "Skórka podstawowa",
+		"active_skin_asset": "",
+		"active_skin_key": "base",
 		"active_color_name": "Fioletowy",
 		"active_color_hex": "#6A3FB5",
 		"equipped_accessories": {},
@@ -734,7 +802,7 @@ func _clear_local_session() -> void:
 			"magnes": 0
 		}
 	}
-	_init_default_portal_challenges()
+	active_challenges.clear()
 	if is_instance_valid(Events) and is_instance_valid(Events.wallet_sync) and Events.wallet_sync.has_method("sync_server_balance"):
 		Events.wallet_sync.sync_server_balance(0)
 	_save_session()
@@ -875,8 +943,7 @@ func save_appearance_to_web(skin_identifier: Variant) -> bool:
 	var payload: Dictionary = {
 		"skin_id": skin_id,
 		"color_id": color_id,
-		"accessories": accessories,
-		"changed_at": int(Time.get_unix_time_from_system())
+		"accessories": accessories
 	}
 	return _http_appearance.request(api_base_url.trim_suffix("/") + "/me/appearance", headers, HTTPClient.METHOD_PUT, JSON.stringify(payload)) == OK
 
@@ -889,6 +956,12 @@ func _on_appearance_request_completed(_result: int, response_code: int, _headers
 			cosmetics_state["active_skin"] = String(sk.get("name", cosmetics_state["active_skin"]))
 			if sk.get("id") != null:
 				cosmetics_state["active_skin_id"] = int(sk["id"])
+			var sk_asset: String = String(sk.get("asset", "")) if sk.get("asset") != null else ""
+			cosmetics_state["active_skin_asset"] = sk_asset
+			var sk_key: String = SkinManager.get_skin_key(cosmetics_state["active_skin"])
+			if sk_key == "base" and not sk_asset.is_empty():
+				sk_key = SkinManager.get_skin_key(sk_asset)
+			cosmetics_state["active_skin_key"] = sk_key
 		if data.get("color") is Dictionary:
 			var col := data["color"] as Dictionary
 			cosmetics_state["active_color_name"] = String(col.get("name", cosmetics_state["active_color_name"]))
@@ -912,6 +985,12 @@ func _on_appearance_request_completed(_result: int, response_code: int, _headers
 					})
 			cosmetics_state["equipped_accessories"] = eq
 			cosmetics_state["equipped_accessories_detail"] = eq_detail
+		_last_sync_request_msec = Time.get_ticks_msec()
+		if is_instance_valid(Events):
+			var state_payload := build_current_state_payload()
+			state_payload["source"] = "skin_select"
+			state_payload["is_local_skin_change"] = true
+			Events.portal_profile_synced.emit(state_payload)
 	elif response_code == 409 or response_code == 422:
 		request_sync_from_web()
 	elif response_code == 401:

@@ -40,6 +40,7 @@ export function Collection() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const seenSentRef = useRef(false);
+  const saveSeqRef = useRef(0);
 
   useEffect(() => {
     if (!data?.current) return;
@@ -67,23 +68,76 @@ export function Collection() {
     .map((id) => catalog.find((item) => item.id === id))
     .filter((item): item is AppearanceCatalogItem => Boolean(item));
 
+  async function persistAppearance(
+    skinId: number,
+    colorId: number,
+    accMap: Record<string, number>,
+    lockButton: boolean,
+  ) {
+    const seq = ++saveSeqRef.current;
+    if (lockButton) {
+      setBusy(true);
+    }
+    setMessage(null);
+    try {
+      const updated = await api<AppearanceCurrent>("/me/appearance", {
+        method: "PUT",
+        body: {
+          skin_id: skinId,
+          color_id: colorId,
+          accessories: Object.values(accMap).map((accessory_id) => ({
+            accessory_id,
+            color_id: colorId,
+          })),
+        },
+      });
+      if (seq !== saveSeqRef.current) return;
+      setSelectedSkinId(updated.skin.id);
+      setSelectedColorId(updated.color.id);
+      const nextAcc: Record<string, number> = {};
+      for (const acc of updated.accessories) {
+        nextAcc[acc.slot] = acc.accessory.id;
+      }
+      setSelectedAccessories(nextAcc);
+      setMessage({ kind: "success", text: "Wygląd postaci został zapisany." });
+    } catch (caught) {
+      if (seq !== saveSeqRef.current) return;
+      const err = caught as ApiError;
+      setMessage({ kind: "error", text: appearanceError(err) });
+      if (err.code === "appearance_conflict") {
+        reload();
+      }
+    } finally {
+      if (lockButton) {
+        setBusy(false);
+      }
+    }
+  }
+
   function handleSelect(item: AppearanceCatalogItem) {
     if (!item.owned) return;
-    setMessage(null);
+    let nextSkinId = selectedSkinId;
+    let nextColorId = selectedColorId;
+    let nextAcc = selectedAccessories;
+
     if (item.type === "skórka") {
-      setSelectedSkinId(item.id);
+      nextSkinId = item.id;
+      setSelectedSkinId(nextSkinId);
     } else if (item.type === "kolor") {
-      setSelectedColorId(item.id);
+      nextColorId = item.id;
+      setSelectedColorId(nextColorId);
     } else if (item.type === "akcesorium" && item.slot) {
-      setSelectedAccessories((prev) => {
-        const next = { ...prev };
-        if (next[item.slot!] === item.id) {
-          delete next[item.slot!];
-        } else {
-          next[item.slot!] = item.id;
-        }
-        return next;
-      });
+      nextAcc = { ...selectedAccessories };
+      if (nextAcc[item.slot] === item.id) {
+        delete nextAcc[item.slot];
+      } else {
+        nextAcc[item.slot] = item.id;
+      }
+      setSelectedAccessories(nextAcc);
+    }
+
+    if (nextSkinId !== null && nextColorId !== null) {
+      void persistAppearance(nextSkinId, nextColorId, nextAcc, false);
     }
   }
 
@@ -96,37 +150,7 @@ export function Collection() {
 
   async function handleSave() {
     if (selectedSkinId === null || selectedColorId === null) return;
-    setBusy(true);
-    setMessage(null);
-    try {
-      const updated = await api<AppearanceCurrent>("/me/appearance", {
-        method: "PUT",
-        body: {
-          skin_id: selectedSkinId,
-          color_id: selectedColorId,
-          accessories: Object.values(selectedAccessories).map((accessory_id) => ({
-            accessory_id,
-            color_id: selectedColorId,
-          })),
-        },
-      });
-      setSelectedSkinId(updated.skin.id);
-      setSelectedColorId(updated.color.id);
-      const nextAcc: Record<string, number> = {};
-      for (const acc of updated.accessories) {
-        nextAcc[acc.slot] = acc.accessory.id;
-      }
-      setSelectedAccessories(nextAcc);
-      setMessage({ kind: "success", text: "Wygląd postaci został zapisany." });
-    } catch (caught) {
-      const err = caught as ApiError;
-      setMessage({ kind: "error", text: appearanceError(err) });
-      if (err.code === "appearance_conflict") {
-        reload();
-      }
-    } finally {
-      setBusy(false);
-    }
+    await persistAppearance(selectedSkinId, selectedColorId, selectedAccessories, true);
   }
 
   return (

@@ -63,7 +63,6 @@ const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 @onready var profileOpenPortalBtn: Button = get_node_or_null("ProfileView/OpenPortalBtn")
 @onready var profileStatusLabel: Label = get_node_or_null("ProfileView/StatusLabel")
 @onready var profileBackBtn: Button = get_node_or_null("ProfileView/BackBtn")
-var profileSyncBtn: Button = null
 var profileDisconnectBtn: Button = null
 var profileConflictCloudBtn: Button = null
 var profileConflictLocalBtn: Button = null
@@ -146,6 +145,7 @@ var mechanicInfoLabel: Label = null
 var dnaRadarLabel: Label = null
 var aiGenerateBtn: Button = null
 var aiContractBtn: Button = null
+var _last_rendered_skin_idx: int = -1
 
 func _ready() -> void:
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
@@ -186,6 +186,8 @@ func _ready() -> void:
 			Events.portal_cloud_save_loaded.connect(_on_portal_cloud_save_loaded)
 		if not Events.portal_save_conflict.is_connected(_on_portal_save_conflict):
 			Events.portal_save_conflict.connect(_on_portal_save_conflict)
+		if is_instance_valid(Events.portal_sync):
+			Events.portal_sync.sync_if_needed(1.5)
 	
 	if profileBtn and not profileBtn.pressed.is_connected(_on_profile_btn_pressed):
 		profileBtn.pressed.connect(_on_profile_btn_pressed)
@@ -335,8 +337,10 @@ func _select_skin(skin_idx: int) -> void:
 			return
 		Events.portal_sync.cosmetics_state["active_skin"] = s["name"]
 		Events.portal_sync.cosmetics_state["active_skin_key"] = s["key"]
-		Events.portal_sync.cosmetics_state["active_color_name"] = s["color_name"]
-		Events.portal_sync.cosmetics_state["active_color_hex"] = s["color_hex"]
+		Events.portal_sync.cosmetics_state["active_skin_asset"] = ""
+		if not Events.portal_sync.is_linked:
+			Events.portal_sync.cosmetics_state["active_color_name"] = s["color_name"]
+			Events.portal_sync.cosmetics_state["active_color_hex"] = s["color_hex"]
 		Events.portal_sync.save_appearance_to_web(s["name"])
 		var payload: Dictionary = Events.portal_sync.build_current_state_payload()
 		payload["source"] = "skin_select"
@@ -347,9 +351,13 @@ func _select_skin(skin_idx: int) -> void:
 
 func _get_active_skin_index() -> int:
 	var active_name: String = "Klasyczna Stelly"
+	var active_asset: String = ""
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 		active_name = String(Events.portal_sync.cosmetics_state.get("active_skin", "Klasyczna Stelly"))
+		active_asset = String(Events.portal_sync.cosmetics_state.get("active_skin_asset", ""))
 	var info: Dictionary = SkinManager.get_skin_info(active_name)
+	if int(info.get("id", 0)) == 0 and not active_asset.is_empty():
+		info = SkinManager.get_skin_info(active_asset)
 	return int(info.get("id", 0))
 
 func _refresh_skin_select_ui() -> void:
@@ -361,20 +369,34 @@ func _refresh_skin_select_ui() -> void:
 			continue
 		var s: Dictionary = available_skins[idx]
 		var is_sel: bool = (idx == cur_idx)
-		var is_owned: bool = true if not is_instance_valid(ps) else ps.is_skin_owned(s["name"])
+		var is_owned: bool = is_sel or (true if not is_instance_valid(ps) else ps.is_skin_owned(s["name"]))
 		btn.modulate = Color.WHITE if is_owned else Color(0.65, 0.65, 0.65, 1.0)
+		if is_sel:
+			var sb_sel := StyleBoxFlat.new()
+			sb_sel.bg_color = Color(0.25, 0.95, 0.55, 0.14)
+			sb_sel.border_color = Color(0.35, 1.0, 0.55, 0.95)
+			sb_sel.set_border_width_all(2)
+			sb_sel.set_corner_radius_all(4)
+			btn.add_theme_stylebox_override("normal", sb_sel)
+		else:
+			btn.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 		var badge: Label = btn.get_node_or_null("Badge") as Label
 		if badge:
 			if not is_owned:
 				badge.visible = true
 				badge.text = "🔒 LOCKED" if current_language == "en" else "🔒 ZABLOK."
+				badge.add_theme_color_override("font_color", Color(1.0, 0.62, 0.42, 0.95))
 			else:
 				badge.visible = is_sel
 				badge.text = "✔ SELECTED" if current_language == "en" else "✔ WYBRANA"
+				badge.add_theme_color_override("font_color", Color(0.4, 1.0, 0.6, 1.0))
 	if skinSelectActiveLabel and cur_idx >= 0 and cur_idx < available_skins.size():
 		var s: Dictionary = available_skins[cur_idx]
 		var prefix = "Active Skin:" if current_language == "en" else "Aktywna skórka:"
 		skinSelectActiveLabel.text = "%s %s (%s) — %s" % [prefix, s["display_name"], s["color_name"], s["desc"]]
+	if skinSelectView and skinSelectView.visible and cur_idx != _last_rendered_skin_idx and cur_idx >= 0 and cur_idx < skinButtons.size() and skinButtons[cur_idx]:
+		skinButtons[cur_idx].grab_focus()
+	_last_rendered_skin_idx = cur_idx
 
 func _ensure_daily_reward_button() -> void:
 	if not homeView:
@@ -438,17 +460,17 @@ func _on_portal_daily_reward_updated(daily_state: Dictionary) -> void:
 func _ensure_profile_action_buttons() -> void:
 	if not profileView:
 		return
-	profileSyncBtn = profileView.get_node_or_null("SyncNowBtn") as Button
-	if not profileSyncBtn:
-		profileSyncBtn = _create_profile_action_button("SyncNowBtn", Vector2(128, 294), Vector2(187, 24))
-		profileView.add_child(profileSyncBtn)
-	if not profileSyncBtn.pressed.is_connected(_on_profile_sync_btn_pressed):
-		profileSyncBtn.pressed.connect(_on_profile_sync_btn_pressed)
+	var legacy_sync_btn := profileView.get_node_or_null("SyncNowBtn") as Button
+	if legacy_sync_btn:
+		legacy_sync_btn.visible = false
 
 	profileDisconnectBtn = profileView.get_node_or_null("DisconnectBtn") as Button
 	if not profileDisconnectBtn:
-		profileDisconnectBtn = _create_profile_action_button("DisconnectBtn", Vector2(324, 294), Vector2(187, 24))
+		profileDisconnectBtn = _create_profile_action_button("DisconnectBtn", Vector2(128, 294), Vector2(383, 24))
 		profileView.add_child(profileDisconnectBtn)
+	else:
+		profileDisconnectBtn.position = Vector2(128, 294)
+		profileDisconnectBtn.size = Vector2(383, 24)
 	if not profileDisconnectBtn.pressed.is_connected(_on_profile_disconnect_btn_pressed):
 		profileDisconnectBtn.pressed.connect(_on_profile_disconnect_btn_pressed)
 
@@ -498,9 +520,6 @@ func _update_profile_action_buttons() -> void:
 	var ps: Node = Events.portal_sync if is_instance_valid(Events) else null
 	var linked: bool = is_instance_valid(ps) and bool(ps.is_linked)
 	var has_conflict: bool = is_instance_valid(ps) and ("save_conflict_server" in ps) and not (ps.save_conflict_server as Dictionary).is_empty()
-	if profileSyncBtn:
-		profileSyncBtn.visible = linked and not has_conflict
-		profileSyncBtn.text = "↻ Sync Now" if current_language == "en" else "↻ Synchronizuj"
 	if profileDisconnectBtn:
 		profileDisconnectBtn.visible = linked and not has_conflict
 		profileDisconnectBtn.text = "Disconnect" if current_language == "en" else "Odłącz konto"
@@ -549,9 +568,9 @@ func _refresh_profile_screen_ui() -> void:
 					profileStatusLabel.text = "Połączono: %s | Klejnoty: %d | Skórka: %s%s\nStatus: Aktywna sesja (%d w kolejce do wysłania)" % [uname, gems, skin, save_suffix, total_pending]
 			else:
 				if current_language == "en":
-					profileStatusLabel.text = "Linked to account: %s | Jewels: %d | Skin: %s%s\nStatus: Active Azure portal session" % [uname, gems, skin, save_suffix]
+					profileStatusLabel.text = "Linked to account: %s | Jewels: %d | Skin: %s%s\nStatus: Auto-sync with Azure portal active" % [uname, gems, skin, save_suffix]
 				else:
-					profileStatusLabel.text = "Połączono z kontem: %s | Klejnoty: %d | Skórka: %s%s\nStatus: Aktywna sesja portalu Azure" % [uname, gems, skin, save_suffix]
+					profileStatusLabel.text = "Połączono z kontem: %s | Klejnoty: %d | Skórka: %s%s\nStatus: Automatyczna synchronizacja z portalem Azure" % [uname, gems, skin, save_suffix]
 		else:
 			if current_language == "en":
 				profileStatusLabel.text = "Status: Account not linked (Guest Mode)\nEnter 6-character code from /profile or click 'Open Portal in Browser'."
@@ -584,18 +603,6 @@ func _on_profile_pair_btn_pressed() -> void:
 				profileStatusLabel.text = "Error: Code must be 6 alphanumeric characters (e.g. K7P2QX)."
 			else:
 				profileStatusLabel.text = "Błąd: Kod musi mieć 6 znaków alfanumerycznych (np. K7P2QX)."
-
-func _on_profile_sync_btn_pressed() -> void:
-	_play_menu_sfx()
-	if not is_instance_valid(Events) or not is_instance_valid(Events.portal_sync):
-		return
-	if profileStatusLabel:
-		profileStatusLabel.add_theme_color_override("font_color", Color(1.0, 0.94, 0.65, 1.0))
-		profileStatusLabel.text = "Syncing with Azure portal..." if current_language == "en" else "Synchronizacja z portalem Azure..."
-	Events.portal_sync.request_sync_from_web()
-	Events.portal_sync.flush_pending_runs()
-	if is_instance_valid(Events.wallet_sync):
-		Events.wallet_sync.flush()
 
 func _on_profile_disconnect_btn_pressed() -> void:
 	_play_menu_sfx()
@@ -654,12 +661,18 @@ func _refresh_zadania_ui() -> void:
 		if idx < challenges.size() and challenges[idx] is Dictionary:
 			var ch: Dictionary = challenges[idx]
 			if titleLbl:
+				titleLbl.visible = true
+				titleLbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+				titleLbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.35, 1.0))
 				var t_name: String = String(ch.get("name", "Task %d" % (idx + 1) if current_language == "en" else "Zadanie %d" % (idx + 1)))
 				titleLbl.text = t_name
-			if descLbl: descLbl.text = String(ch.get("description", ""))
+			if descLbl:
+				descLbl.visible = true
+				descLbl.text = String(ch.get("description", ""))
 			var pct: int = int(ch.get("progress_percent", 0))
 			var is_done: bool = String(ch.get("status", "")) == "Ukończone" or pct >= 100
 			if progLbl:
+				progLbl.visible = true
 				if is_done:
 					progLbl.text = "✔ COMPLETED" if current_language == "en" else "✔ UKOŃCZONE"
 					progLbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5, 1.0))
@@ -667,6 +680,7 @@ func _refresh_zadania_ui() -> void:
 					progLbl.text = ("Progress: %d%%" if current_language == "en" else "Postęp: %d%%") % pct
 					progLbl.add_theme_color_override("font_color", Color(0.45, 1.0, 0.65, 1.0))
 			if rewLbl:
+				rewLbl.visible = true
 				var r: Dictionary = ch.get("reward", {}) if ch.get("reward") is Dictionary else {}
 				var r_type: String = String(r.get("type", ""))
 				if r_type == "klejnoty":
@@ -682,6 +696,21 @@ func _refresh_zadania_ui() -> void:
 					rewLbl.text = ("Reward: Booster %s" if current_language == "en" else "Nagroda: Wzmocnienie %s") % String(r.get("booster_type", ""))
 				else:
 					rewLbl.text = "Reward: +200 Jewels" if current_language == "en" else "Nagroda: +200 Klejnotów"
+		else:
+			if titleLbl:
+				titleLbl.visible = true
+				titleLbl.text = "Empty" if current_language == "en" else "Puste"
+				titleLbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				titleLbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.82, 0.85))
+			if descLbl:
+				descLbl.text = ""
+				descLbl.visible = false
+			if progLbl:
+				progLbl.text = ""
+				progLbl.visible = false
+			if rewLbl:
+				rewLbl.text = ""
+				rewLbl.visible = false
 
 func _play_menu_sfx() -> void:
 	if sfxMenuSelect and not isSfxMuted:
@@ -694,6 +723,8 @@ func _on_portal_profile_synced(profile_state: Dictionary) -> void:
 	# Zmiana skórki w menu nie może resetować ani modyfikować ustawień audio/języka!
 	if profile_state.get("is_local_skin_change", false) or String(profile_state.get("source", "")) == "skin_select":
 		return
+	_refresh_zadania_ui()
+	_refresh_daily_reward_ui()
 		
 	if profile_state.has("settings") and profile_state["settings"] is Dictionary:
 		var s := profile_state["settings"] as Dictionary
@@ -1562,6 +1593,10 @@ func _showView(targetView: Control) -> void:
 	elif targetView == zadaniaView:
 		_refresh_zadania_ui()
 		if zadaniaBackBtn: zadaniaBackBtn.grab_focus()
+
+	if targetView in [homeView, lvlView, profileSettingsView, skinSelectView, profileView, zadaniaView]:
+		if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+			Events.portal_sync.sync_if_needed(2.0)
 
 func _ensure_card_badge_and_lock(btn: Button, lvl_num: int) -> Dictionary:
 	if not btn:

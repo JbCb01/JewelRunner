@@ -315,6 +315,7 @@ def test_save_appearance_with_owned_items(client, engine):
     gs = client.get("/api/me/game-state").json()["appearance"]
     assert gs["active_skin"] == "Test Rycerz"
     assert gs["active_skin_id"] == skin
+    assert "active_skin_asset" in gs
     assert gs["active_color_hex"] == "#6A3FB5"
     assert gs["active_color_id"] == color
     assert gs["equipped_accessories"] == {"głowa": "Test Kapelusz"}

@@ -144,6 +144,10 @@ def get_game_state(db: Session, gracz: Gracz) -> dict:
         except AppError:
             enriched_challenges.append(ch)
 
+    # Gra pobrała dane: portal pokazuje tę datę jako „Ostatnia synchronizacja”.
+    gracz.data_ostatniej_synchronizacji = datetime.now(UTC)
+    db.commit()
+
     return {
         "player": {
             "id": str(gracz.id),

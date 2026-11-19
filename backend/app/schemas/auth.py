@@ -26,6 +26,9 @@ class MeResponse(BaseModel):
     id: uuid.UUID
     username: str
     email: str
+    # Czy gracz ma aktywną sesję gry (sparowaną kodem) i kiedy gra ostatnio pobrała dane.
+    game_linked: bool = False
+    last_synced_at: datetime | None = None
 
 
 class UpdateMeRequest(BaseModel):

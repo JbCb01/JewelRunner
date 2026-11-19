@@ -5,6 +5,7 @@ extends Node
 
 const AIDirectorScript = preload("res://scripts/core/ai_director.gd")
 const PortalSyncScript = preload("res://scripts/core/portal_sync.gd")
+const WalletSyncScript = preload("res://scripts/core/wallet_sync.gd")
 
 # --- Zdarzenia Gracza (Player Events) ---
 signal player_spawned(player: Node2D)
@@ -60,6 +61,9 @@ var ai_director: AdaptiveAIDirector = null
 ## Instancja Serwisu Synchronizacji z Portalem Webowym (ustawienia, skórki, kolory, akcesoria, zadania)
 var portal_sync: Node = null
 
+## Bufor salda klejnotów: kolejka offline i synchronizacja z serwerem (/api/me/wallet/sync)
+var wallet_sync: Node = null
+
 func generate_session_id() -> String:
 	var timestamp := int(Time.get_unix_time_from_system())
 	var rand_part := randi() % 9000 + 1000
@@ -93,6 +97,10 @@ func _ensure_services() -> void:
 		portal_sync = PortalSyncScript.new()
 		portal_sync.name = "PortalSync"
 		add_child(portal_sync)
+	if not is_instance_valid(wallet_sync):
+		wallet_sync = WalletSyncScript.new()
+		wallet_sync.name = "WalletSync"
+		add_child(wallet_sync)
 
 ## Bezpieczna automatyczna rejestracja akcji w InputMap, aby zapobiec błędom
 ## jeśli akcje nie zostały jeszcze ręcznie dodane w Project Settings.

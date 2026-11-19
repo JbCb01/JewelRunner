@@ -78,6 +78,8 @@ func defeat(killer: Node2D = null) -> void:
 	if is_dead:
 		return
 	is_dead = true
+	if is_instance_valid(Events):
+		Events.enemy_defeated.emit()
 	
 	# Odbicie gracza w górę po nadeptaniu na wroga
 	if killer is CharacterBody2D:

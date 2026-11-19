@@ -32,10 +32,11 @@ var _http: HTTPRequest = null
 var _timer: Timer = null
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	load_queue()
 	_http = HTTPRequest.new()
 	_http.name = "HttpWallet"
-	_http.timeout = 6.0
+	_http.timeout = 30.0
 	add_child(_http)
 	_http.request_completed.connect(_on_request_completed)
 
@@ -146,6 +147,8 @@ func _on_request_completed(_result: int, response_code: int, _headers: PackedStr
 	var parsed: Variant = safe_parse_json(body.get_string_from_utf8())
 	var sent: Array[String] = _sending_ids.duplicate()
 	_sending_ids.clear()
+	if response_code == 401 and is_inside_tree() and is_instance_valid(Events) and is_instance_valid(Events.portal_sync) and Events.portal_sync.has_method("handle_unauthorized"):
+		Events.portal_sync.handle_unauthorized()
 	if apply_response(response_code, parsed, sent) and not pending.is_empty():
 		flush()
 
@@ -190,7 +193,16 @@ func _session_token() -> String:
 func _api_base_url() -> String:
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 		return String(Events.portal_sync.get("api_base_url")).trim_suffix("/")
-	return "http://localhost:8000/api"
+	var env_api: String = OS.get_environment("JEWELRUNNER_API_URL").strip_edges()
+	if not env_api.is_empty():
+		return env_api.trim_suffix("/")
+	return "https://jewelrunner-app.azurewebsites.net/api"
+
+func sync_server_balance(balance: int) -> void:
+	server_balance = maxi(0, balance)
+	if queue_path != QUEUE_PATH or DisplayServer.get_name() != "headless":
+		save_queue()
+	_emit_balance()
 
 func _update_portal_profile() -> void:
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):

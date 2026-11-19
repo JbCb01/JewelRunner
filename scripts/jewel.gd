@@ -96,6 +96,10 @@ func _process(delta: float) -> void:
 				var p2d := p as Node2D
 				var dist: float = global_position.distance_to(p2d.global_position)
 				if dist > 1.0 and dist <= magnet_radius:
+					if DisplayServer.get_name() != "headless" and not bool(p2d.get_meta("portal_magnet_reported", false)):
+						if is_instance_valid(Events) and is_instance_valid(Events.portal_sync) and Events.portal_sync.is_linked:
+							p2d.set_meta("portal_magnet_reported", true)
+							Events.portal_sync.report_booster_used("magnes", Events.session_id + "-magnet")
 					global_position = global_position.move_toward(p2d.global_position, magnet_speed * delta)
 
 func _onBodyEntered(body: Node2D) -> void:

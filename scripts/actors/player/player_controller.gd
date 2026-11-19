@@ -408,10 +408,17 @@ func take_damage(amount: int, source_position: Vector2 = Vector2.ZERO) -> void:
 	if invincibility_powerup_timer > 0.0:
 		return
 		
-	# Obsługa wzmocnienia "tarcza" (z klejnotu ImmunityJewel/InvincibilityJewel lub z profilu portalu)
-	if has_shield or get_meta("has_portal_shield", false):
+	# Obsługa wzmocnienia "tarcza" (najpierw darmowa tarcza z poziomu, potem tarcza z portalu)
+	if has_shield:
 		has_shield = false
+		is_invulnerable = true
+		invulnerability_timer = invulnerability_duration
+		show_hp_indicator()
+		return
+	elif get_meta("has_portal_shield", false):
 		set_meta("has_portal_shield", false)
+		if DisplayServer.get_name() != "headless" and is_instance_valid(Events) and is_instance_valid(Events.portal_sync) and Events.portal_sync.is_linked:
+			Events.portal_sync.report_booster_used("tarcza", Events.session_id + "-shield")
 		is_invulnerable = true
 		invulnerability_timer = invulnerability_duration
 		show_hp_indicator()

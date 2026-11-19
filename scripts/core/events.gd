@@ -28,6 +28,7 @@ signal score_added(amount: int)
 signal score_updated(total_score: int)
 signal trick_performed(points: int)
 signal multiplier_changed(multiplier: float)
+signal enemy_defeated()
 
 # --- Zdarzenia Poziomu i Pętli Gry (Game Loop Events) ---
 signal level_started()
@@ -46,6 +47,10 @@ signal portal_webpage_opened(url: String)
 signal portal_profile_synced(profile_state: Dictionary)
 signal portal_challenges_synced(challenges: Array)
 signal portal_sync_failed(code: String, message: String)
+signal portal_run_synced(run_result: Dictionary)
+signal portal_daily_reward_updated(daily_state: Dictionary)
+signal portal_cloud_save_loaded(save_data: Dictionary)
+signal portal_save_conflict(local_save: Dictionary, server_save: Dictionary)
 
 var session_id: String = ""
 var completed_levels: Dictionary = {}

@@ -50,6 +50,8 @@ var total_score: int = 0
 var collected_jewels: int = 0
 var total_jewels: int = 0
 var tricks_performed_count: int = 0
+var enemies_defeated_count: int = 0
+var _double_points_reported: bool = false
 var challenge_time_limit_s: float = -1.0
 var is_game_over: bool = false
 var is_stage_cleared: bool = false
@@ -96,6 +98,8 @@ func _ready() -> void:
 	is_stage_cleared = false
 	total_score = 0
 	collected_jewels = 0
+	enemies_defeated_count = 0
+	_double_points_reported = false
 	
 	# Budowa poziomu wg wybranego w Level Select profilu mechaniki (oraz przygotowanie warstwy TileMapLayer)
 	var profile_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
@@ -116,6 +120,7 @@ func _ready() -> void:
 	session_id = Events.generate_session_id()
 	elapsed_time = 0.0
 	is_timer_running = true
+	_report_active_life_booster()
 	
 	if pause_menu: pause_menu.visible = false
 	if settings_view: settings_view.visible = false
@@ -152,7 +157,9 @@ func _ready() -> void:
 	Events.mechanic_lockout_changed.connect(_on_mechanic_lockout_changed)
 	Events.stamina_action_rejected.connect(_on_stamina_action_rejected)
 	Events.trick_performed.connect(_on_trick_performed)
+	Events.enemy_defeated.connect(_on_enemy_defeated)
 	Events.cursed_jewel_triggered.connect(_on_cursed_jewel_triggered)
+	Events.portal_profile_synced.connect(_on_arena_portal_profile_synced)
 	
 	if finish_goal and not finish_goal.body_entered.is_connected(_on_goal_entered):
 		finish_goal.body_entered.connect(_on_goal_entered)
@@ -267,9 +274,36 @@ func _on_player_stamina_changed(current: float, max_stamina: float) -> void:
 		hud_stamina_bar.max_value = max_stamina
 		hud_stamina_bar.value = current
 
+func _report_active_life_booster() -> void:
+	if DisplayServer.get_name() == "headless" or not is_inside_tree():
+		return
+	if not is_instance_valid(Events) or not is_instance_valid(Events.portal_sync) or not Events.portal_sync.is_linked:
+		return
+	if session_id.is_empty():
+		return
+	for p in get_tree().get_nodes_in_group("player"):
+		if p and p.get_meta("has_portal_extra_life", false) and not bool(p.get_meta("portal_life_reported", false)):
+			p.set_meta("portal_life_reported", true)
+			Events.portal_sync.report_booster_used("dodatkowe życie", session_id + "-life")
+			break
+
+func _on_arena_portal_profile_synced(_profile_state: Dictionary) -> void:
+	_report_active_life_booster()
+
+func _has_portal_double_points() -> bool:
+	if not is_inside_tree():
+		return false
+	for p in get_tree().get_nodes_in_group("player"):
+		if p and bool(p.get_meta("has_portal_double_points", false)):
+			if not _double_points_reported and DisplayServer.get_name() != "headless" and is_instance_valid(Events) and is_instance_valid(Events.portal_sync) and Events.portal_sync.is_linked:
+				_double_points_reported = true
+				Events.portal_sync.report_booster_used("podwójne punkty", session_id + "-dblpts")
+			return true
+	return false
+
 func _on_jewel_collected(val: int, _pos: Vector2) -> void:
 	collected_jewels += 1
-	total_score += val
+	total_score += (val * 2) if _has_portal_double_points() else val
 	Events.jewels_progress_updated.emit(collected_jewels, total_jewels)
 	_update_score_hud()
 	_update_goal_visuals()
@@ -279,10 +313,13 @@ func _on_jewel_collected(val: int, _pos: Vector2) -> void:
 		audio_pickup.play()
 
 func _on_score_added(amount: int) -> void:
-	total_score += amount
+	total_score += (amount * 2) if _has_portal_double_points() else amount
 
 func _on_trick_performed(_pts: int) -> void:
 	tricks_performed_count += 1
+
+func _on_enemy_defeated() -> void:
+	enemies_defeated_count += 1
 
 func _on_cursed_jewel_triggered(mechanic_name: String, duration: float) -> void:
 	if hud_ai_label:
@@ -483,6 +520,8 @@ func _on_goal_entered(body: Node2D) -> void:
 		_level_complete()
 
 func _level_complete() -> void:
+	if is_stage_cleared:
+		return
 	is_stage_cleared = true
 	is_timer_running = false
 	get_tree().paused = true
@@ -492,6 +531,8 @@ func _level_complete() -> void:
 		Events.return_to_level_select = true
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 		Events.portal_sync.evaluate_run_against_challenges(collected_jewels, elapsed_time, true, tricks_performed_count)
+		Events.portal_sync.submit_game_run(session_id, lvl_id, true, total_score, elapsed_time, collected_jewels, enemies_defeated_count)
+		Events.portal_sync.upload_cloud_save(lvl_id, "completed", collected_jewels)
 	
 	if music_level:
 		music_level.stop()
@@ -963,6 +1004,7 @@ func _on_music_slider_changed(v: float) -> void:
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 		Events.portal_sync.profile_settings["music_volume"] = v
 		Events.portal_sync.cosmetics_state["music_volume"] = v / 100.0
+		Events.portal_sync.queue_settings_sync({"music_volume": int(round(v))})
 
 func _on_level_music_slider_changed(v: float) -> void:
 	var levelMusicSlider: HSlider = _find_in_settings("LevelMusicSlider") as HSlider
@@ -975,6 +1017,7 @@ func _on_level_music_slider_changed(v: float) -> void:
 	_set_bus_volume_percent("MusicLevel", v)
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 		Events.portal_sync.profile_settings["level_music_volume"] = v
+		Events.portal_sync.queue_settings_sync({"level_music_volume": int(round(v))})
 
 func _on_sfx_slider_changed(v: float) -> void:
 	var sfxSlider: HSlider = _find_in_settings("SfxSlider") as HSlider
@@ -988,6 +1031,7 @@ func _on_sfx_slider_changed(v: float) -> void:
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 		Events.portal_sync.profile_settings["sfx_volume"] = v
 		Events.portal_sync.cosmetics_state["sfx_volume"] = v / 100.0
+		Events.portal_sync.queue_settings_sync({"sfx_volume": int(round(v))})
 
 func _on_mute_check_toggled(toggled_on: bool) -> void:
 	var m_idx = AudioServer.get_bus_index("Master")
@@ -1071,6 +1115,10 @@ func _on_resolution_selected(idx: int) -> void:
 	var screen_id = DisplayServer.window_get_current_screen()
 	var screen_size = DisplayServer.screen_get_size(screen_id)
 	DisplayServer.window_set_position((screen_size - target_size) / 2)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		var res_str := "%dx%d" % [target_size.x, target_size.y]
+		Events.portal_sync.profile_settings["resolution"] = res_str
+		Events.portal_sync.queue_settings_sync({"resolution": res_str})
 
 func _populate_fps_limit_opt(opt: OptionButton) -> void:
 	opt.clear()
@@ -1108,6 +1156,9 @@ func _on_subtitles_toggled(on: bool) -> void:
 func _on_language_selected(idx: int) -> void:
 	var code = "pl" if idx == 0 else "en"
 	_apply_language(code)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.profile_settings["language"] = code
+		Events.portal_sync.queue_settings_sync({"language": code})
 
 func _apply_language(lang_code: String) -> void:
 	current_language = lang_code
@@ -1212,6 +1263,10 @@ func _on_player_died() -> void:
 	if is_game_over or is_stage_cleared:
 		return
 	is_game_over = true
+	is_timer_running = false
+	var lvl_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.submit_game_run(session_id, lvl_id, false, total_score, elapsed_time, collected_jewels, enemies_defeated_count)
 	get_tree().paused = true
 	if music_level:
 		music_level.stop()

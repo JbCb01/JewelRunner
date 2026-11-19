@@ -23,6 +23,7 @@ class Gracz(Base):
     liczba_nieudanych_logowan: Mapped[int] = mapped_column(server_default="0")
     zablokowany_do: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     data_ostatniego_logowania: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    data_ostatniej_synchronizacji: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     data_modyfikacji: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
 
 
@@ -46,6 +47,19 @@ class KodParowania(Base):
     data_utworzenia: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
     data_wygasniecia: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     data_uzycia: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ZapisGry(Base):
+    __tablename__ = "zapis_gry"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    gracz_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gracz.id"))
+    poziom_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("poziom.id"))
+    punkt_kontrolny: Mapped[str | None] = mapped_column(Text)
+    zebrane_klejnoty: Mapped[int] = mapped_column(server_default="0")
+    data_zapisu: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    wersja_gry: Mapped[str] = mapped_column(Text)
+    suma_kontrolna: Mapped[str] = mapped_column(Text)
 
 
 class StatystykiGracza(Base):

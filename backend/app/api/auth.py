@@ -5,9 +5,17 @@ from fastapi import APIRouter, Response, status
 from app.api.deps import SESSION_COOKIE, DbSession, SessionToken
 from app.core.config import get_settings
 from app.db.models import Gracz
-from app.schemas.auth import GameSessionResponse, LoginRequest, MeResponse, PairRequest, RegisterRequest
+from app.schemas.auth import (
+    ForgotPasswordRequest,
+    GameSessionResponse,
+    LoginRequest,
+    MeResponse,
+    PairRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+)
 from app.services import auth as auth_service
-from app.services import pairing
+from app.services import pairing, password_reset
 
 router = APIRouter(prefix="/auth", tags=["konto"])
 
@@ -52,3 +60,16 @@ def pair(data: PairRequest, db: DbSession) -> GameSessionResponse:
         expires_at=expires_at,
         player=MeResponse(id=gracz.id, username=gracz.nazwa_uzytkownika, email=gracz.email),
     )
+
+
+@router.post("/forgot", status_code=status.HTTP_202_ACCEPTED)
+def forgot_password(data: ForgotPasswordRequest, db: DbSession) -> dict:
+    """Zawsze ta sama odpowiedź, żeby nie ujawniać, czy konto istnieje (8.5 A1)."""
+    password_reset.request_reset(db, data.email)
+    return {"status": "sent_if_exists", "message": "Jeśli konto istnieje, wysłaliśmy link do ustawienia nowego hasła."}
+
+
+@router.post("/reset", status_code=status.HTTP_204_NO_CONTENT)
+def reset_password(data: ResetPasswordRequest, response: Response, db: DbSession) -> None:
+    password_reset.reset_password(db, data.token, data.new_password)
+    response.delete_cookie(SESSION_COOKIE, **_cookie_options())

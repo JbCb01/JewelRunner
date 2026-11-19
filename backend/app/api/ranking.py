@@ -1,28 +1,23 @@
-from datetime import UTC, datetime
+from typing import Annotated
 
-from fastapi import APIRouter
-from sqlalchemy import text
+from fastapi import APIRouter, Query
 
 from app.api.deps import CurrentPlayer, DbSession
+from app.core.errors import AppError
+from app.services import ranking
 
 router = APIRouter(prefix="/ranking", tags=["ranking"])
 
-OVERALL = "okres = 'ogółem'"
-
 
 @router.get("")
-def read_ranking(gracz: CurrentPlayer, db: DbSession) -> dict:
-    top = db.execute(
-        text(f"SELECT pozycja, gracz_id, nazwa_uzytkownika, wynik FROM v_ranking WHERE {OVERALL} ORDER BY pozycja LIMIT 100")
-    ).all()
-    mine = db.execute(
-        text(f"SELECT pozycja, wynik FROM v_ranking WHERE {OVERALL} AND gracz_id = :gracz"), {"gracz": gracz.id}
-    ).first()
-    return {
-        "items": [
-            {"position": row.pozycja, "player_id": row.gracz_id, "username": row.nazwa_uzytkownika, "score": row.wynik}
-            for row in top
-        ],
-        "me": mine and {"position": mine.pozycja, "score": mine.wynik},
-        "generated_at": datetime.now(UTC),
-    }
+def read_ranking(
+    gracz: CurrentPlayer,
+    db: DbSession,
+    period: Annotated[
+        str | None, Query(description="tydzień, miesiąc, ogółem albo znajomi; bez parametru: ostatnio wybrany")
+    ] = None,
+) -> dict:
+    normalized = ranking.normalize(period)
+    if normalized is not None and normalized not in ranking.PERIODS:
+        raise AppError(422, "invalid_period", "Nieznany okres rankingu.")
+    return ranking.read(db, gracz.id, normalized)

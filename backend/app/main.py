@@ -4,7 +4,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api import auth, challenges, game_data, health, me, players, ranking
+from app.api import (
+    appearance,
+    auth,
+    challenges,
+    friends,
+    game,
+    game_data,
+    health,
+    me,
+    players,
+    ranking,
+    stats,
+)
+from app.api import settings as settings_api
 from app.core.config import get_settings
 from app.core.errors import catch_unhandled, check_origin, register_error_handlers
 from app.core.portal import register_portal
@@ -34,6 +47,11 @@ def create_app() -> FastAPI:
     app.include_router(auth.router, prefix="/api")
     app.include_router(me.router, prefix="/api")
     app.include_router(game_data.router, prefix="/api")
+    app.include_router(game.router, prefix="/api")
+    app.include_router(friends.router, prefix="/api")
+    app.include_router(stats.router, prefix="/api")
+    app.include_router(settings_api.router, prefix="/api")
+    app.include_router(appearance.router, prefix="/api")
     app.include_router(challenges.router, prefix="/api")
     app.include_router(ranking.router, prefix="/api")
     app.include_router(players.router, prefix="/api")

@@ -49,6 +49,7 @@ func _ready() -> void:
 	utLevelStartAndUniqueSessionGeneration()
 	utLevelCompletionRecording()
 	utLevelScoreTracking()
+	utLevelSpecificMusicTracks()
 	itEnemyMockupCollisionIntegration()
 	itPowerUpAreaPickupIntegration()
 
@@ -276,6 +277,39 @@ func utLevelScoreTracking() -> void:
 	var scoreOk: bool = (arena.total_score == 150)
 	assertCond(scoreOk, "LVL-03", "Zbieranie punktów w pętli poziomu kumuluje łączny wynik Areny")
 	arena.free()
+
+func utLevelSpecificMusicTracks() -> void:
+	var stream1: AudioStream = ArenaScript.get_level_music_stream(1)
+	var stream2: AudioStream = ArenaScript.get_level_music_stream(2)
+	var stream3: AudioStream = ArenaScript.get_level_music_stream(3)
+	
+	var validStreams: bool = (stream1 != null) and (stream2 != null) and (stream3 != null)
+	var distinctStreams: bool = (stream1 != stream2) and (stream2 != stream3) and (stream1 != stream3)
+	
+	var s1Path: String = stream1.resource_path
+	var s2Path: String = stream2.resource_path
+	var s3Path: String = stream3.resource_path
+	var pathsOk: bool = s1Path.ends_with("yessirski.wav") and s2Path.ends_with("onmymommaimthegoat.wav") and s3Path.ends_with("onsumbull.wav")
+	
+	var arena = ArenaScript.new()
+	add_child(arena)
+	var musicPlayer = AudioStreamPlayer.new()
+	musicPlayer.name = "MusicLevel"
+	arena.add_child(musicPlayer)
+	arena.music_level = musicPlayer
+	
+	arena._setup_level_music(2)
+	var arenaLvl2Ok: bool = (arena.music_level.stream == stream2) and arena.music_level.playing
+	arena._setup_level_music(3)
+	var arenaLvl3Ok: bool = (arena.music_level.stream == stream3) and arena.music_level.playing
+	arena._setup_level_music(1)
+	var arenaLvl1Ok: bool = (arena.music_level.stream == stream1) and arena.music_level.playing
+	
+	remove_child(arena)
+	arena.free()
+	
+	var allOk: bool = validStreams and distinctStreams and pathsOk and arenaLvl1Ok and arenaLvl2Ok and arenaLvl3Ok
+	assertCond(allOk, "LVL-04", "Kolejne poziomy wykorzystują nowe ścieżki dźwiękowe: Poziom 2 (onmymommaimthegoat) i Poziom 3 (onsumbull)")
 
 func itEnemyMockupCollisionIntegration() -> void:
 	var enemy = EnemyScript.new()

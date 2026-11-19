@@ -48,7 +48,9 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"subtitle": "Balans: Climb + Dash + Double Jump",
 				"dominant": "balanced",
 				"dna": {"wall_climb": 33, "dash": 33, "double_jump": 34},
-				"description": "Zrównoważony tor łączący szyby wspinaczkowe, niskie tunele i przepaście. Idealny do nauki rotacji staminy."
+				"description": "Zrównoważony tor łączący szyby wspinaczkowe, niskie tunele i przepaście. Idealny do nauki rotacji staminy.",
+				"music_path": "res://audio/music/yessirski.wav",
+				"music_title": "Yessirski"
 			}
 		MechanicProfile.VERTICAL_ASCENT:
 			return {
@@ -57,7 +59,9 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"subtitle": "Żywioł: Wall Climb & Studnie Tricków",
 				"dominant": "wall_climb",
 				"dna": {"wall_climb": 54, "dash": 18, "double_jump": 28},
-				"description": "Wysokie kominy wspinaczkowe i głębokie studnie powietrzne. Ładuj staminę długim Trickiem [C] podczas spadków."
+				"description": "Wysokie kominy wspinaczkowe i głębokie studnie powietrzne. Ładuj staminę długim Trickiem [C] podczas spadków.",
+				"music_path": "res://audio/music/onmymommaimthegoat.wav",
+				"music_title": "On My Momma I'm The Goat"
 			}
 		MechanicProfile.HORIZON_IMPULSE:
 			return {
@@ -66,7 +70,9 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"subtitle": "Żywioł: Slide -> Air Dash & Double Jump",
 				"dominant": "dash",
 				"dna": {"wall_climb": 14, "dash": 52, "double_jump": 34},
-				"description": "Długie proste z niskimi sufitami przechodzące w szerokie kaniony kolców. Utrzymuj pęd poziomy!"
+				"description": "Długie proste z niskimi sufitami przechodzące w szerokie kaniony kolców. Utrzymuj pęd poziomy!",
+				"music_path": "res://audio/music/onsumbull.wav",
+				"music_title": "On Sum Bull"
 			}
 		_:
 			var fav: String = "double_jump"
@@ -80,8 +86,24 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"subtitle": "1. połowa: %s -> 2. połowa: %s" % [fav.to_upper(), least.to_upper()],
 				"dominant": least,
 				"dna": {"wall_climb": 35, "dash": 30, "double_jump": 35},
-				"description": "Przeciwstawny Generator AI: 1. połowa podbija cenę Twojego ulubionego ruchu, a 2. połowa wymaga najtańszej mechaniki oraz realizuje zadania z portalu!"
+				"description": "Przeciwstawny Generator AI: 1. połowa podbija cenę Twojego ulubionego ruchu, a 2. połowa wymaga najtańszej mechaniki oraz realizuje zadania z portalu!",
+				"music_path": "res://audio/music/onsumbull.wav",
+				"music_title": "On Sum Bull"
 			}
+
+## Zwraca ścieżkę do pliku muzyki poziomu dla wybranego profilu/poziomu.
+## Poziom 1: yessirski.wav
+## Poziomy 2 i 3: nowe utwory dodane przez merkoo (onmymommaimthegoat.wav, onsumbull.wav)
+static func get_level_music_path(profile_id: int) -> String:
+	match profile_id:
+		MechanicProfile.SYNERGY_CLASSIC:
+			return "res://audio/music/yessirski.wav"
+		MechanicProfile.VERTICAL_ASCENT:
+			return "res://audio/music/onmymommaimthegoat.wav"
+		MechanicProfile.HORIZON_IMPULSE:
+			return "res://audio/music/onsumbull.wav"
+		_:
+			return "res://audio/music/onsumbull.wav"
 
 ## Buduje poziom dla wybranego profilu wewnątrz węzła areny, uwzględniając aktywne zadania ze strony internetowej.
 static func build_level_for_arena(

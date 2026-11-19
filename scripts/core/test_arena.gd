@@ -36,6 +36,38 @@ const CyberQuizScript = preload("res://scripts/core/cyber_quiz.gd")
 @onready var audio_pickup: AudioStreamPlayer = get_node_or_null("HUD/AudioPickup")
 @onready var music_level: AudioStreamPlayer = get_node_or_null("MusicLevel") if has_node("MusicLevel") else get_node_or_null("HUD/MusicLevel")
 
+const LEVEL_MUSIC_TRACKS: Dictionary = {
+	1: preload("res://audio/music/yessirski.wav"),
+	2: preload("res://audio/music/onmymommaimthegoat.wav"),
+	3: preload("res://audio/music/onsumbull.wav"),
+}
+
+## Zwraca ścieżkę dźwiękową AudioStream dla wybranego poziomu/profilu.
+## Poziom 1: yessirski.wav
+## Poziomy 2 i 3: nowe ścieżki dźwiękowe dodane przez merkoo (onmymommaimthegoat.wav, onsumbull.wav)
+static func get_level_music_stream(profile_id: int) -> AudioStream:
+	if LEVEL_MUSIC_TRACKS.has(profile_id):
+		return LEVEL_MUSIC_TRACKS[profile_id]
+	if profile_id == 4:
+		return LEVEL_MUSIC_TRACKS[3]
+	return LEVEL_MUSIC_TRACKS.get(1, null)
+
+## Konfiguruje i uruchamia odtwarzanie muzyki dla wskazanego poziomu.
+func _setup_level_music(profile_id: int) -> void:
+	if not music_level:
+		return
+	var stream: AudioStream = get_level_music_stream(profile_id)
+	if stream:
+		if music_level.playing and music_level.stream != stream:
+			music_level.stop()
+		music_level.stream = stream
+	if music_level.stream is AudioStreamWAV:
+		(music_level.stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_DISABLED
+	if not music_level.finished.is_connected(music_level.play):
+		music_level.finished.connect(music_level.play)
+	if music_level.is_inside_tree() and not music_level.playing:
+		music_level.play()
+
 @onready var finish_goal: Area2D = get_node_or_null("FinishGoal")
 
 var hud_ai_label: Label = null
@@ -146,13 +178,7 @@ func _ready() -> void:
 	if hud_session_label:
 		hud_session_label.text = "ID: %s" % session_id
 		
-	if music_level:
-		if music_level.stream is AudioStreamWAV:
-			(music_level.stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_DISABLED
-		if not music_level.finished.is_connected(music_level.play):
-			music_level.finished.connect(music_level.play)
-		if not music_level.playing:
-			music_level.play()
+	_setup_level_music(profile_id)
 	
 	Events.player_died.connect(_on_player_died)
 	Events.player_hit.connect(_on_player_hit)

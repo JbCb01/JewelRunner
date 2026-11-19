@@ -1296,5 +1296,5 @@ stream = ExtResource("10_pickup_audio")
 [node name="MusicLevel" type="AudioStreamPlayer" parent="." unique_id=1934993890]
 stream = ExtResource("11_level_music")
 volume_db = -26.0
-autoplay = true
+autoplay = false
 bus = &"MusicLevel"

@@ -1,5 +1,14 @@
 extends Area2D
 
+enum JewelType {
+	NORMAL,
+	JEW_JEWEL,        ## Nieśmiertelność na 10s (brak otrzymywania obrażeń)
+	SPEED_JEWEL,      ## Zwiększenie prędkości gracza 2x na 10s
+	IMMUNITY_JEWEL    ## Tarcza chroniąca przed 1 uderzeniem (brak obrażeń na 1 hit)
+}
+
+@export var jewel_type: JewelType = JewelType.NORMAL
+@export var powerup_duration: float = 10.0
 @export var pointVal: int = 100
 @export var bobSpeed: float = 4.0
 @export var bobHeight: float = 3.0
@@ -19,9 +28,31 @@ func _ready() -> void:
 	add_to_group("jewels")
 	if spriteNode:
 		startY = spriteNode.position.y
+	_setup_jewel_texture()
 	_apply_cursed_visuals()
 	if not body_entered.is_connected(_onBodyEntered):
 		body_entered.connect(_onBodyEntered)
+
+func set_jewel_type(type: JewelType) -> void:
+	jewel_type = type
+	_setup_jewel_texture()
+
+func _setup_jewel_texture() -> void:
+	if not spriteNode:
+		return
+	match jewel_type:
+		JewelType.JEW_JEWEL:
+			if ResourceLoader.exists("res://assets/JewJewel.png"):
+				spriteNode.texture = load("res://assets/JewJewel.png")
+		JewelType.SPEED_JEWEL:
+			if ResourceLoader.exists("res://assets/SpeedJewel.png"):
+				spriteNode.texture = load("res://assets/SpeedJewel.png")
+		JewelType.IMMUNITY_JEWEL:
+			if ResourceLoader.exists("res://assets/ImmunityJewel.png"):
+				spriteNode.texture = load("res://assets/ImmunityJewel.png")
+		_:
+			if spriteNode.texture == null and ResourceLoader.exists("res://assets/Jewel.png"):
+				spriteNode.texture = load("res://assets/Jewel.png")
 
 func set_cursed(mechanic_name: String, duration: float = 4.0) -> void:
 	is_cursed = not mechanic_name.is_empty()
@@ -69,6 +100,18 @@ func _process(delta: float) -> void:
 
 func _onBodyEntered(body: Node2D) -> void:
 	if body.is_in_group("player"):
+		# Aktywacja mechanik specjalnych klejnotów (power-upów)
+		match jewel_type:
+			JewelType.JEW_JEWEL:
+				if body.has_method("apply_invincibility"):
+					body.apply_invincibility(powerup_duration)
+			JewelType.SPEED_JEWEL:
+				if body.has_method("apply_speed_boost"):
+					body.apply_speed_boost(powerup_duration)
+			JewelType.IMMUNITY_JEWEL:
+				if body.has_method("apply_shield"):
+					body.apply_shield()
+					
 		if is_cursed and not cursed_mechanic.is_empty():
 			if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
 				Events.ai_director.apply_cursed_jewel_lock(cursed_mechanic, curse_duration)

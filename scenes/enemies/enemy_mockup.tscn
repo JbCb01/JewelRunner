@@ -1,21 +1,20 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/actors/enemies/enemy_mockup.gd" id="1_enemy"]
+[ext_resource type="Texture2D" path="res://assets/enemies-spritesheet-export.png" id="2_enemy_tex"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_enemy"]
-size = Vector2(24, 24)
+size = Vector2(18, 18)
 
 [node name="EnemyMockup" type="Area2D"]
 collision_layer = 4
 collision_mask = 2
 script = ExtResource("1_enemy")
 
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_enemy_tex")
+hframes = 4
+vframes = 12
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_enemy")
-
-[node name="ColorRect" type="ColorRect" parent="."]
-offset_left = -12.0
-offset_top = -12.0
-offset_right = 12.0
-offset_bottom = 12.0
-color = Color(0.85, 0.2, 0.2, 1)

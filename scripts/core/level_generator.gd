@@ -529,11 +529,23 @@ static func _apply_blueprint_to_arena(
 		area.add_child(col)
 		
 		if show_placeholder_visuals:
-			var rect := ColorRect.new()
-			rect.position = -sz * 0.5
-			rect.size = sz
-			rect.color = Color(0.78, 0.22, 0.22, 1.0)
-			area.add_child(rect)
+			if ResourceLoader.exists("res://assets/Kolce.png"):
+				var spike_tex = load("res://assets/Kolce.png")
+				var trect := TextureRect.new()
+				trect.texture = spike_tex
+				trect.stretch_mode = TextureRect.STRETCH_TILE
+				trect.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+				var s_factor := 1.5
+				trect.scale = Vector2(s_factor, s_factor)
+				trect.position = -sz * 0.5
+				trect.size = sz / s_factor
+				area.add_child(trect)
+			else:
+				var rect := ColorRect.new()
+				rect.position = -sz * 0.5
+				rect.size = sz
+				rect.color = Color(0.78, 0.22, 0.22, 1.0)
+				area.add_child(rect)
 		haz_root.add_child(area)
 		
 	var j_idx: int = 0

@@ -1,6 +1,7 @@
 extends Control
 
 const LevelGenerator = preload("res://scripts/core/level_generator.gd")
+const SkinManager = preload("res://scripts/core/skin_manager.gd")
 
 @export_file("*.tscn") var arenaScenePath: String = "res://scenes/test_arena.tscn"
 

@@ -39,6 +39,12 @@ const CyberQuizScript = preload("res://scripts/core/cyber_quiz.gd")
 @onready var finish_goal: Area2D = get_node_or_null("FinishGoal")
 
 var hud_ai_label: Label = null
+var hud_wallet_label: Label = null
+
+var jewel_anim_batch_count: int = 0
+var jewel_anim_timer: float = 0.0
+var jewel_hud_scale: float = 1.0
+const JEWEL_ANIM_BATCH_WINDOW_S: float = 0.6
 
 var is_knowledge_check_active: bool = false
 var current_quiz_question: Dictionary = {}
@@ -160,6 +166,8 @@ func _ready() -> void:
 	Events.enemy_defeated.connect(_on_enemy_defeated)
 	Events.cursed_jewel_triggered.connect(_on_cursed_jewel_triggered)
 	Events.portal_profile_synced.connect(_on_arena_portal_profile_synced)
+	Events.special_jewel_collected.connect(_on_special_jewel_collected)
+	Events.checkpoint_reached.connect(_on_checkpoint_reached)
 	
 	if finish_goal and not finish_goal.body_entered.is_connected(_on_goal_entered):
 		finish_goal.body_entered.connect(_on_goal_entered)
@@ -240,6 +248,7 @@ func _process(delta: float) -> void:
 	if is_timer_running and not get_tree().paused:
 		elapsed_time += delta
 		_update_time_hud()
+		_update_jewel_hud_animation(delta)
 
 ## Zlicza wszystkie klejnoty obecne aktualnie na scenie.
 func refresh_jewel_count() -> int:
@@ -306,11 +315,59 @@ func _on_jewel_collected(val: int, _pos: Vector2) -> void:
 	total_score += (val * 2) if _has_portal_double_points() else val
 	Events.jewels_progress_updated.emit(collected_jewels, total_jewels)
 	_update_score_hud()
+	_trigger_grouped_jewel_hud_animation(1)
 	_update_goal_visuals()
 	if total_jewels > 0 and collected_jewels >= total_jewels:
 		Events.all_jewels_collected.emit()
 	if audio_pickup:
 		audio_pickup.play()
+
+func get_total_wallet_balance() -> int:
+	var synced_bal: int = 0
+	if is_instance_valid(Events) and is_instance_valid(Events.wallet_sync) and Events.wallet_sync.has_method("local_balance"):
+		synced_bal = int(Events.wallet_sync.local_balance())
+	return synced_bal + collected_jewels
+
+func _trigger_grouped_jewel_hud_animation(added_count: int = 1) -> void:
+	if jewel_anim_timer > 0.0:
+		jewel_anim_batch_count += added_count
+	else:
+		jewel_anim_batch_count = added_count
+	jewel_anim_timer = JEWEL_ANIM_BATCH_WINDOW_S
+	jewel_hud_scale = minf(1.4, 1.12 + 0.04 * float(jewel_anim_batch_count))
+	if hud_score_label:
+		hud_score_label.pivot_offset = hud_score_label.size * 0.5
+		hud_score_label.scale = Vector2(jewel_hud_scale, jewel_hud_scale)
+	if hud_wallet_label:
+		hud_wallet_label.text = "PORTFEL: %d (+%d)" % [get_total_wallet_balance(), jewel_anim_batch_count]
+
+func _update_jewel_hud_animation(delta: float) -> void:
+	if jewel_anim_timer <= 0.0:
+		return
+	jewel_anim_timer = maxf(0.0, jewel_anim_timer - delta)
+	jewel_hud_scale = move_toward(jewel_hud_scale, 1.0, delta * 0.8)
+	if hud_score_label:
+		hud_score_label.scale = Vector2(jewel_hud_scale, jewel_hud_scale)
+	if jewel_anim_timer <= 0.0:
+		jewel_anim_batch_count = 0
+		jewel_hud_scale = 1.0
+		if hud_score_label:
+			hud_score_label.scale = Vector2.ONE
+		if hud_wallet_label:
+			hud_wallet_label.text = "PORTFEL: %d" % get_total_wallet_balance()
+
+func _on_special_jewel_collected(_special_id: String, jewel_name: String, rarity: String, already_owned: bool) -> void:
+	if hud_ai_label:
+		if already_owned:
+			hud_ai_label.text = "[*] JUŻ POSIADANY: %s (zwykłe punkty)" % jewel_name
+			hud_ai_label.add_theme_color_override("font_color", Color(0.8, 0.85, 0.9, 1.0))
+		else:
+			hud_ai_label.text = "[★] SEKRETNY KLEJNOT: %s [%s]!" % [jewel_name, rarity.to_upper()]
+			hud_ai_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.35, 1.0))
+
+func _on_checkpoint_reached(_checkpoint_id: String, pos: Vector2) -> void:
+	if respawn_point:
+		respawn_point.global_position = pos
 
 func _on_score_added(amount: int) -> void:
 	total_score += (amount * 2) if _has_portal_double_points() else amount
@@ -332,6 +389,8 @@ func _update_score_hud() -> void:
 			hud_score_label.text = " JEWELS: %d/%d " % [collected_jewels, total_jewels]
 		else:
 			hud_score_label.text = " JEWELS: %d " % collected_jewels
+	if hud_wallet_label and jewel_anim_timer <= 0.0:
+		hud_wallet_label.text = "PORTFEL: %d" % get_total_wallet_balance()
 
 func _update_goal_visuals() -> void:
 	if not finish_goal:
@@ -362,6 +421,16 @@ func _ensure_ai_hud_panel() -> void:
 		hud_ai_label.add_theme_font_size_override("font_size", 11)
 		hud_ai_label.add_theme_color_override("font_color", Color(0.75, 0.92, 1.0, 0.92))
 		hud.add_child(hud_ai_label)
+	hud_wallet_label = hud.get_node_or_null("WalletBalanceLabel") as Label
+	if not hud_wallet_label:
+		hud_wallet_label = Label.new()
+		hud_wallet_label.name = "WalletBalanceLabel"
+		hud_wallet_label.position = Vector2(12, 52)
+		hud_wallet_label.size = Vector2(220, 18)
+		hud_wallet_label.add_theme_font_size_override("font_size", 11)
+		hud_wallet_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.45, 0.95))
+		hud.add_child(hud_wallet_label)
+	hud_wallet_label.text = "PORTFEL: %d" % get_total_wallet_balance()
 
 func _update_ai_hud() -> void:
 	if not hud_ai_label or not is_instance_valid(Events) or not is_instance_valid(Events.ai_director):
@@ -524,6 +593,9 @@ func _level_complete() -> void:
 		return
 	is_stage_cleared = true
 	is_timer_running = false
+	for p in get_tree().get_nodes_in_group("player"):
+		if p and p.has_method("clear_powerups"):
+			p.clear_powerups()
 	get_tree().paused = true
 	var lvl_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
 	Events.complete_level(lvl_id, elapsed_time)

@@ -8,6 +8,7 @@ const ArenaScript = preload("res://scripts/core/test_arena.gd")
 const AIDirectorScript = preload("res://scripts/core/ai_director.gd")
 const LevelGeneratorScript = preload("res://scripts/core/level_generator.gd")
 const CyberQuiz = preload("res://scripts/core/cyber_quiz.gd")
+const SkinManager = preload("res://scripts/core/skin_manager.gd")
 
 var passCnt: int = 0
 var failCnt: int = 0
@@ -1021,7 +1022,10 @@ func itArrowKeyNavigationInPauseGameOverWinScreens() -> void:
 	assertCond(allPauseOk and allGoOk and allWinOk, "IT-18", "Nawigacja strzałkami (Up / Down) działa poprawnie w PauseMenu, GameOverMenu oraz WinScreen")
 
 func itSpecialJewelPowerupsMechanics() -> void:
+	if is_instance_valid(Events.portal_sync):
+		Events.portal_sync.cosmetics_state["boosters"] = {}
 	var plr = _createMockPlayer()
+	plr.set_meta("has_portal_shield", false)
 	plr.current_health = 3
 	
 	# 1. JewJewel -> 10s nieśmiertelności (brak otrzymywania obrażeń)

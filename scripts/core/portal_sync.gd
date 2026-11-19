@@ -1,6 +1,8 @@
 extends Node
 class_name PortalSyncService
 
+const SkinManager = preload("res://scripts/core/skin_manager.gd")
+
 ## Serwis integracji i synchronizacji gry JewelRunner z aplikacją webową (Portalem Gracza).
 ## Odpowiada za:
 ## 1. Otwieranie strony profilu w przeglądarce (przycisk profilu na górze w menu głównym).
@@ -1000,12 +1002,12 @@ func _on_appearance_request_completed(_result: int, response_code: int, _headers
 func report_booster_used(booster_type: String, operation_id: String = "") -> bool:
 	if not is_linked or session_token.is_empty():
 		return false
-	var boosters: Dictionary = cosmetics_state.get("boosters", {})
-	boosters[booster_type] = maxi(0, int(boosters.get(booster_type, 0)) - 1)
 	var op_id := _normalize_operation_id(operation_id)
 	for item in pending_booster_uses:
 		if String(item.get("operation_id", "")) == op_id:
 			return false
+	var boosters: Dictionary = cosmetics_state.get("boosters", {})
+	boosters[booster_type] = maxi(0, int(boosters.get(booster_type, 0)) - 1)
 	pending_booster_uses.append({"operation_id": op_id, "booster_type": booster_type})
 	if boosters_queue_path != BOOSTERS_QUEUE_PATH or DisplayServer.get_name() != "headless":
 		save_pending_booster_uses()
@@ -1200,6 +1202,10 @@ func _on_daily_request_completed(_result: int, response_code: int, _headers: Pac
 	elif kind == "claim" and is_instance_valid(Events):
 		Events.portal_daily_reward_updated.emit(daily_reward_state)
 
+## Alias do kolejkowania i wysyłki rezultatu biegu (S23KC2S1P1-273).
+func submit_score(run_session_id: String, level: int, score: int, time_s: float, gems: int, completed: bool = true, enemies_defeated: int = 0) -> bool:
+	return submit_game_run(run_session_id, level, completed, score, time_s, gems, enemies_defeated)
+
 ## Kolejkuje i wysyła wynik rozgrywki do POST /api/game/runs (gdy gra jest sparowana z kontem).
 func submit_game_run(run_session_id: String, level: int, completed: bool, score: int, time_s: float, gems: int, enemies_defeated: int = 0) -> bool:
 	if not is_linked and session_token.is_empty():
@@ -1246,25 +1252,36 @@ func _on_run_request_completed(_result: int, response_code: int, _headers: Packe
 	var sent_id := _sending_run_id
 	_sending_run_id = ""
 	var parsed: Variant = safe_parse_json(body.get_string_from_utf8())
+	if response_code == 409 or response_code == 422:
+		push_warning("Serwer odrzucił wynik gry (%s, HTTP %d): %s" % [sent_id, response_code, body.get_string_from_utf8()])
+	var ok := apply_run_response(response_code, parsed, sent_id)
+	if ok:
+		if not pending_runs.is_empty():
+			flush_pending_runs()
+		else:
+			request_sync_from_web()
+	elif (response_code == 409 or response_code == 422) and not pending_runs.is_empty():
+		flush_pending_runs()
+
+## Przetwarza odpowiedź serwera dla kolejki wyników (wydzielone pod testy trybu offline i ponowień).
+func apply_run_response(response_code: int, parsed: Variant, sent_id: String) -> bool:
 	if response_code == 200:
 		pending_runs = _remove_by_key(pending_runs, "session_id", sent_id)
 		if runs_queue_path != RUNS_QUEUE_PATH or DisplayServer.get_name() != "headless":
 			save_pending_runs()
 		if is_instance_valid(Events):
 			Events.portal_run_synced.emit(parsed if parsed is Dictionary else {})
-		if not pending_runs.is_empty():
-			flush_pending_runs()
-		else:
-			request_sync_from_web()
+		return true
 	elif response_code == 401:
 		handle_unauthorized()
+		return false
 	elif response_code == 409 or response_code == 422:
-		push_warning("Serwer odrzucił wynik gry (%s, HTTP %d): %s" % [sent_id, response_code, body.get_string_from_utf8()])
 		pending_runs = _remove_by_key(pending_runs, "session_id", sent_id)
 		if runs_queue_path != RUNS_QUEUE_PATH or DisplayServer.get_name() != "headless":
 			save_pending_runs()
-		if not pending_runs.is_empty():
-			flush_pending_runs()
+		return false
+	# 0 (brak internetu) lub >= 500: zostawiamy wynik w kolejce do ponowienia
+	return false
 
 func save_pending_runs() -> void:
 	_save_json_file(runs_queue_path, {"pending_runs": pending_runs}, "kolejki wyników")

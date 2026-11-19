@@ -9,6 +9,9 @@ const PowerUpScript = preload("res://scripts/power_up.gd")
 const HazardScript = preload("res://scripts/core/hazard_area.gd")
 const ArenaScript = preload("res://scripts/core/test_arena.gd")
 const JewelScript = preload("res://scripts/jewel.gd")
+const CheckpointScript = preload("res://scripts/core/checkpoint.gd")
+const LevelGeneratorScript = preload("res://scripts/core/level_generator.gd")
+const PortalSyncScript = preload("res://scripts/core/portal_sync.gd")
 
 var passCnt: int = 0
 var failCnt: int = 0
@@ -48,10 +51,33 @@ func _ready() -> void:
 	utLevelScoreTracking()
 	itEnemyMockupCollisionIntegration()
 	itPowerUpAreaPickupIntegration()
+
+	print("\n--- [5] TESTY CHECKPOINTÓW, KOLCÓW I PRZEPAŚCI (S23KC2S1P1-276 / 278 / 110) ---")
+	utCheckpointActivationUpdatesRespawnPosition()
+	utAbyssFallDealsDamageAndRespawnsAtCheckpoint()
+	utLevelGeneratorPlacesCheckpointsAndAbyss()
+
+	print("\n--- [6] TESTY SPECJALNYCH KLEJNOTÓW I HUD (S23KC2S1P1-284 / 87 / 282 / 85) ---")
+	utSecretSpecialJewelFirstCollectionAndRaritySignal()
+	utSecretSpecialJewelAlreadyOwnedSemiTransparentAndNormalPoints()
+	utHudJewelCounterGroupedAnimationAndWalletBalance()
+
+	print("\n--- [7] TESTY WYSYŁKI WYNIKÓW I KOLEJKI OFFLINE (S23KC2S1P1-273) ---")
+	utScoreSubmissionQueuedAndDeduplicated()
+	utScoreQueueOfflineRetryKeepsPending()
+	utScoreQueueSuccessRemovesFromDisk()
+
+	print("\n--- [8] TESTY PERSONALIZACJI, SKLEPU I NAGRODY DZIENNEJ (S23KC2S1P1-253) ---")
+	utCustomizationSkinColorAndAccessoriesSync()
+	utCustomizationLockedSkinRejected()
+	utBoosterUseQueueAndIdempotency()
+	utCloudSaveChecksumAndConflictResolution()
+	utDailyRewardClaimUpdatesWalletBalance()
 	
 	print("\n==================================================================")
 	print(" PODSUMOWANIE SPRINT 3: ZALICZONE: %d | BŁĘDY: %d | ŁĄCZNIE: %d" % [passCnt, failCnt, passCnt + failCnt])
 	print("==================================================================")
+	get_tree().quit(1 if failCnt > 0 else 0)
 
 func assertCond(cond: bool, testId: String, desc: String) -> void:
 	if cond:
@@ -282,6 +308,349 @@ func itPowerUpAreaPickupIntegration() -> void:
 	
 	plr.free()
 	pwr.free()
+
+# ==============================================================================
+# 5. TESTY CHECKPOINTÓW, KOLCÓW I PRZEPAŚCI (S23KC2S1P1-276 / 278 / 110)
+# ==============================================================================
+
+func utCheckpointActivationUpdatesRespawnPosition() -> void:
+	var cp = CheckpointScript.new()
+	cp.checkpoint_id = "CP-1"
+	cp.global_position = Vector2(450, 280)
+	add_child(cp)
+
+	var plr = _createMockPlayer()
+	plr.global_position = Vector2(70, 270)
+	cp._on_body_entered(plr)
+
+	var cpOk: bool = cp.is_activated and (plr.last_checkpoint_pos == Vector2(450, 280)) and (plr.last_checkpoint_id == "CP-1")
+	assertCond(cpOk, "CHK-01", "Wejście w checkpoint aktywuje go i zapisuje nową pozycję odrodzenia gracza")
+
+	plr.free()
+	cp.free()
+
+func utAbyssFallDealsDamageAndRespawnsAtCheckpoint() -> void:
+	var plr = _createMockPlayer()
+	plr.set_meta("has_portal_shield", false)
+	plr.current_health = 3
+	plr.is_invulnerable = false
+	plr.set_checkpoint(Vector2(450, 280), "CP-1")
+	plr.global_position = Vector2(800, 420)
+
+	var hz = HazardScript.new()
+	hz.is_abyss = true
+	hz.damage = 1
+	add_child(hz)
+
+	hz._on_body_entered(plr)
+
+	var respawnedOk: bool = (plr.current_health == 2) and (plr.global_position == Vector2(450, 280)) and plr.is_invulnerable
+	assertCond(respawnedOk, "CHK-02", "Wpadnięcie w strefę przepaści odejmuje 1 HP, włącza i-frames i cofa do ostatniego checkpointu")
+
+	hz.free()
+	plr.free()
+
+func utLevelGeneratorPlacesCheckpointsAndAbyss() -> void:
+	var mockArena := Node2D.new()
+	add_child(mockArena)
+
+	LevelGeneratorScript.build_level_for_arena(mockArena, LevelGeneratorScript.MechanicProfile.VERTICAL_ASCENT, 12345)
+
+	var cpRoot = mockArena.get_node_or_null("Checkpoints")
+	var hasCheckpoints: bool = (cpRoot != null) and (cpRoot.get_child_count() >= 2)
+	var abyssNode = mockArena.get_node_or_null("Hazards/AbyssZone")
+	var hasAbyss: bool = (abyssNode != null) and (abyssNode.get("is_abyss") == true)
+	var hasSecretJewel: bool = false
+	for child in mockArena.get_children():
+		if child.get("is_secret_special") == true:
+			hasSecretJewel = true
+			break
+
+	assertCond(hasCheckpoints and hasAbyss and hasSecretJewel, "CHK-03", "Generator poziomów rozmieszcza checkpointy, strefę przepaści oraz sekretny klejnot")
+	mockArena.free()
+
+# ==============================================================================
+# 6. TESTY SPECJALNYCH KLEJNOTÓW I HUD (S23KC2S1P1-284 / 87 / 282 / 85)
+# ==============================================================================
+
+const TEST_SPECIAL_PATH: String = "user://test_special_jewels.json"
+
+func utSecretSpecialJewelFirstCollectionAndRaritySignal() -> void:
+	var prev_path: String = Events.special_jewels_save_path
+	Events.special_jewels_save_path = TEST_SPECIAL_PATH
+	Events.collected_special_jewels.clear()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SPECIAL_PATH))
+
+	var plr = _createMockPlayer()
+	var jwl = JewelScript.new()
+	var spr = Sprite2D.new()
+	spr.name = "Sprite2D"
+	jwl.add_child(spr)
+	add_child(jwl)
+	jwl.configure_secret_jewel("SEC-TEST-1", "Klejnot Testowy", "Legendarny")
+
+	var preVisualOk: bool = (not jwl.is_already_owned_special) and is_equal_approx(jwl.modulate.a, 1.0)
+
+	var specialPayload := ["", "", "", true]
+	var jewelPoints := [0]
+	var cbSpec = func(sid: String, jname: String, rarity: String, owned: bool):
+		specialPayload[0] = sid
+		specialPayload[1] = jname
+		specialPayload[2] = rarity
+		specialPayload[3] = owned
+	var cbPts = func(val: int, _pos: Vector2):
+		jewelPoints[0] = val
+
+	Events.special_jewel_collected.connect(cbSpec)
+	Events.jewel_collected.connect(cbPts)
+	jwl._onBodyEntered(plr)
+	Events.special_jewel_collected.disconnect(cbSpec)
+	Events.jewel_collected.disconnect(cbPts)
+
+	var sigOk: bool = (specialPayload[0] == "SEC-TEST-1") and (specialPayload[1] == "Klejnot Testowy") and (specialPayload[2] == "Legendarny") and (specialPayload[3] == false)
+	var savedOk: bool = Events.is_special_jewel_owned("SEC-TEST-1") and (jewelPoints[0] == jwl.special_point_val)
+
+	assertCond(preVisualOk and sigOk and savedOk, "SPC-01", "Pierwsze zebranie sekretnego klejnotu zapisuje go w kolekcji i emituje powiadomienie o rzadkości")
+
+	plr.free()
+	Events.special_jewels_save_path = prev_path
+	Events.load_special_jewels()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SPECIAL_PATH))
+
+func utSecretSpecialJewelAlreadyOwnedSemiTransparentAndNormalPoints() -> void:
+	var prev_path: String = Events.special_jewels_save_path
+	Events.special_jewels_save_path = TEST_SPECIAL_PATH
+	Events.collected_special_jewels.clear()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SPECIAL_PATH))
+	Events.register_special_jewel("SEC-TEST-OWNED", "Klejnot Eteru", "Legendarny")
+
+	var plr = _createMockPlayer()
+	var jwl = JewelScript.new()
+	var spr = Sprite2D.new()
+	spr.name = "Sprite2D"
+	jwl.add_child(spr)
+	add_child(jwl)
+	jwl.configure_secret_jewel("SEC-TEST-OWNED", "Klejnot Eteru", "Legendarny")
+
+	var visualSemiOk: bool = jwl.is_already_owned_special and is_equal_approx(jwl.modulate.a, 0.45)
+
+	var wasOwnedSig := [false]
+	var ptsCollected := [0]
+	var cbSpec = func(_sid: String, _jname: String, _rarity: String, owned: bool):
+		wasOwnedSig[0] = owned
+	var cbPts = func(val: int, _pos: Vector2):
+		ptsCollected[0] = val
+
+	Events.special_jewel_collected.connect(cbSpec)
+	Events.jewel_collected.connect(cbPts)
+	jwl._onBodyEntered(plr)
+	Events.special_jewel_collected.disconnect(cbSpec)
+	Events.jewel_collected.disconnect(cbPts)
+
+	var ownedCollectOk: bool = wasOwnedSig[0] and (ptsCollected[0] == jwl.pointVal)
+	assertCond(visualSemiOk and ownedCollectOk, "SPC-02", "Posiadany specjalny klejnot renderuje się półprzezroczyście i po zebraniu przyznaje zwykłe punkty")
+
+	plr.free()
+	Events.special_jewels_save_path = prev_path
+	Events.load_special_jewels()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SPECIAL_PATH))
+
+func utHudJewelCounterGroupedAnimationAndWalletBalance() -> void:
+	var arena = _createMockArena()
+	arena.total_jewels = 5
+	arena.collected_jewels = 0
+	arena._update_score_hud()
+
+	arena._on_jewel_collected(100, Vector2.ZERO)
+	arena._on_jewel_collected(100, Vector2.ZERO)
+
+	var textOk: bool = (arena.hud_score_label.text == " JEWELS: 2/5 ")
+	var groupedOk: bool = (arena.jewel_anim_batch_count == 2) and (arena.jewel_anim_timer > 0.0) and (arena.hud_score_label.scale.x > 1.0)
+	var walletOk: bool = (arena.hud_wallet_label != null) and arena.hud_wallet_label.text.contains("(+2)")
+
+	arena._update_jewel_hud_animation(0.75)
+	var settledOk: bool = (arena.jewel_anim_batch_count == 0) and is_equal_approx(arena.hud_score_label.scale.x, 1.0) and (not arena.hud_wallet_label.text.contains("(+"))
+
+	assertCond(textOk and groupedOk and walletOk and settledOk, "HUD-01", "Licznik klejnotów na HUD grupuje szybkie inkrementacje w jedną animację i pokazuje saldo portfela")
+	arena.free()
+
+# ==============================================================================
+# 7. TESTY WYSYŁKI WYNIKÓW I KOLEJKI OFFLINE (S23KC2S1P1-273)
+# ==============================================================================
+
+const TEST_RUNS_QUEUE_PATH: String = "user://test_runs_queue.json"
+
+func utScoreSubmissionQueuedAndDeduplicated() -> void:
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_RUNS_QUEUE_PATH))
+	var ps = PortalSyncScript.new()
+	ps.runs_queue_path = TEST_RUNS_QUEUE_PATH
+	ps.is_linked = true
+	ps.session_token = "tok_test_score"
+
+	var q1: bool = ps.submit_score("SES-1763500000-0101", 1, 500, 32.5, 5, true, 2)
+	var q2: bool = ps.submit_score("SES-1763500000-0101", 1, 500, 32.5, 5, true, 2)
+
+	var ok: bool = q1 and (not q2) and (ps.pending_runs.size() == 1) and (int(ps.pending_runs[0]["score"]) == 500)
+	assertCond(ok, "SCR-01", "Wysyłka wyniku biegu (submit_score) kolejkuje wynik z deduplikacją po session_id")
+
+	ps.free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_RUNS_QUEUE_PATH))
+
+func utScoreQueueOfflineRetryKeepsPending() -> void:
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_RUNS_QUEUE_PATH))
+	var ps = PortalSyncScript.new()
+	ps.runs_queue_path = TEST_RUNS_QUEUE_PATH
+	ps.is_linked = true
+	ps.session_token = "tok_test_score"
+
+	ps.submit_score("SES-1763500000-0102", 2, 750, 41.2, 8)
+	var res0: bool = ps.apply_run_response(0, null, "SES-1763500000-0102")
+	var res503: bool = ps.apply_run_response(503, null, "SES-1763500000-0102")
+	ps.free()
+
+	var ps2 = PortalSyncScript.new()
+	ps2.runs_queue_path = TEST_RUNS_QUEUE_PATH
+	ps2.load_pending_runs()
+	var keptOk: bool = (not res0) and (not res503) and (ps2.pending_runs.size() == 1) and (ps2.pending_runs[0]["session_id"] == "SES-1763500000-0102")
+	assertCond(keptOk, "SCR-02", "Brak sieci lub błąd 503 zachowuje wynik w lokalnej kolejce ponowień na dysku")
+
+	ps2.free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_RUNS_QUEUE_PATH))
+
+func utScoreQueueSuccessRemovesFromDisk() -> void:
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_RUNS_QUEUE_PATH))
+	var ps = PortalSyncScript.new()
+	ps.runs_queue_path = TEST_RUNS_QUEUE_PATH
+	ps.is_linked = true
+	ps.session_token = "tok_test_score"
+
+	ps.submit_score("SES-1763500000-0103", 1, 900, 28.0, 6)
+	var synced: bool = ps.apply_run_response(200, {"best_score": 900}, "SES-1763500000-0103")
+	ps.free()
+
+	var ps2 = PortalSyncScript.new()
+	ps2.runs_queue_path = TEST_RUNS_QUEUE_PATH
+	ps2.load_pending_runs()
+	var clearedOk: bool = synced and ps2.pending_runs.is_empty()
+	assertCond(clearedOk, "SCR-03", "Poprawna odpowiedź serwera (HTTP 200) usuwa wysłany wynik z kolejki i z pliku na dysku")
+
+	ps2.free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_RUNS_QUEUE_PATH))
+
+# ==============================================================================
+# 8. TESTY PERSONALIZACJI, SKLEPU I NAGRODY DZIENNEJ (S23KC2S1P1-253)
+# ==============================================================================
+
+const TEST_BOOSTERS_QUEUE_PATH: String = "user://test_boosters_queue.json"
+
+func utCustomizationSkinColorAndAccessoriesSync() -> void:
+	var ps = PortalSyncScript.new()
+	ps.apply_synced_payload({
+		"player": {"id": "u1", "username": "Mati", "email": "mati@example.com"},
+		"appearance": {
+			"active_skin": "Noir Stelly",
+			"active_color_name": "Monochrom",
+			"active_color_hex": "#505050",
+			"equipped_accessories": {"głowa": "Czapka"},
+			"owned_items": [
+				{"id": 101, "type": "skórka", "name": "Skórka podstawowa"},
+				{"id": 102, "type": "skórka", "name": "Noir Stelly"},
+				{"id": 201, "type": "kolor", "name": "Monochrom", "color_hex": "#505050"},
+				{"id": 301, "type": "akcesorium", "name": "Czapka", "mount_point": "głowa"}
+			]
+		}
+	})
+
+	var plr = _createMockPlayer()
+	ps.apply_cosmetics_and_boosters_to_player(plr)
+
+	var hatNode: Node2D = plr.visuals.get_node_or_null("PortalAccessoryHat")
+	var skinAppliedOk: bool = (String(plr.get_meta("active_skin_key", "")) == "noir") and (hatNode != null and hatNode.visible)
+	assertCond(skinAppliedOk, "SHP-01", "Personalizacja poprawnie nakłada wybraną skórkę, kolor i akcesorium głowy na postać")
+
+	plr.free()
+	ps.free()
+
+func utCustomizationLockedSkinRejected() -> void:
+	var ps = PortalSyncScript.new()
+	ps.is_linked = true
+	ps.session_token = "tok_test_cust"
+	ps.cosmetics_state["owned_items"] = [
+		{"id": 101, "type": "skórka", "name": "Skórka podstawowa"},
+		{"id": 102, "type": "skórka", "name": "Noir Stelly"},
+		{"id": 201, "type": "kolor", "name": "Fioletowy"}
+	]
+
+	var lockedId: int = ps.find_owned_element_id("skórka", "2077 Stelly")
+	var ownedId: int = ps.find_owned_element_id("skórka", "Noir Stelly")
+	var saveRejected: bool = not ps.save_appearance_to_web("2077 Stelly")
+
+	assertCond((lockedId == 0) and (ownedId == 102) and saveRejected, "SHP-02", "Zablokowana skórka nie jest na liście posiadanych i próba jej zapisu zostaje odrzucona")
+	ps.free()
+
+func utBoosterUseQueueAndIdempotency() -> void:
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_BOOSTERS_QUEUE_PATH))
+	var ps = PortalSyncScript.new()
+	ps.boosters_queue_path = TEST_BOOSTERS_QUEUE_PATH
+	ps.is_linked = true
+	ps.session_token = "tok_test_bst"
+	ps.cosmetics_state["boosters"] = {"tarcza": 2, "magnes": 1}
+
+	var u1: bool = ps.report_booster_used("tarcza", "OP-SHIELD-0001")
+	var u2: bool = ps.report_booster_used("tarcza", "OP-SHIELD-0001")
+	var remainingAfterUse: int = int(ps.cosmetics_state["boosters"]["tarcza"])
+	ps.free()
+
+	var ps2 = PortalSyncScript.new()
+	ps2.boosters_queue_path = TEST_BOOSTERS_QUEUE_PATH
+	ps2.load_pending_booster_uses()
+	var ok: bool = u1 and (not u2) and (remainingAfterUse == 1) and (ps2.pending_booster_uses.size() == 1)
+	assertCond(ok, "SHP-03", "Użycie zakupionego boostera jest idempotentne po operation_id i zapisuje się w kolejce offline")
+
+	ps2.free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_BOOSTERS_QUEUE_PATH))
+
+func utCloudSaveChecksumAndConflictResolution() -> void:
+	var cs1: String = PortalSyncScript.compute_save_checksum(2, "CP-1", 12, 1763600000, "0.3.0")
+	var cs2: String = PortalSyncScript.compute_save_checksum(2, "CP-1", 12, 1763600000, "0.3.0")
+	var csDiff: String = PortalSyncScript.compute_save_checksum(2, "CP-2", 12, 1763600000, "0.3.0")
+	var checksumOk: bool = (cs1.length() == 64) and (cs1 == cs2) and (cs1 != csDiff)
+
+	var ps = PortalSyncScript.new()
+	ps._last_local_save_payload = {"level": 2, "checkpoint": "CP-1", "gems": 12}
+	var conflictBody := JSON.stringify({
+		"error": {
+			"code": "save_conflict",
+			"details": {"server_save": {"level": 3, "checkpoint": "CP-2", "gems": 20}}
+		}
+	}).to_utf8_buffer()
+	ps._on_save_request_completed(0, 409, PackedStringArray(), conflictBody)
+	var conflictDetected: bool = (int(ps.save_conflict_server.get("level", 0)) == 3)
+	ps.resolve_save_conflict(false)
+	var resolvedServerOk: bool = (int(ps.cloud_save.get("level", 0)) == 3) and ps.save_conflict_server.is_empty()
+
+	assertCond(checksumOk and conflictDetected and resolvedServerOk, "SHP-04", "Suma kontrolna SHA-256 zapisu gry i rozwiązywanie konfliktu wersji (409) działają poprawnie")
+	ps.free()
+
+func utDailyRewardClaimUpdatesWalletBalance() -> void:
+	var ps = PortalSyncScript.new()
+	ps.player_profile["gems"] = 100
+	ps._daily_req_kind = "claim"
+	var claimBody := JSON.stringify({
+		"available": false,
+		"streak_day": 3,
+		"reward_gems": 50,
+		"balance": 150
+	}).to_utf8_buffer()
+	ps._on_daily_request_completed(0, 200, PackedStringArray(), claimBody)
+	var claimedOk: bool = (int(ps.player_profile["gems"]) == 150) and (int(ps.daily_reward_state.get("streak_day", 0)) == 3)
+
+	ps._daily_req_kind = "claim"
+	ps._on_daily_request_completed(0, 409, PackedStringArray(), PackedByteArray())
+	var duplicateBlockedOk: bool = (bool(ps.daily_reward_state.get("available", true)) == false)
+
+	assertCond(claimedOk and duplicateBlockedOk, "SHP-05", "Odbiór nagrody dziennej aktualizuje saldo klejnotów, a ponowne odebranie tego samego dnia jest blokowane (409)")
+	ps.free()
 
 # ==============================================================================
 # FUNKCJE POMOCNICZE

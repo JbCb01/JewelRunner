@@ -20,6 +20,14 @@ enum JewelType {
 @export var magnet_radius: float = 95.0
 @export var magnet_speed: float = 210.0
 
+## Czy klejnot jest sekretnym specjalnym klejnotem kolekcji (S23KC2S1P1-284 / S23KC2S1P1-87)
+@export var is_secret_special: bool = false
+@export var special_id: String = ""
+@export var special_name: String = "Klejnot Eteru"
+@export var special_rarity: String = "Legendarny"
+@export var special_point_val: int = 500
+var is_already_owned_special: bool = false
+
 @onready var spriteNode: Sprite2D = get_node_or_null("Sprite2D")
 var startY: float = 0.0
 var timePassed: float = 0.0
@@ -30,8 +38,43 @@ func _ready() -> void:
 		startY = spriteNode.position.y
 	_setup_jewel_texture()
 	_apply_cursed_visuals()
+	_apply_special_collectible_visuals()
 	if not body_entered.is_connected(_onBodyEntered):
 		body_entered.connect(_onBodyEntered)
+
+func configure_secret_jewel(id: String, j_name: String = "Klejnot Eteru", rarity: String = "Legendarny") -> void:
+	is_secret_special = true
+	special_id = id
+	special_name = j_name
+	special_rarity = rarity
+	_apply_special_collectible_visuals()
+
+func _apply_special_collectible_visuals() -> void:
+	if not is_secret_special or special_id.is_empty():
+		return
+	is_already_owned_special = Events.is_special_jewel_owned(special_id) if is_instance_valid(Events) else false
+	var r_tag: Label = get_node_or_null("RarityTag") as Label
+	if is_already_owned_special:
+		modulate.a = 0.45
+		if spriteNode:
+			spriteNode.modulate = Color(0.85, 0.85, 0.9, 0.45)
+		if r_tag:
+			r_tag.visible = false
+	else:
+		modulate.a = 1.0
+		if spriteNode:
+			spriteNode.modulate = Color(1.0, 0.85, 0.25, 1.0)
+		if not r_tag:
+			r_tag = Label.new()
+			r_tag.name = "RarityTag"
+			r_tag.position = Vector2(-36, -24)
+			r_tag.size = Vector2(72, 14)
+			r_tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			r_tag.add_theme_font_size_override("font_size", 8)
+			r_tag.add_theme_color_override("font_color", Color(1.0, 0.9, 0.35, 1.0))
+			add_child(r_tag)
+		r_tag.text = "[%s]" % special_rarity
+		r_tag.visible = true
 
 func set_jewel_type(type: JewelType) -> void:
 	jewel_type = type
@@ -104,6 +147,21 @@ func _process(delta: float) -> void:
 
 func _onBodyEntered(body: Node2D) -> void:
 	if body.is_in_group("player"):
+		if is_secret_special and not special_id.is_empty():
+			var was_owned: bool = is_already_owned_special or (is_instance_valid(Events) and Events.is_special_jewel_owned(special_id))
+			if was_owned:
+				Events.jewel_collected.emit(pointVal, global_position)
+				if is_instance_valid(Events):
+					Events.special_jewel_collected.emit(special_id, special_name, special_rarity, true)
+			else:
+				if is_instance_valid(Events):
+					Events.register_special_jewel(special_id, special_name, special_rarity)
+				Events.jewel_collected.emit(special_point_val, global_position)
+				if is_instance_valid(Events):
+					Events.special_jewel_collected.emit(special_id, special_name, special_rarity, false)
+			queue_free()
+			return
+
 		# Aktywacja mechanik specjalnych klejnotów (power-upów)
 		match jewel_type:
 			JewelType.JEW_JEWEL:

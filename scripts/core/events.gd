@@ -29,6 +29,11 @@ signal score_updated(total_score: int)
 signal trick_performed(points: int)
 signal multiplier_changed(multiplier: float)
 signal enemy_defeated()
+signal powerup_collected(powerup_type: String, duration: float, value: float)
+signal powerup_expired(powerup_type: String)
+signal checkpoint_reached(checkpoint_id: String, position: Vector2)
+signal player_fell_in_abyss(respawn_position: Vector2)
+signal special_jewel_collected(special_id: String, jewel_name: String, rarity: String, already_owned: bool)
 
 # --- Zdarzenia Poziomu i Pętli Gry (Game Loop Events) ---
 signal level_started()
@@ -74,6 +79,47 @@ var portal_sync: Node = null
 
 ## Bufor salda klejnotów: kolejka offline i synchronizacja z serwerem (/api/me/wallet/sync)
 var wallet_sync: Node = null
+
+## Trwała kolekcja specjalnych (sekretnych) klejnotów
+const SPECIAL_JEWELS_SAVE_PATH: String = "user://special_jewels.json"
+var special_jewels_save_path: String = SPECIAL_JEWELS_SAVE_PATH
+var collected_special_jewels: Dictionary = {}
+
+func is_special_jewel_owned(special_id: String) -> bool:
+	if special_id.is_empty():
+		return false
+	return collected_special_jewels.has(special_id)
+
+func register_special_jewel(special_id: String, jewel_name: String = "Sekretny Klejnot", rarity: String = "Legendarny") -> bool:
+	if special_id.is_empty() or collected_special_jewels.has(special_id):
+		return false
+	collected_special_jewels[special_id] = {
+		"id": special_id,
+		"name": jewel_name,
+		"rarity": rarity,
+		"collected_at": int(Time.get_unix_time_from_system())
+	}
+	save_special_jewels()
+	if is_instance_valid(portal_sync):
+		portal_sync.player_profile["special_gems"] = int(portal_sync.player_profile.get("special_gems", 0)) + 1
+	return true
+
+func save_special_jewels() -> void:
+	var file := FileAccess.open(special_jewels_save_path, FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string(JSON.stringify(collected_special_jewels))
+
+func load_special_jewels() -> void:
+	collected_special_jewels.clear()
+	if not FileAccess.file_exists(special_jewels_save_path):
+		return
+	var text := FileAccess.get_file_as_string(special_jewels_save_path)
+	if text.strip_edges().is_empty():
+		return
+	var json := JSON.new()
+	if json.parse(text) == OK and json.data is Dictionary:
+		collected_special_jewels = (json.data as Dictionary).duplicate(true)
 
 func generate_session_id() -> String:
 	var timestamp := int(Time.get_unix_time_from_system())
@@ -122,6 +168,7 @@ func get_level_best_time(level_id: int) -> float:
 	return float(level_best_times.get(level_id, -1.0))
 
 func _enter_tree() -> void:
+	load_special_jewels()
 	_setup_default_inputs()
 	_ensure_services()
 

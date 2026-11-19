@@ -9,6 +9,7 @@ class_name ProceduralLevelGenerator
 ## 5. Integracji pod przyszły TileSet (TileMapLayer)
 
 const HazardScript = preload("res://scripts/core/hazard_area.gd")
+const CheckpointScript = preload("res://scripts/core/checkpoint.gd")
 const JewelScene = preload("res://scenes/Jewel.tscn")
 
 enum MechanicProfile {
@@ -100,6 +101,7 @@ static func build_level_for_arena(
 		# Jeśli zadanie na stronie wymaga więcej klejnotów niż jest na scenie klasycznej, dołóż brakujące klejnoty!
 		var min_req_jewels: int = int(challenge_reqs.get("min_jewels", 0))
 		var extra_spawned: int = _ensure_minimum_jewels_on_existing_arena(arena_root, min_req_jewels)
+		_ensure_checkpoints_and_abyss_on_existing_arena(arena_root)
 		_apply_cursed_contract_to_existing_jewels(arena_root)
 		
 		var synced_grid: Dictionary = _extract_logical_grid_from_geometry(arena_root)
@@ -138,6 +140,7 @@ static func build_level_for_arena(
 static func generate_blueprint(profile_id: int, rng: RandomNumberGenerator, challenge_reqs: Dictionary = {}) -> Dictionary:
 	var blocks: Array[Dictionary] = []
 	var hazards: Array[Dictionary] = []
+	var checkpoints: Array[Dictionary] = []
 	var jewels: Array[Dictionary] = [] # {"pos": Vector2, "cursed_mechanic": String}
 	var labels: Array[Dictionary] = []
 	
@@ -185,6 +188,8 @@ static func generate_blueprint(profile_id: int, rng: RandomNumberGenerator, chal
 		
 		blocks.append({"name": "GoalFloor", "pos": Vector2(1500, 320), "size": Vector2(400, 32), "type": TileType.FLOOR})
 		blocks.append({"name": "WallRight", "pos": Vector2(1700, 160), "size": Vector2(32, 360), "type": TileType.WALL})
+		checkpoints.append({"name": "Checkpoint1", "id": "CP-1", "pos": Vector2(520, 280)})
+		checkpoints.append({"name": "Checkpoint2", "id": "CP-2", "pos": Vector2(1050, 280)})
 		cursor_x = 1500.0
 		finish_pos = Vector2(1620, 276)
 		
@@ -213,6 +218,8 @@ static func generate_blueprint(profile_id: int, rng: RandomNumberGenerator, chal
 		blocks.append({"name": "SprintHighLedge", "pos": Vector2(1430, 220), "size": Vector2(96, 16), "type": TileType.PLATFORM})
 		jewels.append({"pos": Vector2(1430, 185), "cursed_mechanic": ""})
 		blocks.append({"name": "WallRight", "pos": Vector2(1700, 160), "size": Vector2(32, 360), "type": TileType.WALL})
+		checkpoints.append({"name": "Checkpoint1", "id": "CP-1", "pos": Vector2(540, 280)})
+		checkpoints.append({"name": "Checkpoint2", "id": "CP-2", "pos": Vector2(1300, 280)})
 		cursor_x = 1440.0
 		finish_pos = Vector2(1630, 276)
 		
@@ -284,6 +291,10 @@ static func generate_blueprint(profile_id: int, rng: RandomNumberGenerator, chal
 					blocks.append({"name": "ProcHighDive_%d" % seg_idx, "pos": Vector2(cursor_x + 70, 165), "size": Vector2(80, 16), "type": TileType.PLATFORM})
 					jewels.append({"pos": Vector2(cursor_x + 170, 210), "cursed_mechanic": ""})
 					cursor_x += 260.0
+			if seg_idx == 2:
+				checkpoints.append({"name": "Checkpoint1", "id": "CP-1", "pos": Vector2(cursor_x - 60.0, 280.0)})
+			elif seg_idx == 4:
+				checkpoints.append({"name": "Checkpoint2", "id": "CP-2", "pos": Vector2(cursor_x - 60.0, 280.0)})
 					
 		blocks.append({"name": "ProcGoalFloor", "pos": Vector2(cursor_x + 120, 320), "size": Vector2(240, 32), "type": TileType.FLOOR})
 		finish_pos = Vector2(cursor_x + 165, 276)
@@ -306,6 +317,19 @@ static func generate_blueprint(profile_id: int, rng: RandomNumberGenerator, chal
 		})
 		jewels.append({"pos": Vector2(jx, jy), "cursed_mechanic": ""})
 		
+	# Strefa przepaści pod całą mapą (cofa gracza do ostatniego checkpointu po odjęciu 1 HP)
+	hazards.append({"name": "AbyssZone", "pos": Vector2(900, 420), "size": Vector2(2400, 40), "is_abyss": true})
+	
+	# Specjalny sekretny klejnot w ukrytym obszarze poziomu (S23KC2S1P1-284 / S23KC2S1P1-87)
+	jewels.append({
+		"pos": Vector2(cursor_x - 80.0, 75.0),
+		"cursed_mechanic": "",
+		"is_secret_special": true,
+		"special_id": "SEC-LVL-%d" % profile_id,
+		"special_name": "Klejnot Eteru #%d" % profile_id,
+		"special_rarity": "Legendarny"
+	})
+		
 	var logical_grid: Dictionary = _rasterize_blocks_to_logical_grid(blocks, hazards)
 	
 	return {
@@ -314,6 +338,7 @@ static func generate_blueprint(profile_id: int, rng: RandomNumberGenerator, chal
 		"finish_pos": finish_pos,
 		"blocks": blocks,
 		"hazards": hazards,
+		"checkpoints": checkpoints,
 		"jewels": jewels,
 		"labels": labels,
 		"logical_grid": logical_grid,
@@ -349,6 +374,57 @@ static func _ensure_minimum_jewels_on_existing_arena(arena_root: Node2D, min_req
 		arena_root.add_child(j_inst)
 	return added
 
+static func _ensure_checkpoints_and_abyss_on_existing_arena(arena_root: Node2D) -> void:
+	var cp_root: Node2D = arena_root.get_node_or_null("Checkpoints")
+	if not cp_root:
+		cp_root = Node2D.new()
+		cp_root.name = "Checkpoints"
+		arena_root.add_child(cp_root)
+	if not cp_root.get_node_or_null("Checkpoint1"):
+		var cp := Area2D.new()
+		cp.name = "Checkpoint1"
+		cp.position = Vector2(650.0, 280.0)
+		cp.collision_layer = 0
+		cp.collision_mask = 2
+		cp.set_script(CheckpointScript)
+		cp.set("checkpoint_id", "CP-1")
+		var col := CollisionShape2D.new()
+		var rect_shape := RectangleShape2D.new()
+		rect_shape.size = Vector2(24, 48)
+		col.shape = rect_shape
+		cp.add_child(col)
+		var pole := ColorRect.new()
+		pole.position = Vector2(-2, -24)
+		pole.size = Vector2(4, 48)
+		pole.color = Color(0.85, 0.85, 0.9, 0.9)
+		cp.add_child(pole)
+		var flag := ColorRect.new()
+		flag.position = Vector2(2, -24)
+		flag.size = Vector2(14, 10)
+		flag.color = Color(0.95, 0.65, 0.2, 0.9)
+		cp.add_child(flag)
+		cp_root.add_child(cp)
+
+	var haz_root: Node2D = arena_root.get_node_or_null("Hazards")
+	if not haz_root:
+		haz_root = Node2D.new()
+		haz_root.name = "Hazards"
+		arena_root.add_child(haz_root)
+	if not haz_root.get_node_or_null("AbyssZone"):
+		var abyss := Area2D.new()
+		abyss.name = "AbyssZone"
+		abyss.position = Vector2(900.0, 420.0)
+		abyss.collision_layer = 16
+		abyss.collision_mask = 2
+		abyss.set_script(HazardScript)
+		abyss.set("is_abyss", true)
+		var acol := CollisionShape2D.new()
+		var arect := RectangleShape2D.new()
+		arect.size = Vector2(2400, 40)
+		acol.shape = arect
+		abyss.add_child(acol)
+		haz_root.add_child(abyss)
+
 static func _apply_cursed_contract_to_existing_jewels(arena_root: Node2D) -> void:
 	if not is_instance_valid(Events) or not is_instance_valid(Events.ai_director):
 		return
@@ -379,6 +455,8 @@ static func _rasterize_blocks_to_logical_grid(blocks: Array[Dictionary], hazards
 				grid[Vector2i(gx, gy)] = t_type
 				
 	for h in hazards:
+		if bool(h.get("is_abyss", false)):
+			continue
 		var pos: Vector2 = h["pos"]
 		var size: Vector2 = h["size"]
 		var top_left: Vector2 = pos - size * 0.5
@@ -406,7 +484,7 @@ static func _extract_logical_grid_from_geometry(arena_root: Node2D) -> Dictionar
 	var haz_root: Node = arena_root.get_node_or_null("Hazards")
 	if haz_root:
 		for child in haz_root.get_children():
-			if child is Area2D:
+			if child is Area2D and child.get("is_abyss") != true:
 				for c in child.get_children():
 					if c is CollisionShape2D and c.shape is RectangleShape2D:
 						var sz: Vector2 = (c.shape as RectangleShape2D).size
@@ -463,6 +541,15 @@ static func _apply_blueprint_to_arena(
 	for child in haz_root.get_children():
 		haz_root.remove_child(child)
 		child.queue_free()
+
+	var cp_root: Node2D = arena_root.get_node_or_null("Checkpoints")
+	if not cp_root:
+		cp_root = Node2D.new()
+		cp_root.name = "Checkpoints"
+		arena_root.add_child(cp_root)
+	for child in cp_root.get_children():
+		cp_root.remove_child(child)
+		child.queue_free()
 		
 	var labels_root: Node2D = arena_root.get_node_or_null("Labels")
 	if labels_root:
@@ -514,12 +601,14 @@ static func _apply_blueprint_to_arena(
 		geom.add_child(sb)
 		
 	for h in blueprint["hazards"]:
+		var is_abyss_zone: bool = bool(h.get("is_abyss", false))
 		var area := Area2D.new()
 		area.name = String(h["name"])
 		area.position = h["pos"]
 		area.collision_layer = 16
 		area.collision_mask = 2
 		area.set_script(HazardScript)
+		area.set("is_abyss", is_abyss_zone)
 		
 		var col := CollisionShape2D.new()
 		var rect_shape := RectangleShape2D.new()
@@ -528,7 +617,7 @@ static func _apply_blueprint_to_arena(
 		col.shape = rect_shape
 		area.add_child(col)
 		
-		if show_placeholder_visuals:
+		if show_placeholder_visuals and not is_abyss_zone:
 			if ResourceLoader.exists("res://assets/Kolce.png"):
 				var spike_tex = load("res://assets/Kolce.png")
 				var trect := TextureRect.new()
@@ -547,6 +636,32 @@ static func _apply_blueprint_to_arena(
 				rect.color = Color(0.78, 0.22, 0.22, 1.0)
 				area.add_child(rect)
 		haz_root.add_child(area)
+
+	for cp in blueprint.get("checkpoints", []):
+		var cp_area := Area2D.new()
+		cp_area.name = String(cp.get("name", "Checkpoint"))
+		cp_area.position = cp["pos"]
+		cp_area.collision_layer = 0
+		cp_area.collision_mask = 2
+		cp_area.set_script(CheckpointScript)
+		cp_area.set("checkpoint_id", String(cp.get("id", "CP-1")))
+		var cp_col := CollisionShape2D.new()
+		var cp_shape := RectangleShape2D.new()
+		cp_shape.size = Vector2(24, 48)
+		cp_col.shape = cp_shape
+		cp_area.add_child(cp_col)
+		if show_placeholder_visuals:
+			var pole := ColorRect.new()
+			pole.position = Vector2(-2, -24)
+			pole.size = Vector2(4, 48)
+			pole.color = Color(0.85, 0.85, 0.9, 0.9)
+			cp_area.add_child(pole)
+			var flag := ColorRect.new()
+			flag.position = Vector2(2, -24)
+			flag.size = Vector2(14, 10)
+			flag.color = Color(0.95, 0.65, 0.2, 0.9)
+			cp_area.add_child(flag)
+		cp_root.add_child(cp_area)
 		
 	var j_idx: int = 0
 	for j_item in blueprint["jewels"]:
@@ -558,6 +673,13 @@ static func _apply_blueprint_to_arena(
 			var cursed_m: String = String(j_item.get("cursed_mechanic", ""))
 			if not cursed_m.is_empty() and j_inst.has_method("set_cursed"):
 				j_inst.call("set_cursed", cursed_m, 4.0)
+			if bool(j_item.get("is_secret_special", false)) and j_inst.has_method("configure_secret_jewel"):
+				j_inst.call(
+					"configure_secret_jewel",
+					String(j_item.get("special_id", "SEC-%d" % j_idx)),
+					String(j_item.get("special_name", "Klejnot Eteru")),
+					String(j_item.get("special_rarity", "Legendarny"))
+				)
 		elif j_item is Vector2:
 			j_inst.position = j_item
 		arena_root.add_child(j_inst)
@@ -575,6 +697,8 @@ static func _apply_blueprint_to_arena(
 	var player: Node2D = arena_root.get_node_or_null("Player")
 	if player:
 		player.position = blueprint["respawn_pos"]
+		if player.has_method("set_checkpoint"):
+			player.call("set_checkpoint", blueprint["respawn_pos"], "START")
 		var cam: Camera2D = player.get_node_or_null("Camera2D")
 		if cam:
 			cam.limit_right = int(max(1850.0, blueprint["finish_pos"].x + 220.0))

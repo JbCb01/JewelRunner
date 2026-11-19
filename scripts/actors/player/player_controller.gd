@@ -1,6 +1,8 @@
 extends CharacterBody2D
 class_name PlayerController
 
+const SkinManager = preload("res://scripts/core/skin_manager.gd")
+
 ## Zaawansowany kontroler gracza 2D dla JewelRunner
 ## Obsługuje: bieg, skok o zmiennej wysokości, podwójny skok, coyote time, jump buffer,
 ## poziomy dash, kucanie, wślizg (slide) z ochroną sufitu, wspinaczkę po ścianie i wall jump.
@@ -133,10 +135,14 @@ var invulnerability_timer: float = 0.0
 @export var hp_display_duration: float = 2.5
 var hp_display_timer: float = 3.0 ## Widoczne przez 3s na początku poziomu oraz po otrzymaniu obrażeń
 
-# --- Power-upy (Klejnoty Specjalne) ---
+# --- Power-upy (Klejnoty Specjalne i Wzmocnienia) ---
 var invincibility_powerup_timer: float = 0.0
 var speed_powerup_timer: float = 0.0
 var has_shield: bool = false
+var base_speed: float = 175.0
+var active_powerups: Dictionary = {}
+var last_checkpoint_pos: Vector2 = Vector2.ZERO
+var last_checkpoint_id: String = "START"
 
 # Domyślne rozmiary collidera (stojący vs kucający/wślizg)
 var standing_shape_size: Vector2 = Vector2(18, 30)
@@ -146,6 +152,8 @@ var crouch_shape_position: Vector2 = Vector2(0, 7)
 
 func _ready() -> void:
 	add_to_group("player")
+	base_speed = speed
+	last_checkpoint_pos = global_position
 	current_health = max_health
 	wall_stamina = wall_climb_max_stamina
 	airborne_stamina_ceiling = wall_climb_max_stamina
@@ -360,6 +368,23 @@ func _update_timers(delta: float) -> void:
 	if speed_powerup_timer > 0.0:
 		speed_powerup_timer = max(0.0, speed_powerup_timer - delta)
 
+	for p_type in active_powerups.keys().duplicate():
+		var entry: Dictionary = active_powerups[p_type]
+		var time_left: float = max(0.0, float(entry.get("time_left", 0.0)) - delta)
+		if time_left <= 0.0:
+			active_powerups.erase(p_type)
+			if p_type == "SPEED_BOOST":
+				speed = base_speed
+			elif p_type == "INVINCIBILITY":
+				invincibility_powerup_timer = 0.0
+			elif p_type == "SHIELD":
+				has_shield = false
+			if is_instance_valid(Events):
+				Events.powerup_expired.emit(p_type)
+		else:
+			entry["time_left"] = time_left
+			active_powerups[p_type] = entry
+
 	# Obsługa widoczności gwiazdek HP (początek poziomu oraz obrażenia)
 	var hp_container: Node2D = get_node_or_null("HpSquares")
 	if hp_container:
@@ -394,6 +419,77 @@ func apply_speed_boost(duration: float = 10.0) -> void:
 func apply_shield() -> void:
 	has_shield = true
 
+func apply_powerup(powerup_type: String, duration: float = 6.0, value: float = 1.5, tier: int = 1) -> bool:
+	if powerup_type == "INSTANT_HEAL":
+		heal(maxi(1, int(round(value))))
+		if is_instance_valid(Events):
+			Events.powerup_collected.emit(powerup_type, 0.0, value)
+		return true
+
+	if active_powerups.has(powerup_type):
+		var cur: Dictionary = active_powerups[powerup_type]
+		var cur_tier: int = int(cur.get("tier", 1))
+		if tier < cur_tier:
+			return false
+
+	active_powerups[powerup_type] = {
+		"time_left": duration,
+		"duration": duration,
+		"value": value,
+		"tier": tier
+	}
+
+	match powerup_type:
+		"SPEED_BOOST":
+			speed = base_speed * value
+		"INVINCIBILITY":
+			invincibility_powerup_timer = max(invincibility_powerup_timer, duration)
+		"SHIELD":
+			has_shield = true
+
+	if is_instance_valid(Events):
+		Events.powerup_collected.emit(powerup_type, duration, value)
+	return true
+
+func has_powerup(powerup_type: String) -> bool:
+	if powerup_type == "SHIELD":
+		return active_powerups.has("SHIELD") and has_shield
+	return active_powerups.has(powerup_type)
+
+func get_powerup_time_left(powerup_type: String) -> float:
+	if not active_powerups.has(powerup_type):
+		return 0.0
+	return float(active_powerups[powerup_type].get("time_left", 0.0))
+
+func clear_powerups() -> void:
+	active_powerups.clear()
+	speed = base_speed
+	invincibility_powerup_timer = 0.0
+	speed_powerup_timer = 0.0
+	has_shield = false
+
+func set_checkpoint(pos: Vector2, cp_id: String = "CP") -> void:
+	last_checkpoint_pos = pos
+	last_checkpoint_id = cp_id
+
+func respawn_at_checkpoint() -> void:
+	global_position = last_checkpoint_pos
+	velocity = Vector2.ZERO
+	is_tricking = false
+	_change_state(State.IDLE)
+	is_invulnerable = true
+	invulnerability_timer = invulnerability_duration
+
+func handle_abyss_fall(dmg: int = 1) -> void:
+	if current_health <= 0:
+		return
+	is_invulnerable = false
+	take_damage(maxi(1, dmg), Vector2.ZERO)
+	if current_health > 0:
+		respawn_at_checkpoint()
+		if is_instance_valid(Events):
+			Events.player_fell_in_abyss.emit(last_checkpoint_pos)
+
 func is_dashing() -> bool:
 	return current_state == State.DASH
 
@@ -404,16 +500,19 @@ func take_damage(amount: int, source_position: Vector2 = Vector2.ZERO) -> void:
 	if is_invulnerable or current_health <= 0:
 		return
 		
-	# Power-up JewJewel: brak otrzymywania obrażeń przez 10s
-	if invincibility_powerup_timer > 0.0:
+	# Power-up JewJewel / INVINCIBILITY: brak otrzymywania obrażeń
+	if invincibility_powerup_timer > 0.0 or has_powerup("INVINCIBILITY"):
 		return
 		
 	# Obsługa wzmocnienia "tarcza" (najpierw darmowa tarcza z poziomu, potem tarcza z portalu)
-	if has_shield:
+	if has_shield or has_powerup("SHIELD"):
 		has_shield = false
+		active_powerups.erase("SHIELD")
 		is_invulnerable = true
 		invulnerability_timer = invulnerability_duration
 		show_hp_indicator()
+		if is_instance_valid(Events):
+			Events.powerup_expired.emit("SHIELD")
 		return
 	elif get_meta("has_portal_shield", false):
 		set_meta("has_portal_shield", false)
@@ -936,7 +1035,7 @@ func _update_visuals() -> void:
 	elif invincibility_powerup_timer > 0.0:
 		var pulse = (sin(Time.get_ticks_msec() * 0.015) + 1.0) * 0.5
 		visuals.modulate = Color(1.0, 0.82 + pulse * 0.18, 0.2 + pulse * 0.6, 1.0)
-	elif speed_powerup_timer > 0.0:
+	elif speed_powerup_timer > 0.0 or has_powerup("SPEED_BOOST"):
 		var pulse = (sin(Time.get_ticks_msec() * 0.02) + 1.0) * 0.5
 		visuals.modulate = Color(0.4 + pulse * 0.3, 0.9, 1.0, 1.0)
 	elif has_shield:

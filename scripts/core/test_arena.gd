@@ -17,6 +17,7 @@ const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 @onready var hud_time_label: Label = get_node_or_null("HUD/TimePanel/TimeText")
 @onready var hud_session_label: Label = get_node_or_null("HUD/SessionLabel")
 @onready var pause_menu: Control = get_node_or_null("HUD/PauseMenu")
+@onready var settings_view: Control = get_node_or_null("HUD/SettingsView")
 @onready var game_over_menu: Control = get_node_or_null("HUD/GameOverMenu")
 @onready var win_screen: Control = get_node_or_null("HUD/WinScreen")
 @onready var win_score_label: Label = get_node_or_null("HUD/WinScreen/ScoreResultText") if has_node("HUD/WinScreen/ScoreResultText") else get_node_or_null("HUD/WinScreen/JewelResultText")
@@ -42,6 +43,39 @@ var is_stage_cleared: bool = false
 var session_id: String = ""
 var elapsed_time: float = 0.0
 var is_timer_running: bool = false
+
+var current_settings_tab: int = 0
+var current_language: String = "pl"
+var subtitles_enabled: bool = true
+var tabNames: Array = ["MUZYKA", "GRAFIKA", "STEROWANIE", "JĘZYK"]
+
+var pause_buttons: Array[Button] = []
+var game_over_buttons: Array[Button] = []
+var win_buttons: Array[Button] = []
+
+var pause_focus_idx: int = 0
+var game_over_focus_idx: int = 0
+var win_focus_idx: int = 0
+
+func _set_button_focus(buttons: Array[Button], idx: int) -> int:
+	if buttons.is_empty():
+		return 0
+	var clamped_idx = (idx % buttons.size() + buttons.size()) % buttons.size()
+	for i in range(buttons.size()):
+		var b = buttons[i]
+		if b and i == clamped_idx:
+			b.grab_focus()
+	return clamped_idx
+
+func _activate_focused_button(buttons: Array[Button], idx: int) -> bool:
+	if buttons.is_empty():
+		return false
+	var clamped_idx = (idx % buttons.size() + buttons.size()) % buttons.size()
+	var b = buttons[clamped_idx]
+	if b and b.is_inside_tree() and b.visible:
+		b.pressed.emit()
+		return true
+	return false
 
 func _ready() -> void:
 	get_tree().paused = false
@@ -71,8 +105,13 @@ func _ready() -> void:
 	is_timer_running = true
 	
 	if pause_menu: pause_menu.visible = false
+	if settings_view: settings_view.visible = false
 	if game_over_menu: game_over_menu.visible = false
 	if win_screen: win_screen.visible = false
+	
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		var saved_lang = String(Events.portal_sync.cosmetics_state.get("language", Events.portal_sync.profile_settings.get("language", "pl")))
+		_apply_language(saved_lang)
 	
 	_ensure_ai_hud_panel()
 	_update_score_hud()
@@ -102,14 +141,33 @@ func _ready() -> void:
 	if finish_goal and not finish_goal.body_entered.is_connected(_on_goal_entered):
 		finish_goal.body_entered.connect(_on_goal_entered)
 	
-	# Podpięcie przycisków pauzy
+	# Podpięcie przycisków pauzy i nawigacji
 	var resume_btn: Button = get_node_or_null("HUD/PauseMenu/ResumeBtn")
 	var restart_btn: Button = get_node_or_null("HUD/PauseMenu/RestartBtn")
+	var settings_btn: Button = get_node_or_null("HUD/PauseMenu/SettingsBtn")
 	var quit_btn: Button = get_node_or_null("HUD/PauseMenu/QuitBtn")
 	
 	if resume_btn: resume_btn.pressed.connect(_toggle_pause)
 	if restart_btn: restart_btn.pressed.connect(_restart_game)
+	if settings_btn: settings_btn.pressed.connect(_open_settings)
 	if quit_btn: quit_btn.pressed.connect(_quit_or_menu)
+	
+	pause_buttons.clear()
+	for b in [resume_btn, restart_btn, settings_btn, quit_btn]:
+		if b: pause_buttons.append(b)
+	for i in range(pause_buttons.size()):
+		var b = pause_buttons[i]
+		var cap_i = i
+		b.mouse_entered.connect(func():
+			pause_focus_idx = cap_i
+			b.grab_focus()
+		)
+		b.focus_entered.connect(func():
+			pause_focus_idx = cap_i
+		)
+	
+	var settings_back_btn: Button = get_node_or_null("HUD/SettingsView/BackBtn")
+	if settings_back_btn: settings_back_btn.pressed.connect(_close_settings)
 	
 	# Podpięcie przycisków Game Over
 	var retry_btn: Button = get_node_or_null("HUD/GameOverMenu/RetryBtn")
@@ -118,12 +176,40 @@ func _ready() -> void:
 	if retry_btn: retry_btn.pressed.connect(_restart_game)
 	if gameover_menu_btn: gameover_menu_btn.pressed.connect(_quit_or_menu)
 	
+	game_over_buttons.clear()
+	for b in [retry_btn, gameover_menu_btn]:
+		if b: game_over_buttons.append(b)
+	for i in range(game_over_buttons.size()):
+		var b = game_over_buttons[i]
+		var cap_i = i
+		b.mouse_entered.connect(func():
+			game_over_focus_idx = cap_i
+			b.grab_focus()
+		)
+		b.focus_entered.connect(func():
+			game_over_focus_idx = cap_i
+		)
+	
 	# Podpięcie przycisków Win Screen
 	var win_retry_btn: Button = get_node_or_null("HUD/WinScreen/RetryBtn")
 	var win_menu_btn: Button = get_node_or_null("HUD/WinScreen/MainMenuBtn")
 	
 	if win_retry_btn: win_retry_btn.pressed.connect(_restart_game)
 	if win_menu_btn: win_menu_btn.pressed.connect(_quit_or_menu)
+	
+	win_buttons.clear()
+	for b in [win_retry_btn, win_menu_btn]:
+		if b: win_buttons.append(b)
+	for i in range(win_buttons.size()):
+		var b = win_buttons[i]
+		var cap_i = i
+		b.mouse_entered.connect(func():
+			win_focus_idx = cap_i
+			b.grab_focus()
+		)
+		b.focus_entered.connect(func():
+			win_focus_idx = cap_i
+		)
 
 func _process(delta: float) -> void:
 	if is_timer_running and not get_tree().paused:
@@ -296,18 +382,101 @@ func _on_goal_entered(body: Node2D) -> void:
 			
 		if win_screen:
 			win_screen.visible = true
+			win_focus_idx = 0
+			_set_button_focus(win_buttons, 0)
 			
 		if audio_win:
 			audio_win.play()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if is_stage_cleared or is_game_over:
-		if event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and (event.keycode == KEY_R or event.keycode == KEY_SPACE)):
-			_restart_game()
+	# 1. Obsługa nawigacji strzałkami w WinScreen
+	if is_stage_cleared and win_screen and win_screen.visible:
+		if event.is_action_pressed("ui_down") or (event is InputEventKey and event.pressed and (event.keycode == KEY_DOWN or event.keycode == KEY_S)):
+			win_focus_idx = _set_button_focus(win_buttons, win_focus_idx + 1)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.is_action_pressed("ui_up") or (event is InputEventKey and event.pressed and (event.keycode == KEY_UP or event.keycode == KEY_W)):
+			win_focus_idx = _set_button_focus(win_buttons, win_focus_idx - 1)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and (event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE)):
+			_activate_focused_button(win_buttons, win_focus_idx)
+			get_viewport().set_input_as_handled()
+			return
 		elif event.is_action_pressed("ui_cancel"):
 			_quit_or_menu()
+			get_viewport().set_input_as_handled()
+			return
+		elif event is InputEventKey and event.pressed and event.keycode == KEY_R:
+			_restart_game()
+			get_viewport().set_input_as_handled()
+			return
 		return
+
+	# 2. Obsługa nawigacji strzałkami w GameOverMenu
+	if is_game_over and game_over_menu and game_over_menu.visible:
+		if event.is_action_pressed("ui_down") or (event is InputEventKey and event.pressed and (event.keycode == KEY_DOWN or event.keycode == KEY_S)):
+			game_over_focus_idx = _set_button_focus(game_over_buttons, game_over_focus_idx + 1)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.is_action_pressed("ui_up") or (event is InputEventKey and event.pressed and (event.keycode == KEY_UP or event.keycode == KEY_W)):
+			game_over_focus_idx = _set_button_focus(game_over_buttons, game_over_focus_idx - 1)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and (event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE)):
+			_activate_focused_button(game_over_buttons, game_over_focus_idx)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.is_action_pressed("ui_cancel"):
+			_quit_or_menu()
+			get_viewport().set_input_as_handled()
+			return
+		elif event is InputEventKey and event.pressed and event.keycode == KEY_R:
+			_restart_game()
+			get_viewport().set_input_as_handled()
+			return
+		return
+
+	# 3. Obsługa SettingsView w trakcie gry
+	if settings_view and settings_view.visible:
+		if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and event.keycode == KEY_P):
+			_close_settings()
+			get_viewport().set_input_as_handled()
+			return
+		elif event is InputEventKey and event.pressed:
+			if event.keycode == KEY_Q or event.keycode == KEY_PAGEUP:
+				_switch_settings_tab((current_settings_tab - 1 + 4) % 4)
+				get_viewport().set_input_as_handled()
+				return
+			elif event.keycode == KEY_E or event.keycode == KEY_PAGEDOWN:
+				_switch_settings_tab((current_settings_tab + 1) % 4)
+				get_viewport().set_input_as_handled()
+				return
+			elif event.keycode >= KEY_1 and event.keycode <= KEY_4:
+				_switch_settings_tab(event.keycode - KEY_1)
+				get_viewport().set_input_as_handled()
+				return
 		
+	# 4. Obsługa nawigacji strzałkami w PauseMenu
+	if get_tree().paused and pause_menu and pause_menu.visible:
+		if event.is_action_pressed("ui_down") or (event is InputEventKey and event.pressed and (event.keycode == KEY_DOWN or event.keycode == KEY_S)):
+			pause_focus_idx = _set_button_focus(pause_buttons, pause_focus_idx + 1)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.is_action_pressed("ui_up") or (event is InputEventKey and event.pressed and (event.keycode == KEY_UP or event.keycode == KEY_W)):
+			pause_focus_idx = _set_button_focus(pause_buttons, pause_focus_idx - 1)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and (event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE)):
+			_activate_focused_button(pause_buttons, pause_focus_idx)
+			get_viewport().set_input_as_handled()
+			return
+		elif event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and event.keycode == KEY_P):
+			_toggle_pause()
+			get_viewport().set_input_as_handled()
+			return
+
+	# 5. Klawisze w trakcie normalnej rozgrywki
 	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and event.keycode == KEY_P):
 		_toggle_pause()
 	elif not get_tree().paused and event is InputEventKey and event.pressed and event.keycode == KEY_R:
@@ -317,13 +486,508 @@ func _toggle_pause() -> void:
 	if is_game_over or is_stage_cleared:
 		return
 		
+	if settings_view and settings_view.visible:
+		_close_settings()
+		return
+		
 	var paused = not get_tree().paused
 	get_tree().paused = paused
 	if pause_menu:
 		pause_menu.visible = paused
+		if paused:
+			pause_focus_idx = 0
+			_set_button_focus(pause_buttons, 0)
 		
 	if paused and audio_pause:
 		audio_pause.play()
+
+func _open_settings() -> void:
+	if pause_menu:
+		pause_menu.visible = false
+	if settings_view:
+		settings_view.visible = true
+		_setup_settings_view()
+		_switch_settings_tab(0)
+
+func _close_settings() -> void:
+	if settings_view:
+		settings_view.visible = false
+	if pause_menu:
+		pause_menu.visible = true
+		_set_button_focus(pause_buttons, pause_focus_idx)
+
+func _find_in_settings(child_path: String) -> Node:
+	if not settings_view:
+		return null
+	var direct = settings_view.get_node_or_null(child_path)
+	if direct:
+		return direct
+	var in_panels = settings_view.get_node_or_null("Panels/" + child_path)
+	if in_panels:
+		return in_panels
+	for cat in ["AudioPanel", "GraphicsPanel", "ControlsPanel", "LanguagePanel"]:
+		var p_node = settings_view.get_node_or_null("Panels/" + cat + "/" + child_path)
+		if p_node:
+			return p_node
+	var fname = child_path.get_file()
+	if fname == "Label" or fname == "Value":
+		return null
+	return settings_view.find_child(fname, true, false)
+
+func _ensure_audio_buses() -> void:
+	if AudioServer.get_bus_index("Music") == -1:
+		var idx = AudioServer.bus_count
+		AudioServer.add_bus(idx)
+		AudioServer.set_bus_name(idx, "Music")
+		AudioServer.set_bus_send(idx, "Master")
+	if AudioServer.get_bus_index("MusicMenu") == -1:
+		var idx = AudioServer.bus_count
+		AudioServer.add_bus(idx)
+		AudioServer.set_bus_name(idx, "MusicMenu")
+		AudioServer.set_bus_send(idx, "Music")
+	if AudioServer.get_bus_index("MusicLevel") == -1:
+		var idx = AudioServer.bus_count
+		AudioServer.add_bus(idx)
+		AudioServer.set_bus_name(idx, "MusicLevel")
+		AudioServer.set_bus_send(idx, "Music")
+	if AudioServer.get_bus_index("SFX") == -1:
+		var idx = AudioServer.bus_count
+		AudioServer.add_bus(idx)
+		AudioServer.set_bus_name(idx, "SFX")
+		AudioServer.set_bus_send(idx, "Master")
+
+func _set_bus_volume_percent(bus_name: String, pct: float) -> void:
+	_ensure_audio_buses()
+	var bus_idx = AudioServer.get_bus_index(bus_name)
+	if bus_idx == -1:
+		return
+	if pct <= 0.001:
+		AudioServer.set_bus_mute(bus_idx, true)
+	else:
+		AudioServer.set_bus_mute(bus_idx, false)
+		var linear = clampf(pct / 100.0, 0.0001, 1.0)
+		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(linear))
+
+func _setup_settings_view() -> void:
+	_ensure_audio_buses()
+	
+	# Podpięcie zakładek
+	var tabAudioBtn: Button = _find_in_settings("TabAudioBtn") as Button
+	var tabGraphicsBtn: Button = _find_in_settings("TabGraphicsBtn") as Button
+	var tabControlsBtn: Button = _find_in_settings("TabControlsBtn") as Button
+	var tabLanguageBtn: Button = _find_in_settings("TabLanguageBtn") as Button
+	
+	if tabAudioBtn and not tabAudioBtn.pressed.is_connected(func(): _switch_settings_tab(0)):
+		tabAudioBtn.pressed.connect(func(): _switch_settings_tab(0))
+	if tabGraphicsBtn and not tabGraphicsBtn.pressed.is_connected(func(): _switch_settings_tab(1)):
+		tabGraphicsBtn.pressed.connect(func(): _switch_settings_tab(1))
+	if tabControlsBtn and not tabControlsBtn.pressed.is_connected(func(): _switch_settings_tab(2)):
+		tabControlsBtn.pressed.connect(func(): _switch_settings_tab(2))
+	if tabLanguageBtn and not tabLanguageBtn.pressed.is_connected(func(): _switch_settings_tab(3)):
+		tabLanguageBtn.pressed.connect(func(): _switch_settings_tab(3))
+		
+	# Podpięcie opcji graficznych
+	var modeOpt: OptionButton = _find_in_settings("DisplayModeOpt") as OptionButton
+	if modeOpt:
+		_populate_display_mode_opt(modeOpt)
+		
+	var resOpt: OptionButton = _find_in_settings("ResolutionOpt") as OptionButton
+	if resOpt:
+		_populate_resolution_opt(resOpt)
+		
+	var vsyncCheck: CheckBox = _find_in_settings("VsyncCheck") as CheckBox
+	if vsyncCheck:
+		vsyncCheck.button_pressed = (DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED)
+		if not vsyncCheck.toggled.is_connected(_on_vsync_toggled):
+			vsyncCheck.toggled.connect(_on_vsync_toggled)
+
+	var fpsOpt: OptionButton = _find_in_settings("FpsLimitOpt") as OptionButton
+	if fpsOpt:
+		_populate_fps_limit_opt(fpsOpt)
+		
+	var langOpt: OptionButton = _find_in_settings("LanguageOpt") as OptionButton
+	if langOpt:
+		langOpt.clear()
+		langOpt.add_item("Polski (PL)")
+		langOpt.add_item("English (EN)")
+		langOpt.selected = 0 if current_language == "pl" else 1
+		if not langOpt.item_selected.is_connected(_on_language_selected):
+			langOpt.item_selected.connect(_on_language_selected)
+
+	var subsCheck: CheckBox = _find_in_settings("SubtitlesCheck") as CheckBox
+	if subsCheck:
+		subsCheck.button_pressed = subtitles_enabled
+		if not subsCheck.toggled.is_connected(_on_subtitles_toggled):
+			subsCheck.toggled.connect(_on_subtitles_toggled)
+
+	# Podpięcie suwaków audio
+	var masterSlider: HSlider = _find_in_settings("MasterSlider") as HSlider
+	var masterVal: Label = null
+	if masterSlider:
+		masterVal = masterSlider.get_parent().get_node_or_null("MasterValue") as Label
+		if not masterVal: masterVal = masterSlider.get_parent().get_node_or_null("Value") as Label
+		if not masterVal: masterVal = _find_in_settings("MasterValue") as Label
+		var m_idx = AudioServer.get_bus_index("Master")
+		if m_idx != -1:
+			var cur_db = AudioServer.get_bus_volume_db(m_idx)
+			var is_muted = AudioServer.is_bus_mute(m_idx)
+			masterSlider.value = 0.0 if is_muted else clampf(db_to_linear(cur_db) * 100.0, 0.0, 100.0)
+		if masterVal:
+			masterVal.text = "%d%%" % int(masterSlider.value)
+		if not masterSlider.value_changed.is_connected(_on_master_slider_changed):
+			masterSlider.value_changed.connect(_on_master_slider_changed)
+
+	var musicSlider: HSlider = _find_in_settings("MusicSlider") as HSlider
+	var musicVal: Label = null
+	if musicSlider:
+		musicVal = musicSlider.get_parent().get_node_or_null("MusicValue") as Label
+		if not musicVal: musicVal = musicSlider.get_parent().get_node_or_null("Value") as Label
+		if not musicVal: musicVal = _find_in_settings("MusicValue") as Label
+		var mus_idx = AudioServer.get_bus_index("MusicMenu")
+		if mus_idx == -1: mus_idx = AudioServer.get_bus_index("Music")
+		if mus_idx != -1:
+			var cur_db = AudioServer.get_bus_volume_db(mus_idx)
+			var is_muted = AudioServer.is_bus_mute(mus_idx)
+			musicSlider.value = 0.0 if is_muted else clampf(db_to_linear(cur_db) * 100.0, 0.0, 100.0)
+		if musicVal:
+			musicVal.text = "%d%%" % int(musicSlider.value)
+		if not musicSlider.value_changed.is_connected(_on_music_slider_changed):
+			musicSlider.value_changed.connect(_on_music_slider_changed)
+
+	var levelMusicSlider: HSlider = _find_in_settings("LevelMusicSlider") as HSlider
+	var levelMusicVal: Label = null
+	if levelMusicSlider:
+		levelMusicVal = levelMusicSlider.get_parent().get_node_or_null("LevelMusicValue") as Label
+		if not levelMusicVal: levelMusicVal = levelMusicSlider.get_parent().get_node_or_null("Value") as Label
+		if not levelMusicVal: levelMusicVal = _find_in_settings("LevelMusicValue") as Label
+		var lvl_idx = AudioServer.get_bus_index("MusicLevel")
+		if lvl_idx != -1:
+			var cur_db = AudioServer.get_bus_volume_db(lvl_idx)
+			var is_muted = AudioServer.is_bus_mute(lvl_idx)
+			levelMusicSlider.value = 0.0 if is_muted else clampf(db_to_linear(cur_db) * 100.0, 0.0, 100.0)
+		if levelMusicVal:
+			levelMusicVal.text = "%d%%" % int(levelMusicSlider.value)
+		if not levelMusicSlider.value_changed.is_connected(_on_level_music_slider_changed):
+			levelMusicSlider.value_changed.connect(_on_level_music_slider_changed)
+
+	var sfxSlider: HSlider = _find_in_settings("SfxSlider") as HSlider
+	var sfxVal: Label = null
+	if sfxSlider:
+		sfxVal = sfxSlider.get_parent().get_node_or_null("SfxValue") as Label
+		if not sfxVal: sfxVal = sfxSlider.get_parent().get_node_or_null("Value") as Label
+		if not sfxVal: sfxVal = _find_in_settings("SfxValue") as Label
+		var sfx_idx = AudioServer.get_bus_index("SFX")
+		if sfx_idx != -1:
+			var cur_db = AudioServer.get_bus_volume_db(sfx_idx)
+			var is_muted = AudioServer.is_bus_mute(sfx_idx)
+			sfxSlider.value = 0.0 if is_muted else clampf(db_to_linear(cur_db) * 100.0, 0.0, 100.0)
+		if sfxVal:
+			sfxVal.text = "%d%%" % int(sfxSlider.value)
+		if not sfxSlider.value_changed.is_connected(_on_sfx_slider_changed):
+			sfxSlider.value_changed.connect(_on_sfx_slider_changed)
+
+	var muteCheck: CheckBox = _find_in_settings("MuteCheck") as CheckBox
+	if muteCheck:
+		var m_idx = AudioServer.get_bus_index("Master")
+		if m_idx != -1:
+			muteCheck.button_pressed = AudioServer.is_bus_mute(m_idx)
+		if not muteCheck.toggled.is_connected(_on_mute_check_toggled):
+			muteCheck.toggled.connect(_on_mute_check_toggled)
+
+func _switch_settings_tab(tabIdx: int) -> void:
+	current_settings_tab = clampi(tabIdx, 0, 3)
+	
+	var audioP = _find_in_settings("AudioPanel")
+	var gfxP = _find_in_settings("GraphicsPanel")
+	var ctrlP = _find_in_settings("ControlsPanel")
+	var langP = _find_in_settings("LanguagePanel")
+	var panels = [audioP, gfxP, ctrlP, langP]
+	
+	var b0: Button = _find_in_settings("TabAudioBtn") as Button
+	var b1: Button = _find_in_settings("TabGraphicsBtn") as Button
+	var b2: Button = _find_in_settings("TabControlsBtn") as Button
+	var b3: Button = _find_in_settings("TabLanguageBtn") as Button
+	var buttons = [b0, b1, b2, b3]
+	
+	for i in range(panels.size()):
+		var p = panels[i]
+		if p: p.visible = (i == current_settings_tab)
+		
+	for i in range(buttons.size()):
+		var b: Button = buttons[i]
+		if b:
+			if i == current_settings_tab:
+				var sb := StyleBoxFlat.new()
+				sb.bg_color = Color(1.0, 0.88, 0.35, 0.18)
+				sb.border_color = Color(1.0, 0.88, 0.35, 0.95)
+				sb.set_border_width_all(2)
+				sb.set_corner_radius_all(3)
+				b.add_theme_stylebox_override("normal", sb)
+			else:
+				var empty := StyleBoxEmpty.new()
+				b.add_theme_stylebox_override("normal", empty)
+				
+	if buttons[current_settings_tab]:
+		buttons[current_settings_tab].grab_focus()
+
+func _on_master_slider_changed(v: float) -> void:
+	var masterSlider: HSlider = _find_in_settings("MasterSlider") as HSlider
+	var masterVal: Label = null
+	if masterSlider:
+		masterVal = masterSlider.get_parent().get_node_or_null("MasterValue") as Label
+		if not masterVal: masterVal = masterSlider.get_parent().get_node_or_null("Value") as Label
+	if not masterVal: masterVal = _find_in_settings("MasterValue") as Label
+	if masterVal: masterVal.text = "%d%%" % int(v)
+	_set_bus_volume_percent("Master", v)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.profile_settings["master_volume"] = v
+
+func _on_music_slider_changed(v: float) -> void:
+	var musicSlider: HSlider = _find_in_settings("MusicSlider") as HSlider
+	var musicVal: Label = null
+	if musicSlider:
+		musicVal = musicSlider.get_parent().get_node_or_null("MusicValue") as Label
+		if not musicVal: musicVal = musicSlider.get_parent().get_node_or_null("Value") as Label
+	if not musicVal: musicVal = _find_in_settings("MusicValue") as Label
+	if musicVal: musicVal.text = "%d%%" % int(v)
+	_set_bus_volume_percent("MusicMenu", v)
+	_set_bus_volume_percent("Music", v)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.profile_settings["music_volume"] = v
+		Events.portal_sync.cosmetics_state["music_volume"] = v / 100.0
+
+func _on_level_music_slider_changed(v: float) -> void:
+	var levelMusicSlider: HSlider = _find_in_settings("LevelMusicSlider") as HSlider
+	var levelMusicVal: Label = null
+	if levelMusicSlider:
+		levelMusicVal = levelMusicSlider.get_parent().get_node_or_null("LevelMusicValue") as Label
+		if not levelMusicVal: levelMusicVal = levelMusicSlider.get_parent().get_node_or_null("Value") as Label
+	if not levelMusicVal: levelMusicVal = _find_in_settings("LevelMusicValue") as Label
+	if levelMusicVal: levelMusicVal.text = "%d%%" % int(v)
+	_set_bus_volume_percent("MusicLevel", v)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.profile_settings["level_music_volume"] = v
+
+func _on_sfx_slider_changed(v: float) -> void:
+	var sfxSlider: HSlider = _find_in_settings("SfxSlider") as HSlider
+	var sfxVal: Label = null
+	if sfxSlider:
+		sfxVal = sfxSlider.get_parent().get_node_or_null("SfxValue") as Label
+		if not sfxVal: sfxVal = sfxSlider.get_parent().get_node_or_null("Value") as Label
+	if not sfxVal: sfxVal = _find_in_settings("SfxValue") as Label
+	if sfxVal: sfxVal.text = "%d%%" % int(v)
+	_set_bus_volume_percent("SFX", v)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.profile_settings["sfx_volume"] = v
+		Events.portal_sync.cosmetics_state["sfx_volume"] = v / 100.0
+
+func _on_mute_check_toggled(toggled_on: bool) -> void:
+	var m_idx = AudioServer.get_bus_index("Master")
+	if m_idx != -1:
+		AudioServer.set_bus_mute(m_idx, toggled_on)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.profile_settings["is_muted"] = toggled_on
+
+func _populate_display_mode_opt(opt: OptionButton) -> void:
+	opt.clear()
+	if current_language == "en":
+		opt.add_item("Fullscreen")
+		opt.add_item("Windowed")
+		opt.add_item("Borderless Window")
+	else:
+		opt.add_item("Pełny ekran (Fullscreen)")
+		opt.add_item("Okno (Windowed)")
+		opt.add_item("Okno bez ramek (Borderless)")
+	
+	var cur_mode = DisplayServer.window_get_mode()
+	var is_borderless = DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_BORDERLESS)
+	if cur_mode == DisplayServer.WINDOW_MODE_FULLSCREEN or cur_mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
+		opt.selected = 0
+	elif is_borderless:
+		opt.selected = 2
+	else:
+		opt.selected = 1
+		
+	if not opt.item_selected.is_connected(_on_display_mode_selected):
+		opt.item_selected.connect(_on_display_mode_selected)
+
+func _on_display_mode_selected(idx: int) -> void:
+	match idx:
+		0:
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		1:
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		2:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+
+func _populate_resolution_opt(opt: OptionButton) -> void:
+	opt.clear()
+	if current_language == "en":
+		opt.add_item("1280 x 720 (HD)")
+		opt.add_item("1920 x 1080 (FHD)")
+		opt.add_item("640 x 360 (Native)")
+	else:
+		opt.add_item("1280 x 720 (HD)")
+		opt.add_item("1920 x 1080 (FHD)")
+		opt.add_item("640 x 360 (Natywna)")
+		
+	var cur_size = DisplayServer.window_get_size()
+	if cur_size == Vector2i(1920, 1080):
+		opt.selected = 1
+	elif cur_size == Vector2i(640, 360):
+		opt.selected = 2
+	else:
+		opt.selected = 0
+		
+	if not opt.item_selected.is_connected(_on_resolution_selected):
+		opt.item_selected.connect(_on_resolution_selected)
+
+func _on_resolution_selected(idx: int) -> void:
+	var target_size := Vector2i(1280, 720)
+	match idx:
+		0: target_size = Vector2i(1280, 720)
+		1: target_size = Vector2i(1920, 1080)
+		2: target_size = Vector2i(640, 360)
+		
+	var cur_mode = DisplayServer.window_get_mode()
+	if cur_mode == DisplayServer.WINDOW_MODE_FULLSCREEN or cur_mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		var modeOpt: OptionButton = _find_in_settings("DisplayModeOpt") as OptionButton
+		if modeOpt:
+			modeOpt.selected = 1
+			
+	DisplayServer.window_set_size(target_size)
+	var screen_id = DisplayServer.window_get_current_screen()
+	var screen_size = DisplayServer.screen_get_size(screen_id)
+	DisplayServer.window_set_position((screen_size - target_size) / 2)
+
+func _populate_fps_limit_opt(opt: OptionButton) -> void:
+	opt.clear()
+	if current_language == "en":
+		opt.add_item("60 FPS")
+		opt.add_item("120 FPS")
+		opt.add_item("Uncapped")
+	else:
+		opt.add_item("60 FPS")
+		opt.add_item("120 FPS")
+		opt.add_item("Bez limitu (Uncapped)")
+		
+	if Engine.max_fps == 60:
+		opt.selected = 0
+	elif Engine.max_fps == 120:
+		opt.selected = 1
+	else:
+		opt.selected = 2
+		
+	if not opt.item_selected.is_connected(_on_fps_limit_selected):
+		opt.item_selected.connect(_on_fps_limit_selected)
+
+func _on_fps_limit_selected(idx: int) -> void:
+	match idx:
+		0: Engine.max_fps = 60
+		1: Engine.max_fps = 120
+		2: Engine.max_fps = 0
+
+func _on_vsync_toggled(on: bool) -> void:
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if on else DisplayServer.VSYNC_DISABLED)
+
+func _on_subtitles_toggled(on: bool) -> void:
+	subtitles_enabled = on
+
+func _on_language_selected(idx: int) -> void:
+	var code = "pl" if idx == 0 else "en"
+	_apply_language(code)
+
+func _apply_language(lang_code: String) -> void:
+	current_language = lang_code
+	TranslationServer.set_locale(lang_code)
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.cosmetics_state["language"] = lang_code
+	
+	tabNames = ["AUDIO", "GRAPHICS", "CONTROLS", "LANGUAGE"] if current_language == "en" else ["MUZYKA", "GRAFIKA", "STEROWANIE", "JĘZYK"]
+	
+	# Update Audio Panel labels
+	var masterLabel = _find_in_settings("AudioPanel/MasterBox/Label") as Label
+	if masterLabel: masterLabel.text = "Master Volume:" if current_language == "en" else "Głośność ogólna:"
+	var musicLabel = _find_in_settings("AudioPanel/MusicBox/Label") as Label
+	if musicLabel: musicLabel.text = "Menu Music:" if current_language == "en" else "Muzyka w menu:"
+	var levelMusicLabel = _find_in_settings("AudioPanel/LevelMusicBox/Label") as Label
+	if levelMusicLabel: levelMusicLabel.text = "Level Music:" if current_language == "en" else "Muzyka w poziomie:"
+	var sfxLabel = _find_in_settings("AudioPanel/SfxBox/Label") as Label
+	if sfxLabel: sfxLabel.text = "Sound Effects (SFX):" if current_language == "en" else "Efekty dźwiękowe (SFX):"
+	var muteCheck = _find_in_settings("AudioPanel/MuteCheck") as CheckBox
+	if muteCheck: muteCheck.text = "Mute All Sounds" if current_language == "en" else "Wycisz wszystkie dźwięki (Mute All)"
+	
+	# Update Graphics Panel labels and options
+	var modeLabel = _find_in_settings("GraphicsPanel/ModeBox/Label") as Label
+	if modeLabel: modeLabel.text = "Display Mode:" if current_language == "en" else "Tryb wyświetlania:"
+	var modeOpt = _find_in_settings("DisplayModeOpt") as OptionButton
+	if modeOpt:
+		var saved_mode = modeOpt.selected
+		_populate_display_mode_opt(modeOpt)
+		if saved_mode >= 0 and saved_mode < modeOpt.item_count:
+			modeOpt.selected = saved_mode
+			
+	var resLabel = _find_in_settings("GraphicsPanel/ResBox/Label") as Label
+	if resLabel: resLabel.text = "Window Resolution:" if current_language == "en" else "Rozdzielczość okna:"
+	var resOpt = _find_in_settings("ResolutionOpt") as OptionButton
+	if resOpt:
+		var saved_res = resOpt.selected
+		_populate_resolution_opt(resOpt)
+		if saved_res >= 0 and saved_res < resOpt.item_count:
+			resOpt.selected = saved_res
+			
+	var vsyncCheck = _find_in_settings("GraphicsPanel/VsyncCheck") as CheckBox
+	if vsyncCheck: vsyncCheck.text = "Vertical Sync (V-Sync)" if current_language == "en" else "Synchronizacja pionowa (V-Sync)"
+	
+	var fpsLabel = _find_in_settings("GraphicsPanel/FpsBox/Label") as Label
+	if fpsLabel: fpsLabel.text = "Frame Rate Limit (FPS):" if current_language == "en" else "Limit klatek (FPS):"
+	var fpsOpt = _find_in_settings("FpsLimitOpt") as OptionButton
+	if fpsOpt:
+		var saved_fps = fpsOpt.selected
+		_populate_fps_limit_opt(fpsOpt)
+		if saved_fps >= 0 and saved_fps < fpsOpt.item_count:
+			fpsOpt.selected = saved_fps
+			
+	# Update Controls Panel labels
+	var ctrlGrid = _find_in_settings("ControlsPanel/Grid")
+	if ctrlGrid:
+		var a1 = ctrlGrid.get_node_or_null("Action1") as Label
+		if a1: a1.text = "Horizontal Movement (Left / Right):" if current_language == "en" else "Ruch poziomy (Lewo / Prawo):"
+		var k1 = ctrlGrid.get_node_or_null("Key1") as Label
+		if k1: k1.text = "A / D  (or Arrows)" if current_language == "en" else "A / D  (lub Strzałki)"
+		var a2 = ctrlGrid.get_node_or_null("Action2") as Label
+		if a2: a2.text = "Jump / Double Jump:" if current_language == "en" else "Skok / Podwójny skok:"
+		var k2 = ctrlGrid.get_node_or_null("Key2") as Label
+		if k2: k2.text = "Space / W" if current_language == "en" else "Spacja / W"
+		var a3 = ctrlGrid.get_node_or_null("Action3") as Label
+		if a3: a3.text = "Dash:" if current_language == "en" else "Zryw (Dash):"
+		var a4 = ctrlGrid.get_node_or_null("Action4") as Label
+		if a4: a4.text = "Crouch / Slide:" if current_language == "en" else "Kucanie / Wślizg:"
+		var k4 = ctrlGrid.get_node_or_null("Key4") as Label
+		if k4: k4.text = "S / Down Arrow" if current_language == "en" else "S / Strzałka w dół"
+		var a5 = ctrlGrid.get_node_or_null("Action5") as Label
+		if a5: a5.text = "Wall Climb:" if current_language == "en" else "Wspinaczka (przy ścianie):"
+		var a6 = ctrlGrid.get_node_or_null("Action6") as Label
+		if a6: a6.text = "Mid-air Trick (Charges stamina):" if current_language == "en" else "Trick (w locie - ładuje staminę):"
+		var k6 = ctrlGrid.get_node_or_null("Key6") as Label
+		if k6: k6.text = "C (Hold in mid-air)" if current_language == "en" else "C (przytrzymaj w locie)"
+		var a7 = ctrlGrid.get_node_or_null("Action7") as Label
+		if a7: a7.text = "Pause:" if current_language == "en" else "Pauza:"
+		
+	# Update Language Panel labels
+	var langLabel = _find_in_settings("LanguagePanel/LangBox/Label") as Label
+	if langLabel: langLabel.text = "Game Language:" if current_language == "en" else "Język gry (Language):"
+	var subsCheck = _find_in_settings("LanguagePanel/SubtitlesCheck") as CheckBox
+	if subsCheck: subsCheck.text = "Display Subtitles" if current_language == "en" else "Wyświetlaj napisy dialogowe (Subtitles)"
+	
+	# Update LanguageOpt selection
+	var langOpt = _find_in_settings("LanguageOpt") as OptionButton
+	if langOpt:
+		langOpt.selected = 0 if current_language == "pl" else 1
 
 func _restart_game() -> void:
 	get_tree().paused = false
@@ -345,6 +1009,8 @@ func _on_player_died() -> void:
 		music_level.stop()
 	if game_over_menu:
 		game_over_menu.visible = true
+		game_over_focus_idx = 0
+		_set_button_focus(game_over_buttons, 0)
 
 func _on_player_hit(_damage: int) -> void:
 	pass

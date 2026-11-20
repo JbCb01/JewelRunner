@@ -131,6 +131,36 @@ size = Vector2(120, 24)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_goal"]
 size = Vector2(32, 56)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_pill"]
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+bg_color = Color(0.06, 0.08, 0.13, 0.72)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.42, 0.58, 0.45)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_stamina_bg"]
+bg_color = Color(0.12, 0.16, 0.24, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_stamina_fill"]
+bg_color = Color(0.24, 0.92, 0.48, 0.95)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
 [node name="TestArena" type="Node2D" unique_id=903465747]
 script = ExtResource("1_test_arena")
 
@@ -478,70 +508,73 @@ text = "Hold [C] in Air for Tricks!"
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=582845555]
 
-[node name="ControlsPanel" type="PanelContainer" parent="HUD" unique_id=1341534265]
-offset_left = 12.0
-offset_top = 10.0
-offset_right = 628.0
-offset_bottom = 38.0
-
-[node name="ControlsLabel" type="Label" parent="HUD/ControlsPanel" unique_id=263129487]
-layout_mode = 2
-text = "A/D: Ruch | Spacja: Skok / Double Jump (Stamina) | Shift: Dash (Stamina) | W: Wspinaczka (Stamina) | C w locie: Trick (Regen Staminy!) | R: Restart"
-horizontal_alignment = 1
-vertical_alignment = 1
-
 [node name="StaminaPanel" type="PanelContainer" parent="HUD" unique_id=640386557]
-offset_left = 12.0
-offset_top = 44.0
-offset_right = 170.0
-offset_bottom = 68.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 166.0
+offset_bottom = 32.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud_pill")
 
 [node name="HBox" type="HBoxContainer" parent="HUD/StaminaPanel" unique_id=1732204959]
 layout_mode = 2
+theme_override_constants/separation = 6
 
 [node name="StaminaText" type="Label" parent="HUD/StaminaPanel/HBox" unique_id=1761827493]
 layout_mode = 2
-text = " STAMINA "
+theme_override_colors/font_color = Color(0.78, 0.88, 0.98, 0.92)
+theme_override_font_sizes/font_size = 10
+text = "STAMINA"
+vertical_alignment = 1
 
 [node name="HudStaminaBar" type="ProgressBar" parent="HUD/StaminaPanel/HBox" unique_id=1770568659]
-custom_minimum_size = Vector2(75, 10)
+custom_minimum_size = Vector2(82, 8)
 layout_mode = 2
 size_flags_vertical = 4
+theme_override_styles/background = SubResource("StyleBoxFlat_hud_stamina_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_hud_stamina_fill")
 max_value = 2.0
 value = 2.0
 show_percentage = false
 
 [node name="ScorePanel" type="PanelContainer" parent="HUD" unique_id=382745071]
-offset_left = 180.0
-offset_top = 44.0
-offset_right = 300.0
-offset_bottom = 68.0
+offset_left = 174.0
+offset_top = 8.0
+offset_right = 278.0
+offset_bottom = 32.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud_pill")
 
 [node name="ScoreText" type="Label" parent="HUD/ScorePanel" unique_id=1926785231]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.97, 1, 0.98)
+theme_override_font_sizes/font_size = 10
 text = " JEWELS: 0/5 "
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="TimePanel" type="PanelContainer" parent="HUD" unique_id=1826972773]
-offset_left = 310.0
-offset_top = 44.0
-offset_right = 430.0
-offset_bottom = 68.0
+offset_left = 400.0
+offset_top = 8.0
+offset_right = 508.0
+offset_bottom = 32.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud_pill")
 
 [node name="TimeText" type="Label" parent="HUD/TimePanel" unique_id=112600319]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.95, 1, 0.95)
+theme_override_font_sizes/font_size = 10
 text = " TIME: 00:00.0 "
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="SessionLabel" type="Label" parent="HUD" unique_id=977209595]
-offset_left = 440.0
-offset_top = 46.0
-offset_right = 628.0
-offset_bottom = 66.0
-theme_override_colors/font_color = Color(0.7, 0.75, 0.85, 0.6)
-theme_override_font_sizes/font_size = 11
+offset_left = 514.0
+offset_top = 11.0
+offset_right = 630.0
+offset_bottom = 29.0
+theme_override_colors/font_color = Color(0.82, 0.86, 0.94, 0.55)
+theme_override_colors/font_outline_color = Color(0.05, 0.06, 0.1, 0.85)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 9
 text = "ID: SES-..."
 horizontal_alignment = 2
 vertical_alignment = 1

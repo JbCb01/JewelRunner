@@ -70,8 +70,26 @@ func _setup_level_music(profile_id: int) -> void:
 
 @onready var finish_goal: Area2D = get_node_or_null("FinishGoal")
 
+const MULT_COLOR_IDLE := Color(0.60, 0.64, 0.70, 0.85)
+const MULT_COLOR_UP := Color(0.28, 0.96, 0.48, 1.0)
+const MULT_COLOR_DOWN := Color(1.0, 0.34, 0.34, 1.0)
+const MULT_COLOR_LOCKED := Color(1.0, 0.38, 0.32, 1.0)
+const MULT_HOLD_DURATION: float = 0.45
+const MULT_FADE_SPEED: float = 0.55
+
 var hud_ai_label: Label = null
+var hud_ai_panel: PanelContainer = null
+var hud_mult_labels: Dictionary = {}
+var hud_status_toast: Label = null
+var status_toast_timer: float = 0.0
 var hud_wallet_label: Label = null
+
+var mult_ref_values: Dictionary = {"double_jump": 1.0, "wall_climb": 1.0, "dash": 1.0}
+var mult_last_tenths: Dictionary = {"double_jump": 10, "wall_climb": 10, "dash": 10}
+var mult_trends: Dictionary = {"double_jump": 0, "wall_climb": 0, "dash": 0}
+var mult_highlights: Dictionary = {"double_jump": 0.0, "wall_climb": 0.0, "dash": 0.0}
+var mult_hold_timers: Dictionary = {"double_jump": 0.0, "wall_climb": 0.0, "dash": 0.0}
+var _mult_hud_initialized: bool = false
 
 var jewel_anim_batch_count: int = 0
 var jewel_anim_timer: float = 0.0
@@ -275,6 +293,8 @@ func _process(delta: float) -> void:
 		elapsed_time += delta
 		_update_time_hud()
 		_update_jewel_hud_animation(delta)
+		_update_multiplier_hud_highlights(delta)
+		_update_status_toast(delta)
 
 ## Zlicza wszystkie klejnoty obecne aktualnie na scenie.
 func refresh_jewel_count() -> int:
@@ -308,6 +328,16 @@ func _on_player_stamina_changed(current: float, max_stamina: float) -> void:
 	if hud_stamina_bar:
 		hud_stamina_bar.max_value = max_stamina
 		hud_stamina_bar.value = current
+		if hud_stamina_bar.has_theme_stylebox_override("fill"):
+			var fill_sb := hud_stamina_bar.get_theme_stylebox("fill") as StyleBoxFlat
+			if fill_sb:
+				var ratio: float = current / maxf(0.01, max_stamina)
+				if ratio > 0.5:
+					fill_sb.bg_color = Color(0.24, 0.92, 0.48, 0.95)
+				elif ratio > 0.25:
+					fill_sb.bg_color = Color(0.96, 0.80, 0.24, 0.95)
+				else:
+					fill_sb.bg_color = Color(0.96, 0.28, 0.28, 0.95)
 
 func _report_active_life_booster() -> void:
 	if DisplayServer.get_name() == "headless" or not is_inside_tree():
@@ -383,13 +413,10 @@ func _update_jewel_hud_animation(delta: float) -> void:
 			hud_wallet_label.text = "PORTFEL: %d" % get_total_wallet_balance()
 
 func _on_special_jewel_collected(_special_id: String, jewel_name: String, rarity: String, already_owned: bool) -> void:
-	if hud_ai_label:
-		if already_owned:
-			hud_ai_label.text = "[*] JUŻ POSIADANY: %s (zwykłe punkty)" % jewel_name
-			hud_ai_label.add_theme_color_override("font_color", Color(0.8, 0.85, 0.9, 1.0))
-		else:
-			hud_ai_label.text = "[★] SEKRETNY KLEJNOT: %s [%s]!" % [jewel_name, rarity.to_upper()]
-			hud_ai_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.35, 1.0))
+	if already_owned:
+		_show_hud_toast("[*] JUŻ POSIADANY: %s (zwykłe punkty)" % jewel_name, Color(0.8, 0.85, 0.9, 1.0))
+	else:
+		_show_hud_toast("[★] SEKRETNY KLEJNOT: %s [%s]!" % [jewel_name, rarity.to_upper()], Color(1.0, 0.9, 0.35, 1.0))
 
 func _on_checkpoint_reached(_checkpoint_id: String, pos: Vector2) -> void:
 	if respawn_point:
@@ -405,9 +432,7 @@ func _on_enemy_defeated() -> void:
 	enemies_defeated_count += 1
 
 func _on_cursed_jewel_triggered(mechanic_name: String, duration: float) -> void:
-	if hud_ai_label:
-		hud_ai_label.text = "[!] PRZEKLĘTY KLEJNOT! Utracono %s na %.1fs! Użyj innych ruchów i Tricku [C]!" % [mechanic_name.to_upper(), duration]
-		hud_ai_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.85, 1.0))
+	_show_hud_toast("[!] PRZEKLĘTY KLEJNOT! Utracono %s na %.1fs!" % [mechanic_name.to_upper(), duration], Color(1.0, 0.45, 0.85, 1.0), 3.0)
 
 func _update_score_hud() -> void:
 	if hud_score_label:
@@ -434,54 +459,226 @@ func _update_goal_visuals() -> void:
 	if aura:
 		aura.color = Color(0.2, 0.9, 0.7, 0.38) if unlocked else Color(0.9, 0.25, 0.25, 0.30)
 
+func _make_hud_pill_style(bg_alpha: float = 0.72) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.08, 0.13, bg_alpha)
+	sb.border_color = Color(0.32, 0.42, 0.58, 0.45)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(4)
+	sb.content_margin_left = 8.0
+	sb.content_margin_right = 8.0
+	sb.content_margin_top = 2.0
+	sb.content_margin_bottom = 2.0
+	return sb
+
 func _ensure_ai_hud_panel() -> void:
 	var hud: Node = get_node_or_null("HUD")
 	if not hud:
 		return
-	hud_ai_label = hud.get_node_or_null("AIMultipliersLabel") as Label
-	if not hud_ai_label:
-		hud_ai_label = Label.new()
-		hud_ai_label.name = "AIMultipliersLabel"
-		hud_ai_label.position = Vector2(12, 72)
-		hud_ai_label.size = Vector2(616, 20)
-		hud_ai_label.add_theme_font_size_override("font_size", 11)
-		hud_ai_label.add_theme_color_override("font_color", Color(0.75, 0.92, 1.0, 0.92))
-		hud.add_child(hud_ai_label)
-	hud_wallet_label = hud.get_node_or_null("WalletBalanceLabel") as Label
+
+	# Stary napis sterowania i szeroki napis AIMultipliersLabel nie są już używane
+	var old_controls := hud.get_node_or_null("ControlsPanel")
+	if old_controls:
+		old_controls.queue_free()
+	var legacy_ai := hud.get_node_or_null("AIMultipliersLabel")
+	if legacy_ai:
+		legacy_ai.queue_free()
+
+	# 1. Pigułka portfela w górnym pasku (x=286..392, y=8..32)
+	var wallet_panel := hud.get_node_or_null("WalletPanel") as PanelContainer
+	if not wallet_panel:
+		wallet_panel = PanelContainer.new()
+		wallet_panel.name = "WalletPanel"
+		wallet_panel.position = Vector2(286, 8)
+		wallet_panel.size = Vector2(106, 24)
+		wallet_panel.add_theme_stylebox_override("panel", _make_hud_pill_style(0.72))
+		hud.add_child(wallet_panel)
+
+	hud_wallet_label = wallet_panel.get_node_or_null("WalletBalanceLabel") as Label
 	if not hud_wallet_label:
 		hud_wallet_label = Label.new()
 		hud_wallet_label.name = "WalletBalanceLabel"
-		hud_wallet_label.position = Vector2(12, 52)
-		hud_wallet_label.size = Vector2(220, 18)
-		hud_wallet_label.add_theme_font_size_override("font_size", 11)
-		hud_wallet_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.45, 0.95))
-		hud.add_child(hud_wallet_label)
+		hud_wallet_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hud_wallet_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		hud_wallet_label.add_theme_font_size_override("font_size", 10)
+		hud_wallet_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.42, 0.96))
+		wallet_panel.add_child(hud_wallet_label)
 	hud_wallet_label.text = "PORTFEL: %d" % get_total_wallet_balance()
 
+	# 2. Minimalistyczna pigułka mnożników w 2. wierszu (y=37..57)
+	hud_ai_panel = hud.get_node_or_null("AIMultipliersPanel") as PanelContainer
+	if not hud_ai_panel:
+		hud_ai_panel = PanelContainer.new()
+		hud_ai_panel.name = "AIMultipliersPanel"
+		hud_ai_panel.position = Vector2(10, 37)
+		hud_ai_panel.custom_minimum_size = Vector2(0, 20)
+		hud_ai_panel.add_theme_stylebox_override("panel", _make_hud_pill_style(0.68))
+		hud.add_child(hud_ai_panel)
+
+	var hbox := hud_ai_panel.get_node_or_null("HBox") as HBoxContainer
+	if not hbox:
+		hbox = HBoxContainer.new()
+		hbox.name = "HBox"
+		hbox.add_theme_constant_override("separation", 6)
+		hud_ai_panel.add_child(hbox)
+		var specs: Array = [
+			["double_jump", "DoubleJumpMultLabel", "Double Jump: 1.0x"],
+			["wall_climb", "WallClimbMultLabel", "Wall Climb: 1.0x"],
+			["dash", "DashMultLabel", "Dash: 1.0x"]
+		]
+		for idx in range(specs.size()):
+			if idx > 0:
+				var sep := Label.new()
+				sep.name = "Sep%d" % idx
+				sep.text = "|"
+				sep.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				sep.add_theme_font_size_override("font_size", 10)
+				sep.add_theme_color_override("font_color", Color(0.45, 0.50, 0.60, 0.55))
+				hbox.add_child(sep)
+			var lbl := Label.new()
+			lbl.name = String(specs[idx][1])
+			lbl.text = String(specs[idx][2])
+			lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			lbl.add_theme_font_size_override("font_size", 10)
+			lbl.add_theme_color_override("font_color", MULT_COLOR_IDLE)
+			hbox.add_child(lbl)
+
+	hud_mult_labels = {
+		"double_jump": hbox.get_node_or_null("DoubleJumpMultLabel") as Label,
+		"wall_climb": hbox.get_node_or_null("WallClimbMultLabel") as Label,
+		"dash": hbox.get_node_or_null("DashMultLabel") as Label
+	}
+
+	# 3. Osobny, automatycznie wygasający toast na komunikaty statusu (y=61)
+	hud_status_toast = hud.get_node_or_null("StatusToastLabel") as Label
+	if not hud_status_toast:
+		hud_status_toast = Label.new()
+		hud_status_toast.name = "StatusToastLabel"
+		hud_status_toast.position = Vector2(12, 61)
+		hud_status_toast.size = Vector2(560, 18)
+		hud_status_toast.add_theme_font_size_override("font_size", 10)
+		hud_status_toast.add_theme_constant_override("outline_size", 3)
+		hud_status_toast.add_theme_color_override("font_outline_color", Color(0.05, 0.06, 0.1, 0.92))
+		hud_status_toast.visible = false
+		hud.add_child(hud_status_toast)
+	hud_ai_label = hud_status_toast
+	_mult_hud_initialized = false
+
+func get_multipliers_hud_text() -> String:
+	var parts: Array[String] = []
+	for move_key in ["double_jump", "wall_climb", "dash"]:
+		var lbl := hud_mult_labels.get(move_key) as Label
+		if lbl:
+			parts.append(lbl.text)
+	return " | ".join(parts)
+
+func _show_hud_toast(msg: String, color: Color, duration: float = 2.6) -> void:
+	if not hud_status_toast:
+		return
+	hud_status_toast.text = msg
+	hud_status_toast.add_theme_color_override("font_color", color)
+	hud_status_toast.modulate.a = 1.0
+	hud_status_toast.visible = true
+	status_toast_timer = duration
+
+func _update_status_toast(delta: float) -> void:
+	if not hud_status_toast or status_toast_timer <= 0.0:
+		return
+	status_toast_timer = maxf(0.0, status_toast_timer - delta)
+	if status_toast_timer <= 0.0:
+		hud_status_toast.visible = false
+		hud_status_toast.modulate.a = 1.0
+	elif status_toast_timer < 0.6:
+		hud_status_toast.modulate.a = status_toast_timer / 0.6
+
 func _update_ai_hud() -> void:
-	if not hud_ai_label or not is_instance_valid(Events) or not is_instance_valid(Events.ai_director):
+	if hud_mult_labels.is_empty() or not is_instance_valid(Events) or not is_instance_valid(Events.ai_director):
 		return
 	var dir: AdaptiveAIDirector = Events.ai_director
-	var m_dj: float = dir.get_multiplier("double_jump")
-	var m_wc: float = dir.get_multiplier("wall_climb")
-	var m_da: float = dir.get_multiplier("dash")
-	var dom_lbl: String = dir.get_dominant_mechanic_label()
-	
-	var lock_warnings: Array[String] = []
-	for move in AdaptiveAIDirector.TRACKED_MOVES:
-		if dir.is_move_locked(move):
-			lock_warnings.append("%s LOCKED (%.1fs)" % [move.to_upper(), dir.get_lockout_remaining(move)])
-			
-	if not lock_warnings.is_empty():
-		hud_ai_label.text = "KOSZT STAMINY: DJ x%.2f | CLIMB x%.2f | DASH x%.2f  [!] %s" % [
-			m_dj, m_wc, m_da, " , ".join(lock_warnings)
-		]
-		hud_ai_label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.45, 1.0))
-	else:
-		hud_ai_label.text = "KOSZT STAMINY (Σ=%.1f): DJ x%.2f | CLIMB x%.2f | DASH x%.2f   |   PROFIL: %s" % [
-			dir.get_multiplier_sum(), m_dj, m_wc, m_da, dom_lbl
-		]
-		hud_ai_label.add_theme_color_override("font_color", Color(0.75, 0.92, 1.0, 0.92))
+	var move_defs: Array = [
+		["double_jump", "Double Jump"],
+		["wall_climb", "Wall Climb"],
+		["dash", "Dash"]
+	]
+
+	for entry in move_defs:
+		var move_key: String = String(entry[0])
+		var display_name: String = String(entry[1])
+		var lbl := hud_mult_labels.get(move_key) as Label
+		if not lbl:
+			continue
+
+		var val: float = dir.get_multiplier(move_key)
+		var cur_tenth: int = int(round(val * 10.0))
+
+		if not _mult_hud_initialized:
+			mult_ref_values[move_key] = val
+			mult_last_tenths[move_key] = cur_tenth
+			mult_trends[move_key] = 0
+			mult_highlights[move_key] = 0.0
+			mult_hold_timers[move_key] = 0.0
+		else:
+			var prev_tenth: int = int(mult_last_tenths.get(move_key, 10))
+			var ref_val: float = float(mult_ref_values.get(move_key, 1.0))
+			if cur_tenth != prev_tenth:
+				var delta_val: float = val - ref_val
+				if cur_tenth > prev_tenth or delta_val > 0.0:
+					mult_trends[move_key] = 1
+				else:
+					mult_trends[move_key] = -1
+				mult_highlights[move_key] = 1.0
+				mult_hold_timers[move_key] = MULT_HOLD_DURATION
+				mult_ref_values[move_key] = val
+				mult_last_tenths[move_key] = cur_tenth
+
+		if dir.is_move_locked(move_key):
+			lbl.text = "%s: LOCK %.1fs" % [display_name, dir.get_lockout_remaining(move_key)]
+		else:
+			lbl.text = "%s: %.1fx" % [display_name, val]
+
+	_mult_hud_initialized = true
+	_apply_multiplier_hud_colors()
+
+func _update_multiplier_hud_highlights(delta: float) -> void:
+	if hud_mult_labels.is_empty():
+		return
+	var dir: AdaptiveAIDirector = Events.ai_director if is_instance_valid(Events) else null
+	var display_names: Dictionary = {
+		"double_jump": "Double Jump",
+		"wall_climb": "Wall Climb",
+		"dash": "Dash"
+	}
+	for move_key in ["double_jump", "wall_climb", "dash"]:
+		if dir and dir.is_move_locked(move_key):
+			var lbl := hud_mult_labels.get(move_key) as Label
+			if lbl:
+				lbl.text = "%s: LOCK %.1fs" % [display_names[move_key], dir.get_lockout_remaining(move_key)]
+		var fade_dt: float = delta
+		var hold_t: float = float(mult_hold_timers.get(move_key, 0.0))
+		if hold_t > 0.0:
+			var consumed: float = minf(hold_t, fade_dt)
+			mult_hold_timers[move_key] = hold_t - consumed
+			fade_dt -= consumed
+		if fade_dt > 0.0 and float(mult_highlights.get(move_key, 0.0)) > 0.0:
+			var next_hi: float = maxf(0.0, float(mult_highlights[move_key]) - fade_dt * MULT_FADE_SPEED)
+			mult_highlights[move_key] = next_hi
+			if next_hi <= 0.0:
+				mult_trends[move_key] = 0
+	_apply_multiplier_hud_colors()
+
+func _apply_multiplier_hud_colors() -> void:
+	var dir: AdaptiveAIDirector = Events.ai_director if is_instance_valid(Events) else null
+	for move_key in ["double_jump", "wall_climb", "dash"]:
+		var lbl := hud_mult_labels.get(move_key) as Label
+		if not lbl:
+			continue
+		if dir and dir.is_move_locked(move_key):
+			lbl.add_theme_color_override("font_color", MULT_COLOR_LOCKED)
+			continue
+		var trend: int = int(mult_trends.get(move_key, 0))
+		var hi: float = clampf(float(mult_highlights.get(move_key, 0.0)), 0.0, 1.0)
+		var target_col: Color = MULT_COLOR_UP if trend > 0 else (MULT_COLOR_DOWN if trend < 0 else MULT_COLOR_IDLE)
+		lbl.add_theme_color_override("font_color", MULT_COLOR_IDLE.lerp(target_col, hi))
 
 func _on_multipliers_updated(_multipliers: Dictionary) -> void:
 	_update_ai_hud()
@@ -490,12 +687,10 @@ func _on_mechanic_lockout_changed(_move_name: String, _is_locked: bool, _duratio
 	_update_ai_hud()
 
 func _on_stamina_action_rejected(move_name: String, _req: float, _cur: float) -> void:
-	if hud_ai_label:
-		if is_instance_valid(Events) and is_instance_valid(Events.ai_director) and Events.ai_director.is_move_locked(move_name):
-			hud_ai_label.text = "[!] RUCH ZABLOKOWANY PRZEZ PRZECIĄŻENIE (%s)! Wykonaj inny ruch lub Trick [C] w locie!" % move_name.to_upper()
-		else:
-			hud_ai_label.text = "[!] BRAK STAMINY NA %s! Wykonaj skok + Trick [C] w powietrzu, aby zregenerować!" % move_name.to_upper()
-		hud_ai_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4, 1.0))
+	if is_instance_valid(Events) and is_instance_valid(Events.ai_director) and Events.ai_director.is_move_locked(move_name):
+		_show_hud_toast("[!] %s zablokowany! Użyj innego ruchu lub Tricku [C]" % move_name.to_upper(), Color(1.0, 0.42, 0.42, 1.0), 2.2)
+	else:
+		_show_hud_toast("[!] Brak staminy na %s! Wykonaj Trick [C] w locie" % move_name.to_upper(), Color(1.0, 0.48, 0.38, 1.0), 2.2)
 
 func _init_knowledge_check() -> void:
 	quiz_buttons.clear()
@@ -602,9 +797,7 @@ func _on_goal_entered(body: Node2D) -> void:
 				var lbl: Label = finish_goal.get_node_or_null("LabelGoal")
 				if lbl:
 					lbl.text = "BRAK: %d/%d!" % [collected_jewels, total_jewels]
-			if hud_ai_label:
-				hud_ai_label.text = "[!] ZBIERZ WSZYSTKIE KLEJNOTY (%d/%d), ABY ODBLOKOWAĆ WYJŚCIE!" % [collected_jewels, total_jewels]
-				hud_ai_label.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3, 1.0))
+			_show_hud_toast("[!] ZBIERZ WSZYSTKIE KLEJNOTY (%d/%d), ABY ODBLOKOWAĆ WYJŚCIE!" % [collected_jewels, total_jewels], Color(1.0, 0.75, 0.3, 1.0), 2.5)
 			return
 			
 		# Knowledge Check warunkiem ukończenia poziomu:

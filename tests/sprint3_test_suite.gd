@@ -65,6 +65,7 @@ func _ready() -> void:
 	utSecretSpecialJewelFirstCollectionAndRaritySignal()
 	utSecretSpecialJewelAlreadyOwnedSemiTransparentAndNormalPoints()
 	utHudJewelCounterGroupedAnimationAndWalletBalance()
+	utHudMinimalistMultipliersAndColorFade()
 
 	print("\n--- [7] TESTY WYSYŁKI WYNIKÓW I KOLEJKI OFFLINE (S23KC2S1P1-273) ---")
 	utScoreSubmissionQueuedAndDeduplicated()
@@ -517,6 +518,39 @@ func utHudJewelCounterGroupedAnimationAndWalletBalance() -> void:
 
 	assertCond(textOk and groupedOk and walletOk and settledOk, "HUD-01", "Licznik klejnotów na HUD grupuje szybkie inkrementacje w jedną animację i pokazuje saldo portfela")
 	arena.free()
+
+func utHudMinimalistMultipliersAndColorFade() -> void:
+	Events.selected_level_profile = 1
+	Events.ai_director.reset_session_state(true)
+	var arenaScene := load("res://scenes/test_arena.tscn") as PackedScene
+	var arena := arenaScene.instantiate()
+	add_child(arena)
+
+	var noControlsBarOk: bool = (arena.get_node_or_null("HUD/ControlsPanel") == null)
+	var multText: String = arena.get_multipliers_hud_text()
+	var minimalistFormatOk: bool = (multText == "Double Jump: 1.0x | Wall Climb: 1.0x | Dash: 1.0x") and (not multText.contains("Σ")) and (not multText.contains("PROFIL"))
+
+	var djLbl: Label = arena.hud_mult_labels.get("double_jump") as Label
+	var wcLbl: Label = arena.hud_mult_labels.get("wall_climb") as Label
+	var daLbl: Label = arena.hud_mult_labels.get("dash") as Label
+	var initGrayOk: bool = is_equal_approx(float(arena.mult_highlights.get("double_jump", -1.0)), 0.0) and (djLbl != null)
+
+	# Użycie double_jump podnosi jego mnożnik (zielony) i obniża pozostałe (czerwone)
+	Events.ai_director.record_move_use("double_jump", 1.0)
+	var djCol: Color = djLbl.get_theme_color("font_color")
+	var wcCol: Color = wcLbl.get_theme_color("font_color")
+	var daCol: Color = daLbl.get_theme_color("font_color")
+	var upGreenOk: bool = (djCol.g > djCol.r + 0.25) and (djCol.g > djCol.b + 0.2)
+	var downRedOk: bool = (wcCol.r > wcCol.g + 0.25) and (wcCol.r > wcCol.b + 0.2) and (daCol.r > daCol.g + 0.25) and (daCol.r > daCol.b + 0.2)
+
+	# Brak zmian wygasza podświetlenia stopniowo z powrotem do szarości
+	arena._update_multiplier_hud_highlights(3.0)
+	var settledCol: Color = djLbl.get_theme_color("font_color")
+	var fadedToGrayOk: bool = (float(arena.mult_highlights.get("double_jump", 1.0)) <= 0.05) and (abs(settledCol.r - settledCol.g) < 0.12) and (abs(settledCol.g - settledCol.b) < 0.12)
+
+	arena.free()
+	Events.ai_director.reset_session_state(true)
+	assertCond(noControlsBarOk and minimalistFormatOk and initGrayOk and upGreenOk and downRedOk and fadedToGrayOk, "HUD-02", "Minimalistyczny HUD bez paska sterowania; mnożniki podświetlają wzrost na zielono, spadek na czerwono i szarzeją")
 
 # ==============================================================================
 # 7. TESTY WYSYŁKI WYNIKÓW I KOLEJKI OFFLINE (S23KC2S1P1-273)

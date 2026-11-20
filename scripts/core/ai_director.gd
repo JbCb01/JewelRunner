@@ -502,14 +502,15 @@ func _collect_level_features(
 	jewel_positions: Array[Vector2]
 ) -> void:
 	if node is TileMapLayer:
-		var tm := node as TileMapLayer
-		var used_cells: Array[Vector2i] = tm.get_used_cells()
-		var tile_size: Vector2 = Vector2(16, 16)
-		if tm.tile_set:
-			tile_size = Vector2(tm.tile_set.tile_size)
-		for cell in used_cells:
-			var world_pos: Vector2 = tm.to_global(tm.map_to_local(cell)) - tile_size * 0.5
-			platform_rects.append(Rect2(world_pos, tile_size))
+		if not bool(node.get_meta("visual_only", false)):
+			var tm := node as TileMapLayer
+			var used_cells: Array[Vector2i] = tm.get_used_cells()
+			var tile_size: Vector2 = Vector2(16, 16)
+			if tm.tile_set:
+				tile_size = Vector2(tm.tile_set.tile_size)
+			for cell in used_cells:
+				var world_pos: Vector2 = tm.to_global(tm.map_to_local(cell)) - tile_size * 0.5
+				platform_rects.append(Rect2(world_pos, tile_size))
 	elif node is StaticBody2D:
 		var sb := node as StaticBody2D
 		for child in sb.get_children():
@@ -523,7 +524,7 @@ func _collect_level_features(
 		var scr_path: String = scr.resource_path if scr else ""
 		if area.is_in_group("jewels") or scr_path.ends_with("jewel.gd") or area.name.begins_with("Jewel"):
 			jewel_positions.append(area.global_position)
-		elif scr_path.ends_with("hazard_area.gd") or area.collision_layer == 16:
+		elif (scr_path.ends_with("hazard_area.gd") or area.collision_layer == 16) and area.get("is_abyss") != true:
 			for child in area.get_children():
 				if child is CollisionShape2D and child.shape is RectangleShape2D:
 					var r_shape := child.shape as RectangleShape2D

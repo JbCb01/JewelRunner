@@ -942,21 +942,21 @@ func _preview_mechanic_profile(profile_id: int) -> void:
 	if current_language == "en":
 		match profile_id:
 			1:
-				title = "I. MOVEMENT SYNERGY (FLOW)"
-				subtitle = "Balance: Climb + Dash + Double Jump"
-				desc = "A balanced course combining climbing shafts, low tunnels, and chasms. Ideal for learning stamina rotation."
+				title = "I. MOVEMENT SYNERGY (FOREST)"
+				subtitle = "Balance: Climb + Dash + Double Jump + Trampolines"
+				desc = "A lush forest course combining climbing shafts, slide tunnels, rope bridges over acid, and [!] trampolines."
 			2:
-				title = "II. VERTICAL PEAKS (VERTICALITY)"
-				subtitle = "Dominance: Wall Climb & Jump"
-				desc = "Vertical shafts with strict climb windows and micro-ledges. Learn wall jump chaining without stamina burnout."
+				title = "II. VERTICAL ASCENT (WINTER / ICE)"
+				subtitle = "Dominance: Wall Climb, Trampolines & Trick Wells"
+				desc = "Glacial shafts, icy towers, and freezing chasms. Recharge stamina with mid-air Tricks [C] while descending."
 			3:
-				title = "III. SPEED HYPERDRIVE (VELOCITY)"
-				subtitle = "Dominance: Air Dash & Speed"
-				desc = "Long horizontal sections requiring consecutive dashes and aerial trick recoveries."
+				title = "III. HORIZON IMPULSE (AUTUMN / LAVA)"
+				subtitle = "Dominance: Slide -> Air Dash over Lava Canyons"
+				desc = "Autumn speed tunnels, sky bridges over lava canyons, and high-velocity aerial dashes."
 			_:
-				title = "AI ADAPTIVE RUN"
-				subtitle = "Dynamic Profile"
-				desc = "Custom generated challenge tailored to your playstyle."
+				title = "IV. AETHER: AI CHESSBOARD"
+				subtitle = "Seed-Based Local AI Generator (Aether Biome)"
+				desc = "Deterministic seed-driven AI course countering your favorite move, rewarding your least-used move, and adapting to portal challenges."
 
 	mechanicInfoLabel.text = "%s: %s%s\n%s" % [
 		title,

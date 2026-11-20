@@ -10,7 +10,7 @@ extends Node2D
 const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 const CyberQuizScript = preload("res://scripts/core/cyber_quiz.gd")
 
-@export var custom_tileset: TileSet = null
+@export var custom_tileset: TileSet = preload("res://assets/tileset_world.tres")
 
 @onready var respawn_point: Marker2D = get_node_or_null("RespawnPoint")
 @onready var hud_stamina_bar: ProgressBar = get_node_or_null("HUD/StaminaPanel/HBox/HudStaminaBar")

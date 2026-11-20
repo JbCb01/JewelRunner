@@ -12,6 +12,9 @@ const JewelScript = preload("res://scripts/jewel.gd")
 const CheckpointScript = preload("res://scripts/core/checkpoint.gd")
 const LevelGeneratorScript = preload("res://scripts/core/level_generator.gd")
 const PortalSyncScript = preload("res://scripts/core/portal_sync.gd")
+const TrampolineScript = preload("res://scripts/core/trampoline_pad.gd")
+const AILevelComposerScript = preload("res://scripts/core/ai_level_composer.gd")
+const EnemyScene = preload("res://scenes/enemies/enemy_mockup.tscn")
 
 var passCnt: int = 0
 var failCnt: int = 0
@@ -74,6 +77,13 @@ func _ready() -> void:
 	utBoosterUseQueueAndIdempotency()
 	utCloudSaveChecksumAndConflictResolution()
 	utDailyRewardClaimUpdatesWalletBalance()
+
+	print("\n--- [9] TESTY TILESETU, 3 POZIOMÓW, TRAMPOLIN, AI WROGÓW I SZACHOWNICY AI ---")
+	utTilesetLoadsAndRendersAllBiomesWithoutQuestionBlocks()
+	utThreeFullLevelsHaveDistinctBiomesEnemiesAndTrampolines()
+	utTrampolinePadLaunchesPlayerAndRefreshesAirMoves()
+	utEnemyArchetypesAiStatesAndSpriteRows()
+	utSzachownicaAiSeedDeterminismVariationAndValidation()
 	
 	print("\n==================================================================")
 	print(" PODSUMOWANIE SPRINT 3: ZALICZONE: %d | BŁĘDY: %d | ŁĄCZNIE: %d" % [passCnt, failCnt, passCnt + failCnt])
@@ -685,6 +695,215 @@ func utDailyRewardClaimUpdatesWalletBalance() -> void:
 
 	assertCond(claimedOk and duplicateBlockedOk, "SHP-05", "Odbiór nagrody dziennej aktualizuje saldo klejnotów, a ponowne odebranie tego samego dnia jest blokowane (409)")
 	ps.free()
+
+# ==============================================================================
+# 9. TESTY TILESETU, 3 POZIOMÓW, TRAMPOLIN, AI WROGÓW I SZACHOWNICY AI
+# ==============================================================================
+
+func utTilesetLoadsAndRendersAllBiomesWithoutQuestionBlocks() -> void:
+	var ts: TileSet = LevelGeneratorScript.get_default_tileset()
+	var tsOk: bool = (ts != null) and (ts.tile_size == Vector2i(16, 16)) and (ts.get_source_count() >= 1)
+	var forbiddenQ: Array[Vector2i] = [Vector2i(0, 2), Vector2i(3, 2), Vector2i(4, 2), Vector2i(7, 2)]
+
+	var allLayersOk: bool = tsOk
+	var noQuestionBlocksOk: bool = true
+	for pid in [1, 2, 3, 4]:
+		var mockArena := Node2D.new()
+		add_child(mockArena)
+		var fg := Area2D.new()
+		fg.name = "FinishGoal"
+		mockArena.add_child(fg)
+
+		LevelGeneratorScript.build_level_for_arena(mockArena, pid, 4242, ts)
+
+		var lvlLayer := mockArena.get_node_or_null("LevelTileMapLayer") as TileMapLayer
+		var bgLayer := mockArena.get_node_or_null("BgTileMapLayer") as TileMapLayer
+		var decorLayer := mockArena.get_node_or_null("DecorTileMapLayer") as TileMapLayer
+		var ceilLayer := mockArena.get_node_or_null("CeilingTileMapLayer") as TileMapLayer
+
+		if lvlLayer == null or bgLayer == null or decorLayer == null:
+			allLayersOk = false
+		else:
+			if lvlLayer.get_used_cells().size() < 40 or bgLayer.get_used_cells().size() < 20 or decorLayer.get_used_cells().is_empty():
+				allLayersOk = false
+			for layer in [lvlLayer, bgLayer, decorLayer, ceilLayer]:
+				if layer == null:
+					continue
+				for cell in layer.get_used_cells():
+					var atlas: Vector2i = layer.get_cell_atlas_coords(cell)
+					if forbiddenQ.has(atlas):
+						noQuestionBlocksOk = false
+		mockArena.free()
+
+	assertCond(tsOk and allLayersOk and noQuestionBlocksOk, "LVL-05", "TileSet 16x16 ładuje się i renderuje wszystkie 4 biomy na warstwach TileMapLayer bez bloków '?'")
+
+func utThreeFullLevelsHaveDistinctBiomesEnemiesAndTrampolines() -> void:
+	var expectedBiomes: Dictionary = {
+		1: LevelGeneratorScript.BiomeId.FOREST,
+		2: LevelGeneratorScript.BiomeId.WINTER,
+		3: LevelGeneratorScript.BiomeId.AUTUMN
+	}
+	var expectedEnemyColors: Dictionary = {1: 2, 2: 1, 3: 3}
+	var allLevelsOk: bool = true
+
+	for pid in [1, 2, 3]:
+		var mockArena := Node2D.new()
+		add_child(mockArena)
+		var fg := Area2D.new()
+		fg.name = "FinishGoal"
+		mockArena.add_child(fg)
+
+		var info: Dictionary = LevelGeneratorScript.build_level_for_arena(mockArena, pid, 1000 + pid)
+		var biomeOk: bool = (int(info.get("biome_id", 0)) == int(expectedBiomes[pid]))
+		var lengthOk: bool = (fg.position.x >= 2800.0)
+		var validOk: bool = bool(info.get("validation", {}).get("passed", false))
+
+		var enemiesNode := mockArena.get_node_or_null("Enemies")
+		var trampNode := mockArena.get_node_or_null("Trampolines")
+		var cpNode := mockArena.get_node_or_null("Checkpoints")
+
+		var enemyCntOk: bool = (enemiesNode != null) and (enemiesNode.get_child_count() >= 5)
+		var enemyColorOk: bool = true
+		if enemiesNode != null:
+			for e in enemiesNode.get_children():
+				if int(e.get("color_variant")) != int(expectedEnemyColors[pid]):
+					enemyColorOk = false
+
+		var trampOk: bool = (trampNode != null) and (trampNode.get_child_count() >= 2)
+		var cpOk: bool = (cpNode != null) and (cpNode.get_child_count() >= 2)
+
+		var hasSecret: bool = false
+		for ch in mockArena.get_children():
+			if ch.get("is_secret_special") == true and String(ch.get("special_id")) == "SEC-LVL-%d" % pid:
+				hasSecret = true
+				break
+
+		if not (biomeOk and lengthOk and validOk and enemyCntOk and enemyColorOk and trampOk and cpOk and hasSecret):
+			allLevelsOk = false
+		mockArena.free()
+
+	assertCond(allLevelsOk, "LVL-06", "Poziomy 1-3 mają pełną skalę (>=2800px), własne biomy, wrogów AI, trampoliny '!', checkpointy i sekretne klejnoty")
+
+func utTrampolinePadLaunchesPlayerAndRefreshesAirMoves() -> void:
+	var pad := Area2D.new()
+	pad.set_script(TrampolineScript)
+	pad.call("configure", Vector2i(1, 2), -480.0)
+	add_child(pad)
+
+	var plr := _createMockPlayer()
+	plr.current_state = PlayerScript.State.FALL
+	plr.velocity.y = 120.0
+	plr.can_double_jump = false
+	plr.can_air_dash = false
+
+	pad._on_body_entered(plr)
+	var bouncedOk: bool = is_equal_approx(plr.velocity.y, -480.0) and plr.can_double_jump and plr.can_air_dash and (plr.current_state == PlayerScript.State.JUMP)
+
+	# Natychmiastowe ponowne wejście podczas cooldownu nie powinno nadpisywać
+	plr.velocity.y = 50.0
+	pad._on_body_entered(plr)
+	var cooldownOk: bool = is_equal_approx(plr.velocity.y, 50.0)
+
+	pad._process(0.2)
+	pad._on_body_entered(plr)
+	var retriggerOk: bool = is_equal_approx(plr.velocity.y, -480.0)
+
+	assertCond(bouncedOk and cooldownOk and retriggerOk, "LVL-07", "Trampolina '!' wybija gracza w górę, odnawia double jump/air dash i respektuje cooldown")
+	plr.free()
+	pad.free()
+
+func utEnemyArchetypesAiStatesAndSpriteRows() -> void:
+	var plr := _createMockPlayer()
+	plr.global_position = Vector2(560, 294)
+
+	# 1. Slime: rząd = 0 * 4 + 2 = 2, przechodzi w CHASE gdy gracz blisko
+	var slime := EnemyScene.instantiate() as Area2D
+	slime.position = Vector2(500, 294)
+	add_child(slime)
+	slime.configure(0, 2, 64.0, 40.0, 140.0)
+	var slimeRowOk: bool = (slime._get_sprite_row() == 2)
+	slime._process(0.05)
+	slime._process(0.10)
+	var slimeChaseOk: bool = (slime.ai_state == EnemyScript.AIState.CHASE) and (slime.position.x > 500.0) and (slime.position.x <= 564.0)
+
+	# 2. Bat: rząd = 1 * 4 + 1 = 5, przechodzi w ALERT -> CHASE
+	var bat := EnemyScene.instantiate() as Area2D
+	bat.position = Vector2(510, 250)
+	add_child(bat)
+	bat.configure(1, 1, 56.0, 42.0, 140.0)
+	var batRowOk: bool = (bat._get_sprite_row() == 5)
+	bat._process(0.05)
+	var batAlertOk: bool = (bat.ai_state == EnemyScript.AIState.ALERT)
+	bat._process(0.25)
+	var batChaseOk: bool = (bat.ai_state == EnemyScript.AIState.CHASE)
+
+	# 3. Spider: rząd = 2 * 4 + 3 = 11, przechodzi w ALERT -> CHASE i mieści się w patrol_range
+	var spider := EnemyScene.instantiate() as Area2D
+	spider.position = Vector2(500, 294)
+	add_child(spider)
+	spider.configure(2, 3, 48.0, 44.0, 140.0)
+	var spiderRowOk: bool = (spider._get_sprite_row() == 11)
+	spider._process(0.05)
+	var spiderAlertOk: bool = (spider.ai_state == EnemyScript.AIState.ALERT)
+	spider._process(0.20)
+	spider._process(0.15)
+	var spiderChaseOk: bool = (spider.ai_state == EnemyScript.AIState.CHASE) and (spider.position.x > 500.0) and (spider.position.x <= 548.0)
+
+	assertCond(slimeRowOk and slimeChaseOk and batRowOk and batAlertOk and batChaseOk and spiderRowOk and spiderAlertOk and spiderChaseOk, "LVL-08", "Archetypy AI wrogów (Slime, Bat, Spider) wybierają właściwe rzędy spritesheetu oraz stany ALERT/CHASE")
+	slime.free()
+	bat.free()
+	spider.free()
+	plr.free()
+
+func utSzachownicaAiSeedDeterminismVariationAndValidation() -> void:
+	var dir: AdaptiveAIDirector = Events.ai_director
+	dir.clear_historical_profile()
+	dir.reset_session_state(true)
+	dir.historical_move_uses["wall_climb"] = 20.0
+	dir.historical_move_uses["dash"] = 5.0
+	dir.historical_move_uses["double_jump"] = 1.0
+
+	var rngA := RandomNumberGenerator.new()
+	rngA.seed = 424242
+	var bpA: Dictionary = LevelGeneratorScript.generate_blueprint(LevelGeneratorScript.MechanicProfile.AI_PROCEDURAL, rngA, {})
+
+	var rngB := RandomNumberGenerator.new()
+	rngB.seed = 424242
+	var bpB: Dictionary = LevelGeneratorScript.generate_blueprint(LevelGeneratorScript.MechanicProfile.AI_PROCEDURAL, rngB, {})
+
+	var detOk: bool = (bpA.get("chunk_sequence", []) == bpB.get("chunk_sequence", [])) and (bpA["blocks"].size() == bpB["blocks"].size()) and (bpA["finish_pos"] == bpB["finish_pos"])
+
+	var uniqueLayouts: Dictionary = {}
+	var allSeedsValid: bool = true
+	var singleBiomeOk: bool = true
+	var playstyleOk: bool = true
+	for s in range(101, 111):
+		var rngS := RandomNumberGenerator.new()
+		rngS.seed = s
+		var bpS: Dictionary = LevelGeneratorScript.generate_blueprint(LevelGeneratorScript.MechanicProfile.AI_PROCEDURAL, rngS, {})
+		if int(bpS.get("biome_id", 0)) != LevelGeneratorScript.BiomeId.AETHER:
+			singleBiomeOk = false
+		if not bool(bpS.get("validation", {}).get("passed", false)):
+			allSeedsValid = false
+		if String(bpS.get("first_half_mechanic", "")) != "wall_climb" or String(bpS.get("second_half_mechanic", "")) != "double_jump":
+			playstyleOk = false
+		var sig: String = "|".join(bpS.get("chunk_sequence", [])) + ":" + str(bpS["finish_pos"].x)
+		uniqueLayouts[sig] = true
+
+	var variationOk: bool = (uniqueLayouts.size() >= 2)
+
+	var rngC := RandomNumberGenerator.new()
+	rngC.seed = 777
+	var bpChallenge: Dictionary = LevelGeneratorScript.generate_blueprint(
+		LevelGeneratorScript.MechanicProfile.AI_PROCEDURAL,
+		rngC,
+		{"min_jewels": 9, "max_time_s": 45.0, "focus_mechanics": ["dash"]}
+	)
+	var challengeOk: bool = (bpChallenge["jewels"].size() >= 9) and (String(bpChallenge.get("second_half_mechanic", "")) == "dash") and bool(bpChallenge.get("validation", {}).get("passed", false))
+
+	dir.clear_historical_profile()
+	dir.reset_session_state(true)
+	assertCond(detOk and singleBiomeOk and allSeedsValid and playstyleOk and variationOk and challengeOk, "LVL-09", "Szachownica AI jest deterministyczna po seedzie, trzyma jeden biom Aether, kontruje styl i przechodzi walidator")
 
 # ==============================================================================
 # FUNKCJE POMOCNICZE

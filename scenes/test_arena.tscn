@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" path="res://scenes/enemies/enemy_mockup.tscn" id="12_enemy_mockup"]
 [ext_resource type="Texture2D" uid="uid://7awqv16hpkld" path="res://assets/UstawieniaFix.png" id="13_settings_tex"]
 [ext_resource type="Texture2D" path="res://assets/Kolce.png" id="14_kolce_tex"]
+[ext_resource type="AudioStream" uid="uid://db0x0y0f16gcd" path="res://audio/sfx/Fahh.mp3" id="15_gameover_audio"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_set_empty"]
 
@@ -779,6 +780,11 @@ flat = true
 [node name="AudioWin" type="AudioStreamPlayer" parent="HUD" unique_id=1843480329]
 process_mode = 2
 stream = ExtResource("9_win_audio")
+
+[node name="AudioGameOver" type="AudioStreamPlayer" parent="HUD" unique_id=1843480330]
+process_mode = 2
+stream = ExtResource("15_gameover_audio")
+bus = &"SFX"
 
 [node name="SettingsView" type="Control" parent="HUD"]
 process_mode = 2

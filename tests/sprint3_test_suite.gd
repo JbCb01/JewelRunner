@@ -1022,7 +1022,7 @@ func _createMockArena() -> Node2D:
 			ctrl.add_child(resScore)
 		hud.add_child(ctrl)
 		
-	for audName in ["AudioPause", "AudioWin", "AudioPickup"]:
+	for audName in ["AudioPause", "AudioWin", "AudioGameOver", "AudioPickup"]:
 		var aud = AudioStreamPlayer.new()
 		aud.name = audName
 		hud.add_child(aud)

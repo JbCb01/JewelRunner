@@ -33,6 +33,7 @@ const CyberQuizScript = preload("res://scripts/core/cyber_quiz.gd")
 
 @onready var audio_pause: AudioStreamPlayer = get_node_or_null("HUD/AudioPause")
 @onready var audio_win: AudioStreamPlayer = get_node_or_null("HUD/AudioWin")
+@onready var audio_game_over: AudioStreamPlayer = get_node_or_null("HUD/AudioGameOver")
 @onready var audio_pickup: AudioStreamPlayer = get_node_or_null("HUD/AudioPickup")
 @onready var music_level: AudioStreamPlayer = get_node_or_null("MusicLevel") if has_node("MusicLevel") else get_node_or_null("HUD/MusicLevel")
 
@@ -1540,10 +1541,14 @@ func _apply_language(lang_code: String) -> void:
 		langOpt.selected = 0 if current_language == "pl" else 1
 
 func _restart_game() -> void:
+	if audio_game_over and audio_game_over.playing:
+		audio_game_over.stop()
 	get_tree().paused = false
 	get_tree().reload_current_scene()
 
 func _quit_or_menu() -> void:
+	if audio_game_over and audio_game_over.playing:
+		audio_game_over.stop()
 	get_tree().paused = false
 	if ResourceLoader.exists("res://scenes/main_menu.tscn"):
 		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
@@ -1565,6 +1570,24 @@ func _on_player_died() -> void:
 		game_over_menu.visible = true
 		game_over_focus_idx = 0
 		_set_button_focus(game_over_buttons, 0)
+	
+	if not audio_game_over:
+		audio_game_over = get_node_or_null("HUD/AudioGameOver") as AudioStreamPlayer
+	if not audio_game_over and ResourceLoader.exists("res://audio/sfx/Fahh.mp3"):
+		var stream_res = load("res://audio/sfx/Fahh.mp3") as AudioStream
+		if stream_res:
+			audio_game_over = AudioStreamPlayer.new()
+			audio_game_over.name = "AudioGameOver"
+			audio_game_over.process_mode = Node.PROCESS_MODE_ALWAYS
+			audio_game_over.stream = stream_res
+			audio_game_over.bus = &"SFX"
+			var hud_node: Node = get_node_or_null("HUD")
+			if hud_node:
+				hud_node.add_child(audio_game_over)
+			else:
+				add_child(audio_game_over)
+	if audio_game_over:
+		audio_game_over.play()
 
 func _on_player_hit(_damage: int) -> void:
 	pass

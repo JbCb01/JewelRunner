@@ -490,6 +490,28 @@ func handle_abyss_fall(dmg: int = 1) -> void:
 		if is_instance_valid(Events):
 			Events.player_fell_in_abyss.emit(last_checkpoint_pos)
 
+func apply_trampoline_bounce(launch_velocity: float = -470.0) -> void:
+	if current_state == State.CROUCH or current_state == State.SLIDE:
+		if not _can_stand_up():
+			return
+		_set_collider_crouched(false)
+	is_tricking = false
+	trick_point_buffer = 0.0
+	velocity.y = launch_velocity
+	coyote_timer = 0.0
+	jump_buffer_timer = 0.0
+	can_double_jump = true
+	can_air_dash = true
+	used_special_in_current_air = false
+	airborne_origin_y = global_position.y
+	airborne_stamina_ceiling = wall_climb_max_stamina
+	_change_state(State.JUMP)
+	if anim_sprite:
+		anim_sprite.play("jump")
+	_play_sfx(audio_jump)
+	if is_instance_valid(Events):
+		Events.player_jumped.emit(false)
+
 func is_dashing() -> bool:
 	return current_state == State.DASH
 

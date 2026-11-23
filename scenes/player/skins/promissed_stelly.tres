@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=87 format=3]
+[gd_resource type="SpriteFrames" load_steps=99 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Appear/PromissedStellyappear1.png" id="1_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Appear/PromissedStellyappear2.png" id="2_tex"]
@@ -67,11 +67,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Jump/PromissedStellyjump3.png" id="65_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Jump/PromissedStellyjump4.png" id="66_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Jump/PromissedStellyjump5.png" id="67_tex"]
-[ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Run/PromissedStellyrun1.png" id="68_tex"]
-[ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Run/PromissedStellyrun2.png" id="69_tex"]
-[ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Run/PromissedStellyrun3.png" id="70_tex"]
-[ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Run/PromissedStellyrun4.png" id="71_tex"]
-[ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Run/PromissedStellyrun5.png" id="72_tex"]
+[ext_resource type="Texture2D" uid="uid://bl1apromissedrun04" path="res://assets/sprites/player/PromissedStelly/Run/StellyrunaccelPromissed-Sheet-export.png" id="68_runaccel"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Wslizg/PromissedStellywslizg1.png" id="73_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Wslizg/PromissedStellywslizg2.png" id="74_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Wslizg/PromissedStellywslizg3.png" id="75_tex"]
@@ -86,6 +82,70 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Trick/PromissedStellyTrick8.png" id="84_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Trick/PromissedStellyTrick9.png" id="85_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/PromissedStelly/Trick/PromissedStellyTrick10.png" id="86_tex"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_1"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_2"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_3"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_4"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_5"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(256, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_6"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(320, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_7"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(384, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_8"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(448, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_9"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(512, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_10"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(576, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_11"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(640, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_12"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(704, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_13"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(768, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_14"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(832, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_15"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(896, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_runaccel_16"]
+atlas = ExtResource("68_runaccel")
+region = Rect2(960, 0, 64, 64)
 
 [resource]
 animations = [{
@@ -338,23 +398,61 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("68_tex")
+"texture": SubResource("AtlasTexture_runaccel_11")
 }, {
 "duration": 1.0,
-"texture": ExtResource("69_tex")
+"texture": SubResource("AtlasTexture_runaccel_12")
 }, {
 "duration": 1.0,
-"texture": ExtResource("70_tex")
+"texture": SubResource("AtlasTexture_runaccel_13")
 }, {
 "duration": 1.0,
-"texture": ExtResource("71_tex")
+"texture": SubResource("AtlasTexture_runaccel_14")
 }, {
 "duration": 1.0,
-"texture": ExtResource("72_tex")
+"texture": SubResource("AtlasTexture_runaccel_15")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_runaccel_16")
 }],
 "loop": true,
 "name": &"run",
-"speed": 10
+"speed": 16.6667
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_runaccel_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_runaccel_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_runaccel_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_runaccel_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_runaccel_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_runaccel_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_runaccel_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_runaccel_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_runaccel_9")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_runaccel_10")
+}],
+"loop": false,
+"name": &"run_start",
+"speed": 16.6667
 }, {
 "frames": [{
 "duration": 1.0,

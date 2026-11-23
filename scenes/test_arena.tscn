@@ -13,8 +13,9 @@
 [ext_resource type="AudioStream" uid="uid://c1eqof2o4kpv7" path="res://audio/music/yessirski.wav" id="11_level_music"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/enemy_mockup.tscn" id="12_enemy_mockup"]
 [ext_resource type="Texture2D" uid="uid://7awqv16hpkld" path="res://assets/UstawieniaFix.png" id="13_settings_tex"]
-[ext_resource type="Texture2D" path="res://assets/Kolce.png" id="14_kolce_tex"]
+[ext_resource type="Texture2D" uid="uid://dp740md8in4xj" path="res://assets/Kolce.png" id="14_kolce_tex"]
 [ext_resource type="AudioStream" uid="uid://db0x0y0f16gcd" path="res://audio/sfx/Fahh.mp3" id="15_gameover_audio"]
+[ext_resource type="Texture2D" uid="uid://c7x9bgforest01" path="res://assets/Background-export.png" id="16_bg_tex"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_set_empty"]
 
@@ -165,12 +166,15 @@ corner_radius_bottom_left = 3
 [node name="TestArena" type="Node2D" unique_id=903465747]
 script = ExtResource("1_test_arena")
 
-[node name="Background" type="ColorRect" parent="." unique_id=194517992]
-offset_left = -300.0
-offset_top = -200.0
-offset_right = 2100.0
-offset_bottom = 600.0
-color = Color(0.0784314, 0.0980392, 0.137255, 1)
+[node name="Background" type="TextureRect" parent="." unique_id=194517992]
+z_index = -30
+texture_repeat = 2
+offset_left = -400.0
+offset_top = -450.0
+offset_right = 3600.0
+offset_bottom = 336.0
+texture = ExtResource("16_bg_tex")
+stretch_mode = 1
 
 [node name="RespawnPoint" type="Marker2D" parent="." unique_id=538944626]
 position = Vector2(70, 270)

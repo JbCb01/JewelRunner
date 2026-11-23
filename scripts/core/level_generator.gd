@@ -720,6 +720,12 @@ static func _rasterize_blocks_to_logical_grid(blocks: Array[Dictionary], hazards
 					cell_type = TileType.WALL_FILL
 				grid[Vector2i(gx, gy)] = cell_type
 
+	# Wypełnienie logicznej siatki pod planszą kafelkami FLOOR_FILL
+	for gx in range(-25, 260):
+		for gy in range(21, 38):
+			if not grid.has(Vector2i(gx, gy)):
+				grid[Vector2i(gx, gy)] = TileType.FLOOR_FILL
+
 	for h in hazards:
 		if bool(h.get("is_abyss", false)):
 			continue
@@ -777,45 +783,67 @@ static func _render_biome_tilemap_layers(
 	var palette: Dictionary = get_biome_palette(biome_id)
 	var level_width: float = float(blueprint.get("level_width", 3200.0))
 
-	# 1. Kolorowe tło nieba i wypełnienie dolne dopasowane do biomu
-	var bg_rect: ColorRect = arena_root.get_node_or_null("Background") as ColorRect
-	if not bg_rect:
-		bg_rect = ColorRect.new()
-		bg_rect.name = "Background"
-		arena_root.add_child(bg_rect)
-	bg_rect.z_index = -30
-	bg_rect.offset_left = -400.0
-	bg_rect.offset_top = -400.0
-	bg_rect.offset_right = level_width + 600.0
-	bg_rect.offset_bottom = 700.0
-	bg_rect.color = palette["sky_color"]
+	# 1. Kolorowe tło nieba i wypełnienie dolne dopasowane do biomu (lub tło graficzne dla Lasu/Poziomu 1)
+	var is_forest_with_custom_bg: bool = (biome_id == BiomeId.FOREST and ResourceLoader.exists("res://assets/Background-export.png"))
+	
+	if is_forest_with_custom_bg:
+		var existing_bg = arena_root.get_node_or_null("Background")
+		var bg_tex_rect: TextureRect = existing_bg as TextureRect
+		if not bg_tex_rect:
+			if existing_bg:
+				existing_bg.name = "OldBackground"
+				existing_bg.queue_free()
+			bg_tex_rect = TextureRect.new()
+			bg_tex_rect.name = "Background"
+			arena_root.add_child(bg_tex_rect)
+		bg_tex_rect.texture = load("res://assets/Background-export.png")
+		bg_tex_rect.stretch_mode = TextureRect.STRETCH_TILE
+		bg_tex_rect.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		bg_tex_rect.z_index = -30
+		bg_tex_rect.offset_left = -400.0
+		bg_tex_rect.offset_top = -450.0
+		bg_tex_rect.offset_right = level_width + 600.0
+		bg_tex_rect.offset_bottom = 336.0
+		
+		var existing_fill = arena_root.get_node_or_null("BgBottomFill")
+		if existing_fill:
+			existing_fill.visible = false
+	else:
+		var bg_rect: ColorRect = arena_root.get_node_or_null("Background") as ColorRect
+		if not bg_rect:
+			var old_bg = arena_root.get_node_or_null("Background")
+			if old_bg:
+				old_bg.name = "OldBackground"
+				old_bg.queue_free()
+			bg_rect = ColorRect.new()
+			bg_rect.name = "Background"
+			arena_root.add_child(bg_rect)
+		bg_rect.z_index = -30
+		bg_rect.offset_left = -400.0
+		bg_rect.offset_top = -400.0
+		bg_rect.offset_right = level_width + 600.0
+		bg_rect.offset_bottom = 336.0
+		bg_rect.color = palette["sky_color"]
 
-	var bg_bottom: ColorRect = arena_root.get_node_or_null("BgBottomFill") as ColorRect
-	if not bg_bottom:
-		bg_bottom = ColorRect.new()
-		bg_bottom.name = "BgBottomFill"
-		arena_root.add_child(bg_bottom)
-	bg_bottom.z_index = -21
-	bg_bottom.offset_left = -400.0
-	bg_bottom.offset_top = 336.0
-	bg_bottom.offset_right = level_width + 600.0
-	bg_bottom.offset_bottom = 700.0
-	bg_bottom.color = palette["bottom_color"]
+		var existing_fill = arena_root.get_node_or_null("BgBottomFill")
+		if existing_fill:
+			existing_fill.visible = false
 
 	# 2. Pasmowe tło krajobrazu (BgTileMapLayer, skala 2x od y=112 do y=336)
 	var bg_layer: TileMapLayer = _ensure_tilemap_layer(arena_root, "BgTileMapLayer", -20, tileset)
 	bg_layer.clear()
-	bg_layer.scale = Vector2(2.0, 2.0)
-	bg_layer.position = Vector2(0.0, 112.0)
-	bg_layer.modulate = palette["bg_modulate"]
+	if not is_forest_with_custom_bg:
+		bg_layer.scale = Vector2(2.0, 2.0)
+		bg_layer.position = Vector2(0.0, 112.0)
+		bg_layer.modulate = palette["bg_modulate"]
 
-	var bg_col: int = int(palette["bg_col"])
-	if tileset != null and tileset.get_source_count() > 0:
-		var src_id: int = tileset.get_source_id(0)
-		var max_bg_col: int = int(ceil(level_width / 32.0)) + 16
-		for gx in range(-16, max_bg_col):
-			for r in range(7):
-				bg_layer.set_cell(Vector2i(gx, r), src_id, Vector2i(bg_col, 9 + r))
+		var bg_col: int = int(palette["bg_col"])
+		if tileset != null and tileset.get_source_count() > 0:
+			var src_id: int = tileset.get_source_id(0)
+			var max_bg_col: int = int(ceil(level_width / 32.0)) + 16
+			for gx in range(-16, max_bg_col):
+				for r in range(7):
+					bg_layer.set_cell(Vector2i(gx, r), src_id, Vector2i(bg_col, 9 + r))
 
 	# 3. Warstwa dekoracji biomowych (DecorTileMapLayer)
 	var decor_layer: TileMapLayer = _ensure_tilemap_layer(arena_root, "DecorTileMapLayer", -5, tileset)
@@ -902,6 +930,19 @@ static func _render_biome_tilemap_layers(
 				if not FORBIDDEN_Q_TILES.has(liq_atlas):
 					tile_layer.set_cell(Vector2i(gx0 + ix, gy0 + iy), actual_src, liq_atlas)
 
+	# 5. Wypełnienie przestrzeni pod planszą kafelkami (floor_fill)
+	# Cały obszar pod planszą (od gy=21 / y=336 w dół do gy=38 / y=608) zostaje
+	# szczelnie wypełniony kafelkami podłoża (floor_fill), tak aby nie było na dole tła,
+	# lecz lita ziemia/skała na całej szerokości poziomu.
+	var min_fill_gx: int = -25
+	var max_fill_gx: int = int(ceil((level_width + 600.0) / float(TILE_SIZE))) + 15
+	var fill_atlas: Vector2i = palette["floor_fill"]
+	if not FORBIDDEN_Q_TILES.has(fill_atlas):
+		for gx in range(min_fill_gx, max_fill_gx):
+			for gy in range(21, 38):
+				if tile_layer.get_cell_source_id(Vector2i(gx, gy)) == -1:
+					tile_layer.set_cell(Vector2i(gx, gy), actual_src, fill_atlas)
+
 static func _clear_or_create_container(arena_root: Node2D, node_name: String, z_ord: int = 0) -> Node2D:
 	var container: Node2D = arena_root.get_node_or_null(node_name) as Node2D
 	if not container:
@@ -952,24 +993,65 @@ static func _apply_blueprint_to_arena(
 	var show_placeholder_visuals: bool = (custom_tileset == null)
 
 	for b in blueprint["blocks"]:
+		var pos: Vector2 = b["pos"]
+		var sz: Vector2 = b["size"]
+		var bt: int = int(b.get("type", TileType.FLOOR))
+		var top_left: Vector2 = pos - sz * 0.5
+		var gx0: int = int(round(top_left.x / float(TILE_SIZE)))
+		var gy0: int = int(round(top_left.y / float(TILE_SIZE)))
+		var gw: int = max(1, int(round(sz.x / float(TILE_SIZE))))
+		var gh: int = max(1, int(round(sz.y / float(TILE_SIZE))))
+
+		var cell_x: float = gx0 * float(TILE_SIZE)
+		var cell_y: float = gy0 * float(TILE_SIZE)
+		var cell_w: float = gw * float(TILE_SIZE)
+		var cell_h: float = gh * float(TILE_SIZE)
+
 		var sb := StaticBody2D.new()
 		sb.name = String(b["name"])
-		sb.position = b["pos"]
 		sb.collision_mask = 0
 
 		var col := CollisionShape2D.new()
 		var rect_shape := RectangleShape2D.new()
-		var sz: Vector2 = b["size"]
-		rect_shape.size = sz
+
+		if bt == TileType.BRIDGE:
+			# Kładka mostu w tilesecie znajduje się w wierszu 4 (4px poniżej góry komórki) i ma grubość 8-12px.
+			# Ustawienie górnej krawędzi collidera dokładnie na cell_y + 4.0 eliminuje lewitację nad deskami.
+			var bridge_thick: float = 12.0
+			rect_shape.size = Vector2(cell_w, bridge_thick)
+			sb.position = Vector2(cell_x + cell_w * 0.5, cell_y + 4.0 + bridge_thick * 0.5)
+			col.one_way_collision = false
+		elif bt == TileType.TUNNEL_CEILING:
+			# Sufity tuneli / platformy kamienne (np. LowCeilingTunnel) w CeilTileMapLayer leżą od pos.y - sz.y*0.5 (264) do pos.y + sz.y*0.5 (280).
+			# Użycie oryginalnego pos i sz zapewnia 24px prześwitu do wślizgu pod spodem oraz brak clippingu z góry.
+			rect_shape.size = sz
+			sb.position = pos
+			col.one_way_collision = false
+		elif bt == TileType.PLATFORM:
+			# Solidne platformy - górna krawędź leży dokładnie na cell_y (powierzchnia trawy), eliminując lewitację i clipping.
+			rect_shape.size = Vector2(cell_w, cell_h)
+			sb.position = Vector2(cell_x + cell_w * 0.5, cell_y + cell_h * 0.5)
+			col.one_way_collision = false
+		else:
+			rect_shape.size = Vector2(cell_w, cell_h)
+			sb.position = Vector2(cell_x + cell_w * 0.5, cell_y + cell_h * 0.5)
+			col.one_way_collision = false
+
 		col.shape = rect_shape
 		sb.add_child(col)
 
 		if show_placeholder_visuals:
 			var rect := ColorRect.new()
-			rect.position = -sz * 0.5
-			rect.size = sz
-			var t_type: int = int(b.get("type", TileType.FLOOR))
-			match t_type:
+			if bt == TileType.BRIDGE:
+				rect.position = Vector2(-cell_w * 0.5, -4.0)
+				rect.size = Vector2(cell_w, 8.0)
+			elif bt == TileType.TUNNEL_CEILING:
+				rect.position = -sz * 0.5
+				rect.size = sz
+			else:
+				rect.position = Vector2(-cell_w * 0.5, -cell_h * 0.5)
+				rect.size = Vector2(cell_w, cell_h)
+			match bt:
 				TileType.WALL:
 					rect.color = Color(0.24, 0.31, 0.42, 1.0)
 				TileType.PLATFORM, TileType.BRIDGE:

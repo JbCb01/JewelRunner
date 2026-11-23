@@ -424,7 +424,7 @@ func utMapGeneratorAdaptsToWebChallenges() -> void:
 
 func utSkinManagerLoadsAllSkinsWithCorrectSpriteFrames() -> void:
 	var skinKeys = ["base", "noir", "office", "2077", "promissed", "retro"]
-	var anims = ["appear", "dash", "double_jump", "idle", "jump", "fall", "run", "slide", "crouch", "wall_climb", "wall_slide", "trick"]
+	var anims = ["appear", "dash", "double_jump", "idle", "jump", "fall", "run", "run_start", "slide", "crouch", "wall_climb", "wall_slide", "trick"]
 	var allSkinsValid: bool = true
 	
 	for key in skinKeys:
@@ -436,6 +436,10 @@ func utSkinManagerLoadsAllSkinsWithCorrectSpriteFrames() -> void:
 			if not frames.has_animation(a) or frames.get_frame_count(a) == 0:
 				allSkinsValid = false
 				break
+		# Weryfikacja nowej mechaniki biegu: 10 klatek run_start oraz 6 klatek pętli run
+		if frames and (not frames.has_animation(&"run_start") or frames.get_frame_count(&"run_start") != 10 or not frames.has_animation(&"run") or frames.get_frame_count(&"run") != 6):
+			allSkinsValid = false
+			break
 				
 	var plr = _createMockPlayer()
 	var animSpr := AnimatedSprite2D.new()

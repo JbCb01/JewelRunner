@@ -6,6 +6,7 @@ extends Node
 const AIDirectorScript = preload("res://scripts/core/ai_director.gd")
 const PortalSyncScript = preload("res://scripts/core/portal_sync.gd")
 const WalletSyncScript = preload("res://scripts/core/wallet_sync.gd")
+const KeybindManagerScript = preload("res://scripts/core/keybind_manager.gd")
 
 # --- Zdarzenia Gracza (Player Events) ---
 signal player_spawned(player: Node2D)
@@ -64,6 +65,7 @@ var level_contracts_completed: Dictionary = {}
 
 ## Płynna, konfigurowalna w Settings prędkość biernej regeneracji staminy
 signal stamina_regen_changed(new_rate: float)
+signal keybinds_changed()
 var stamina_regen_rate: float = 0.10
 
 ## Wybrany w menu głównym profil mechaniki poziomu (1 = Synergia, 2 = Ascent, 3 = Momentum, 4 = Aether / AI Szachownica)
@@ -79,6 +81,9 @@ var portal_sync: Node = null
 
 ## Bufor salda klejnotów: kolejka offline i synchronizacja z serwerem (/api/me/wallet/sync)
 var wallet_sync: Node = null
+
+## Menedżer skrótów klawiszowych (zmiana w ustawieniach oraz zapis lokalny)
+var keybind_manager: KeybindManagerScript = null
 
 ## Trwała kolekcja specjalnych (sekretnych) klejnotów
 const SPECIAL_JEWELS_SAVE_PATH: String = "user://special_jewels.json"
@@ -185,6 +190,11 @@ func _ensure_services() -> void:
 		wallet_sync = WalletSyncScript.new()
 		wallet_sync.name = "WalletSync"
 		add_child(wallet_sync)
+	if not is_instance_valid(keybind_manager):
+		keybind_manager = KeybindManagerScript.new()
+		keybind_manager.name = "KeybindManager"
+		add_child(keybind_manager)
+		keybind_manager.load_keybinds()
 
 ## Bezpieczna automatyczna rejestracja akcji w InputMap, aby zapobiec błędom
 ## jeśli akcje nie zostały jeszcze ręcznie dodane w Project Settings.
@@ -195,8 +205,13 @@ func _setup_default_inputs() -> void:
 	_ensure_action("move_down", [KEY_S, KEY_DOWN])
 	_ensure_action("jump", [KEY_SPACE])
 	_ensure_action("dash", [KEY_SHIFT])
-	_ensure_action("crouch_slide", [KEY_S, KEY_DOWN, KEY_CTRL])
-	_ensure_action("trick", [KEY_C])
+	_ensure_action("crouch_slide", [KEY_S, KEY_DOWN])
+	_ensure_action("trick", [KEY_CTRL])
+
+func get_action_key_label(action_name: String, lang: String = "pl") -> String:
+	if is_instance_valid(keybind_manager):
+		return keybind_manager.get_primary_key_label(action_name, lang)
+	return action_name
 
 func _ensure_action(action_name: String, keys: Array) -> void:
 	if not InputMap.has_action(action_name):

@@ -2,6 +2,7 @@ extends Control
 
 const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 const SkinManager = preload("res://scripts/core/skin_manager.gd")
+const ControlsRebindUIScript = preload("res://scripts/core/controls_rebind_ui.gd")
 
 @export_file("*.tscn") var arenaScenePath: String = "res://scenes/test_arena.tscn"
 
@@ -147,6 +148,7 @@ var dnaRadarLabel: Label = null
 var aiGenerateBtn: Button = null
 var aiContractBtn: Button = null
 var _last_rendered_skin_idx: int = -1
+var controls_rebind_ui: ControlsRebindUIScript = null
 
 func _ready() -> void:
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
@@ -948,7 +950,7 @@ func _preview_mechanic_profile(profile_id: int) -> void:
 			2:
 				title = "II. VERTICAL ASCENT (WINTER / ICE)"
 				subtitle = "Dominance: Wall Climb, Trampolines & Trick Wells"
-				desc = "Glacial shafts, icy towers, and freezing chasms. Recharge stamina with mid-air Tricks [C] while descending."
+				desc = "Glacial shafts, icy towers, and freezing chasms. Recharge stamina with mid-air Tricks [%s] while descending." % (Events.get_action_key_label("trick", "en") if is_instance_valid(Events) else "Ctrl")
 			3:
 				title = "III. HORIZON IMPULSE (AUTUMN / LAVA)"
 				subtitle = "Dominance: Slide -> Air Dash over Lava Canyons"
@@ -1327,6 +1329,15 @@ func _setup_settings_mockups() -> void:
 		if not muteCheck.toggled.is_connected(_on_mute_check_toggled):
 			muteCheck.toggled.connect(_on_mute_check_toggled)
 
+	# Integracja interaktywnej zmiany skrótów klawiszowych w ControlsPanel
+	var ctrlP: Control = controlsPanel if controlsPanel else (_find_in_settings("ControlsPanel") as Control)
+	if ctrlP:
+		if not is_instance_valid(controls_rebind_ui):
+			controls_rebind_ui = ControlsRebindUIScript.new()
+			controls_rebind_ui.name = "ControlsRebindUI"
+			ctrlP.add_child(controls_rebind_ui)
+		controls_rebind_ui.setup(ctrlP, current_language)
+
 	# Usprawnienie nawigacji strzałkami w Settings
 	if tabAudioBtn and tabGraphicsBtn and tabControlsBtn and tabLanguageBtn:
 		tabAudioBtn.focus_neighbor_left = tabLanguageBtn.get_path()
@@ -1341,7 +1352,11 @@ func _setup_settings_mockups() -> void:
 			tabAudioBtn.focus_neighbor_bottom = masterSlider.get_path()
 		if modeOpt:
 			tabGraphicsBtn.focus_neighbor_bottom = modeOpt.get_path()
-		if settingsBackBtn:
+		if is_instance_valid(controls_rebind_ui) and controls_rebind_ui.get_first_focusable():
+			var first_ctrl: Control = controls_rebind_ui.get_first_focusable()
+			tabControlsBtn.focus_neighbor_bottom = first_ctrl.get_path()
+			first_ctrl.focus_neighbor_top = tabControlsBtn.get_path()
+		elif settingsBackBtn:
 			tabControlsBtn.focus_neighbor_bottom = settingsBackBtn.get_path()
 		if langOpt:
 			tabLanguageBtn.focus_neighbor_bottom = langOpt.get_path()
@@ -1442,9 +1457,14 @@ func _apply_language(lang_code: String) -> void:
 		var a6 = ctrlGrid.get_node_or_null("Action6") as Label
 		if a6: a6.text = "Mid-air Trick (Charges stamina):" if current_language == "en" else "Trick (w locie - ładuje staminę):"
 		var k6 = ctrlGrid.get_node_or_null("Key6") as Label
-		if k6: k6.text = "C (Hold in mid-air)" if current_language == "en" else "C (przytrzymaj w locie)"
+		if k6:
+			var trick_lbl := Events.get_action_key_label("trick", current_language) if is_instance_valid(Events) else "Ctrl"
+			k6.text = ("%s (Hold in mid-air)" if current_language == "en" else "%s (przytrzymaj w locie)") % trick_lbl
 		var a7 = ctrlGrid.get_node_or_null("Action7") as Label
 		if a7: a7.text = "Pause:" if current_language == "en" else "Pauza:"
+
+	if is_instance_valid(controls_rebind_ui):
+		controls_rebind_ui.refresh(current_language)
 		
 	# Update Language Panel labels
 	var langLabel = _find_in_settings("LanguagePanel/LangBox/Label") as Label
@@ -1473,6 +1493,8 @@ func _apply_language(lang_code: String) -> void:
 	_refresh_daily_reward_ui()
 
 func _switchSettingsTab(tabIdx: int) -> void:
+	if is_instance_valid(controls_rebind_ui):
+		controls_rebind_ui.cancel_listening()
 	currentSettingsTab = clampi(tabIdx, 0, 3)
 	
 	var panels = [audioPanel, graphicsPanel, controlsPanel, languagePanel]
@@ -1502,6 +1524,8 @@ func _switchSettingsTab(tabIdx: int) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if setView and setView.visible:
+		if is_instance_valid(controls_rebind_ui) and controls_rebind_ui.is_listening():
+			return
 		if event.is_action_pressed("ui_cancel"):
 			_play_menu_sfx()
 			_showView(homeView)
@@ -1563,6 +1587,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 
 func _showView(targetView: Control) -> void:
+	if targetView != setView and is_instance_valid(controls_rebind_ui):
+		controls_rebind_ui.cancel_listening()
 	if homeView: homeView.visible = (targetView == homeView)
 	if lvlView: lvlView.visible = (targetView == lvlView)
 	if setView: setView.visible = (targetView == setView)

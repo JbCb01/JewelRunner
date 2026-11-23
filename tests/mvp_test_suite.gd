@@ -9,6 +9,7 @@ const AIDirectorScript = preload("res://scripts/core/ai_director.gd")
 const LevelGeneratorScript = preload("res://scripts/core/level_generator.gd")
 const CyberQuiz = preload("res://scripts/core/cyber_quiz.gd")
 const SkinManager = preload("res://scripts/core/skin_manager.gd")
+const KeybindManagerScript = preload("res://scripts/core/keybind_manager.gd")
 
 var passCnt: int = 0
 var failCnt: int = 0
@@ -48,6 +49,8 @@ func _run_all_tests() -> void:
 	utPortalSyncProfileSkinsBoostersAndSettings()
 	utMapGeneratorAdaptsToWebChallenges()
 	utSkinManagerLoadsAllSkinsWithCorrectSpriteFrames()
+	utTrickDefaultIsCtrlAndKeybindManagerWorks()
+	utPlayerResponsivenessAndFeelMechanics()
 	
 	print("\n--- [2] TESTY INTEGRACYJNE (FRONTEND <-> BACKEND <-> WEB PORTAL) ---")
 	itJewelPickupUpdatesHudProgress()
@@ -73,6 +76,7 @@ func _run_all_tests() -> void:
 	itEnemyMockupStompDashAndDamageMechanics()
 	itStarHpIndicatorAndSpikeSprite()
 	itKnowledgeCheckCyberQuizFunctionality()
+	itControlsRebindUiInMenuAndPauseSettings()
 	
 	print("\n==================================================")
 	var summary = "PODSUMOWANIE: ZALICZONE: %d | BŁĘDY: %d | ŁĄCZNIE: %d" % [passCnt, failCnt, passCnt + failCnt]
@@ -443,6 +447,100 @@ func utSkinManagerLoadsAllSkinsWithCorrectSpriteFrames() -> void:
 	
 	assertCond(allSkinsValid and appliedOk and isSpriteFramesUpdated, "UT-20", "SkinManager poprawnie ładuje wszystkie 6 skórek z podfolderów assets/sprites i aplikuje SpriteFrames do postaci")
 	plr.free()
+
+func utTrickDefaultIsCtrlAndKeybindManagerWorks() -> void:
+	var km: KeybindManagerScript = Events.keybind_manager
+	var orig_path: String = km.keybinds_save_path
+	var test_path := "user://test_keybinds_ut21.json"
+	km.keybinds_save_path = test_path
+	km.reset_to_defaults()
+
+	var trick_default_ctrl: bool = (km.get_primary_keycode("trick") == KEY_CTRL)
+	var crouch_has_ctrl: bool = false
+	for ev in InputMap.action_get_events("crouch_slide"):
+		if ev is InputEventKey and (ev as InputEventKey).physical_keycode == KEY_CTRL:
+			crouch_has_ctrl = true
+
+	var rebind_ok: bool = km.rebind_action("trick", KEY_F) and (km.get_primary_keycode("trick") == KEY_F)
+	var esc_rejected: bool = not km.rebind_action("trick", KEY_ESCAPE)
+
+	# Persistence check with a second KeybindManager instance
+	var km2 := KeybindManagerScript.new()
+	km2.keybinds_save_path = test_path
+	km2.load_keybinds()
+	var persist_ok: bool = (km2.get_primary_keycode("trick") == KEY_F)
+	km2.free()
+
+	# Conflict swap: binding trick to KEY_SHIFT (owned by dash) swaps dash to KEY_F
+	var swap_ok: bool = km.rebind_action("trick", KEY_SHIFT) and (km.get_primary_keycode("trick") == KEY_SHIFT) and (km.get_primary_keycode("dash") == KEY_F)
+
+	# Reset restores defaults and cleans up file
+	km.reset_to_defaults()
+	var reset_ok: bool = (km.get_primary_keycode("trick") == KEY_CTRL) and (km.get_primary_keycode("dash") == KEY_SHIFT) and (not FileAccess.file_exists(test_path))
+
+	km.keybinds_save_path = orig_path
+	assertCond(trick_default_ctrl and (not crouch_has_ctrl) and rebind_ok and esc_rejected and persist_ok and swap_ok and reset_ok, "UT-21", "Domyślny klawisz tricku to Ctrl, a KeybindManager obsługuje rebind, konflikt/swap, zapis JSON i reset")
+
+func utPlayerResponsivenessAndFeelMechanics() -> void:
+	var plr = _createMockPlayer()
+	var cam := Camera2D.new()
+	cam.name = "Camera2D"
+	plr.add_child(cam)
+	plr.camera = cam
+
+	# 1. Model Dawnosaur: akceleracja, szybki turnaround i konserwacja pędu w locie
+	plr.velocity.x = 140.0
+	plr._apply_horizontal_movement(-1.0, plr.speed, false, false, 0.05)
+	var turnaroundOk: bool = (plr.velocity.x < 70.0)
+	plr.velocity.x = plr.speed + 50.0
+	plr._apply_horizontal_movement(1.0, plr.speed, true, false, 0.05)
+	var conserveMomentumOk: bool = is_equal_approx(plr.velocity.x, plr.speed + 50.0)
+
+	# 2. Nerf skakania po tej samej ścianie (pierwszy darmowy, kolejne kosztują staminę i słabną)
+	plr.wall_stamina = 2.0
+	plr.last_wall_jump_normal = Vector2.ZERO
+	plr.last_wall_normal = Vector2.RIGHT
+	plr.wall_coyote_timer = 0.10
+	plr.jump_buffer_timer = 0.10
+	plr.coyote_timer = 0.0
+	plr.current_state = PlayerScript.State.FALL
+	plr._state_air(0.016)
+	var firstWallFreeOk: bool = (plr.current_state == PlayerScript.State.JUMP) and is_equal_approx(plr.wall_stamina, 2.0)
+
+	plr.last_wall_normal = Vector2.RIGHT
+	plr._execute_wall_jump()
+	var sameWallCostOk: bool = is_equal_approx(plr.wall_stamina, 2.0 - plr.same_wall_jump_stamina_cost) and (absf(plr.velocity.y) < absf(plr.wall_jump_velocity.y))
+
+	plr.wall_stamina = 0.0
+	plr.last_wall_normal = Vector2.RIGHT
+	plr._execute_wall_jump()
+	var sameWallExhaustedOk: bool = (plr.current_state == PlayerScript.State.FALL)
+
+	# 3. Snappy dash z buforem
+	plr.current_state = PlayerScript.State.IDLE
+	plr.dash_cooldown_timer = 0.0
+	plr.dash_buffer_timer = 0.10
+	plr.wall_stamina = 2.0
+	plr._state_ground(0.016)
+	var dashOk: bool = (plr.current_state == PlayerScript.State.DASH) and (plr.dash_speed >= 450.0) and is_equal_approx(plr.dash_buffer_timer, 0.0)
+
+	# 4. Wślizg: wyższy max speed i mocniejsze tarcie
+	plr.current_state = PlayerScript.State.RUN
+	plr.velocity.x = plr.speed
+	plr._start_slide()
+	var slideOk: bool = (plr.slide_max_speed > plr.speed) and (plr.slide_friction >= 550.0) and (absf(plr.velocity.x) >= plr.slide_initial_speed - 0.1)
+
+	# 5. Kamera: bufor deadzone bez szarpania lewo/prawo przy A/D
+	plr.facing_direction = 1.0
+	plr._update_camera(0.2)
+	var cameraOk: bool = cam.drag_horizontal_enabled and (cam.drag_left_margin >= 0.18) and (cam.drag_right_margin >= 0.18) and is_equal_approx(cam.offset.x, 0.0)
+
+	# 6. Nowa animacja biegu (run_start 10 klatek bez pętli -> run 6 klatek w pętli)
+	var sf: SpriteFrames = ResourceLoader.load("res://scenes/player/player_sprite_frames.tres") as SpriteFrames
+	var runAnimOk: bool = (sf != null) and sf.has_animation(&"run_start") and (sf.get_frame_count(&"run_start") == 10) and (not sf.get_animation_loop(&"run_start")) and sf.has_animation(&"run") and (sf.get_frame_count(&"run") == 6) and sf.get_animation_loop(&"run")
+
+	plr.free()
+	assertCond(turnaroundOk and conserveMomentumOk and firstWallFreeOk and sameWallCostOk and sameWallExhaustedOk and dashOk and slideOk and cameraOk and runAnimOk, "UT-22", "Dawnosaur movement, nerf same-wall jump, snappy dash, slide speed/friction, bufor kamery i animacja run_start/run")
 
 # ==============================================================================
 # 2. TESTY INTEGRACYJNE (Frontend UI/HUD <-> Event Bus <-> Backend & Web Portal)
@@ -1044,7 +1142,7 @@ func itSpecialJewelPowerupsMechanics() -> void:
 	plr.invincibility_powerup_timer = 0.0
 	jJew.free()
 	
-	# 2. SpeedJewel -> zwiększenie prędkości biegu 2x na 10s
+	# 2. SpeedJewel -> zwiększenie prędkości biegu (1.45x) na 10s
 	var sJew = JewelScript.new()
 	var spr2 = Sprite2D.new()
 	spr2.name = "Sprite2D"
@@ -1055,7 +1153,7 @@ func itSpecialJewelPowerupsMechanics() -> void:
 	var speedTexOk: bool = (spr2.texture != null)
 	sJew._onBodyEntered(plr)
 	var speedTimerOk: bool = is_equal_approx(plr.speed_powerup_timer, 10.0)
-	var speedDoubledOk: bool = is_equal_approx(plr.get_effective_speed(), plr.speed * 2.0)
+	var speedDoubledOk: bool = is_equal_approx(plr.get_effective_speed(), plr.speed * plr.speed_powerup_multiplier)
 	plr.speed_powerup_timer = 0.0
 	var speedResetOk: bool = is_equal_approx(plr.get_effective_speed(), plr.speed)
 	sJew.free()
@@ -1081,7 +1179,7 @@ func itSpecialJewelPowerupsMechanics() -> void:
 	plr.free()
 	
 	var allPowerupsOk: bool = jewTexOk and invOk and invDamageIgnored and speedTexOk and speedTimerOk and speedDoubledOk and speedResetOk and immunityTexOk and shieldGivenOk and shieldAbsorbedOk and regularDamageAfterOk
-	assertCond(allPowerupsOk, "IT-19", "Specjalne klejnoty: JewJewel (10s nieśmiertelność), SpeedJewel (2x speed 10s) oraz ImmunityJewel (tarcza na 1 hit)")
+	assertCond(allPowerupsOk, "IT-19", "Specjalne klejnoty: JewJewel (10s nieśmiertelność), SpeedJewel (1.45x speed 10s) oraz ImmunityJewel (tarcza na 1 hit)")
 
 func itEnemyMockupStompDashAndDamageMechanics() -> void:
 	if is_instance_valid(Events.portal_sync):
@@ -1258,6 +1356,65 @@ func itKnowledgeCheckCyberQuizFunctionality() -> void:
 	
 	var allQuizOk: bool = countOk and formatOk and randomSelectOk and popupExists and initHidden and quizOpenedOk and arrowDownOk and arrowUpOk and arrowWrapOk and escapeBlockedOk and wrongBlockedOk and correctAcceptedOk and levelCompletedOk
 	assertCond(allQuizOk, "IT-22", "Knowledge Check: pula 15 pytań ABCD, losowanie na start, blokada wyjścia, obsługa strzałek i wymóg poprawnej odpowiedzi do wygranej")
+
+func itControlsRebindUiInMenuAndPauseSettings() -> void:
+	var km: KeybindManagerScript = Events.keybind_manager
+	var orig_path: String = km.keybinds_save_path
+	var test_path := "user://test_keybinds_it23.json"
+	km.keybinds_save_path = test_path
+	km.reset_to_defaults()
+
+	# 1. Menu główne -> Settings -> Zakładka Sterowanie
+	var menuScene = load("res://scenes/main_menu.tscn")
+	var menu = menuScene.instantiate()
+	add_child(menu)
+	menu._showView(menu.setView)
+	menu._switchSettingsTab(2)
+
+	var menuUiOk: bool = (menu.controls_rebind_ui != null)
+	var legacyGrid = menu._find_in_settings("ControlsPanel/Grid") as Control
+	var gridHiddenOk: bool = (legacyGrid != null and not legacyGrid.visible)
+	var trickBtn: Button = menu.controls_rebind_ui.action_buttons.get("trick") as Button
+	var initTextOk: bool = (trickBtn != null and trickBtn.text == "Ctrl")
+
+	# Rozpoczęcie nasłuchiwania i zmiana tricku na klawisz E (nie może przełączyć zakładki!)
+	var listenOk: bool = false
+	var reboundMenuOk: bool = false
+	if trickBtn:
+		trickBtn.pressed.emit()
+		listenOk = menu.controls_rebind_ui.is_listening()
+		var ev := InputEventKey.new()
+		ev.pressed = true
+		ev.physical_keycode = KEY_E
+		ev.keycode = KEY_E
+		menu.controls_rebind_ui._input(ev)
+		reboundMenuOk = (not menu.controls_rebind_ui.is_listening()) and (km.get_primary_keycode("trick") == KEY_E) and (trickBtn.text == "E") and (menu.currentSettingsTab == 2)
+
+	menu.free()
+
+	# 2. Arena -> Pauza -> Settings -> Zakładka Sterowanie -> Reset domyślnych
+	var arenaScene = load("res://scenes/test_arena.tscn")
+	var arena = arenaScene.instantiate()
+	add_child(arena)
+	arena._toggle_pause()
+	arena._open_settings()
+	arena._switch_settings_tab(2)
+
+	var arenaUiOk: bool = (arena.controls_rebind_ui != null)
+	var arenaTrickBtn: Button = arena.controls_rebind_ui.action_buttons.get("trick") as Button
+	var arenaSyncedOk: bool = (arenaTrickBtn != null and arenaTrickBtn.text == "E")
+
+	var resetBtn: Button = arena.controls_rebind_ui.reset_btn
+	if resetBtn:
+		resetBtn.pressed.emit()
+	var resetUiOk: bool = (km.get_primary_keycode("trick") == KEY_CTRL) and (arenaTrickBtn != null and arenaTrickBtn.text == "Ctrl")
+
+	get_tree().paused = false
+	arena.free()
+
+	km.reset_to_defaults()
+	km.keybinds_save_path = orig_path
+	assertCond(menuUiOk and gridHiddenOk and initTextOk and listenOk and reboundMenuOk and arenaUiOk and arenaSyncedOk and resetUiOk, "IT-23", "Ustawienia Sterowania w Menu i Pauzie umożliwiają interaktywną zmianę klawiszy oraz przywrócenie domyślnych")
 
 # ==============================================================================
 # FUNKCJE POMOCNICZE (Tworzenie struktur węzłów w pamięci dla testów)

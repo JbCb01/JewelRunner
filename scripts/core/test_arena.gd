@@ -9,6 +9,7 @@ extends Node2D
 
 const LevelGenerator = preload("res://scripts/core/level_generator.gd")
 const CyberQuizScript = preload("res://scripts/core/cyber_quiz.gd")
+const ControlsRebindUIScript = preload("res://scripts/core/controls_rebind_ui.gd")
 
 @export var custom_tileset: TileSet = preload("res://assets/tileset_world.tres")
 
@@ -120,6 +121,7 @@ var current_settings_tab: int = 0
 var current_language: String = "pl"
 var subtitles_enabled: bool = true
 var tabNames: Array = ["MUZYKA", "GRAFIKA", "STEROWANIE", "JĘZYK"]
+var controls_rebind_ui: ControlsRebindUIScript = null
 
 var pause_buttons: Array[Button] = []
 var game_over_buttons: Array[Button] = []
@@ -688,10 +690,11 @@ func _on_mechanic_lockout_changed(_move_name: String, _is_locked: bool, _duratio
 	_update_ai_hud()
 
 func _on_stamina_action_rejected(move_name: String, _req: float, _cur: float) -> void:
+	var trick_key := Events.get_action_key_label("trick", current_language) if is_instance_valid(Events) else "Ctrl"
 	if is_instance_valid(Events) and is_instance_valid(Events.ai_director) and Events.ai_director.is_move_locked(move_name):
-		_show_hud_toast("[!] %s zablokowany! Użyj innego ruchu lub Tricku [C]" % move_name.to_upper(), Color(1.0, 0.42, 0.42, 1.0), 2.2)
+		_show_hud_toast("[!] %s zablokowany! Użyj innego ruchu lub Tricku [%s]" % [move_name.to_upper(), trick_key], Color(1.0, 0.42, 0.42, 1.0), 2.2)
 	else:
-		_show_hud_toast("[!] Brak staminy na %s! Wykonaj Trick [C] w locie" % move_name.to_upper(), Color(1.0, 0.48, 0.38, 1.0), 2.2)
+		_show_hud_toast("[!] Brak staminy na %s! Wykonaj Trick [%s] w locie" % [move_name.to_upper(), trick_key], Color(1.0, 0.48, 0.38, 1.0), 2.2)
 
 func _init_knowledge_check() -> void:
 	quiz_buttons.clear()
@@ -923,6 +926,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	# 3. Obsługa SettingsView w trakcie gry
 	if settings_view and settings_view.visible:
+		if is_instance_valid(controls_rebind_ui) and controls_rebind_ui.is_listening():
+			return
 		if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and event.keycode == KEY_P):
 			_close_settings()
 			get_viewport().set_input_as_handled()
@@ -1006,6 +1011,8 @@ func _open_settings() -> void:
 		_switch_settings_tab(0)
 
 func _close_settings() -> void:
+	if is_instance_valid(controls_rebind_ui):
+		controls_rebind_ui.cancel_listening()
 	if settings_view:
 		settings_view.visible = false
 	if pause_menu:
@@ -1196,6 +1203,15 @@ func _setup_settings_view() -> void:
 		if not muteCheck.toggled.is_connected(_on_mute_check_toggled):
 			muteCheck.toggled.connect(_on_mute_check_toggled)
 
+	# Integracja interaktywnej zmiany skrótów klawiszowych w ControlsPanel
+	var ctrlP: Control = _find_in_settings("ControlsPanel") as Control
+	if ctrlP:
+		if not is_instance_valid(controls_rebind_ui):
+			controls_rebind_ui = ControlsRebindUIScript.new()
+			controls_rebind_ui.name = "ControlsRebindUI"
+			ctrlP.add_child(controls_rebind_ui)
+		controls_rebind_ui.setup(ctrlP, current_language)
+
 	# Focus navigation dla zakładek i kontrolek settings w arenie
 	var settingsBackBtn: Button = _find_in_settings("SettingsBackBtn") as Button
 	if not settingsBackBtn: settingsBackBtn = _find_in_settings("BackBtn") as Button
@@ -1211,6 +1227,12 @@ func _setup_settings_view() -> void:
 		tabLanguageBtn.focus_neighbor_right = tabAudioBtn.get_path()
 		if masterSlider: tabAudioBtn.focus_neighbor_bottom = masterSlider.get_path()
 		if modeOpt: tabGraphicsBtn.focus_neighbor_bottom = modeOpt.get_path()
+		if is_instance_valid(controls_rebind_ui) and controls_rebind_ui.get_first_focusable():
+			var first_ctrl: Control = controls_rebind_ui.get_first_focusable()
+			tabControlsBtn.focus_neighbor_bottom = first_ctrl.get_path()
+			first_ctrl.focus_neighbor_top = tabControlsBtn.get_path()
+		elif settingsBackBtn:
+			tabControlsBtn.focus_neighbor_bottom = settingsBackBtn.get_path()
 		if langOpt: tabLanguageBtn.focus_neighbor_bottom = langOpt.get_path()
 
 	if masterSlider and tabAudioBtn:
@@ -1232,6 +1254,8 @@ func _setup_settings_view() -> void:
 		settingsBackBtn.focus_neighbor_top = muteCheck.get_path()
 
 func _switch_settings_tab(tabIdx: int) -> void:
+	if is_instance_valid(controls_rebind_ui):
+		controls_rebind_ui.cancel_listening()
 	current_settings_tab = clampi(tabIdx, 0, 3)
 	
 	var audioP = _find_in_settings("AudioPanel")
@@ -1525,9 +1549,14 @@ func _apply_language(lang_code: String) -> void:
 		var a6 = ctrlGrid.get_node_or_null("Action6") as Label
 		if a6: a6.text = "Mid-air Trick (Charges stamina):" if current_language == "en" else "Trick (w locie - ładuje staminę):"
 		var k6 = ctrlGrid.get_node_or_null("Key6") as Label
-		if k6: k6.text = "C (Hold in mid-air)" if current_language == "en" else "C (przytrzymaj w locie)"
+		if k6:
+			var trick_lbl := Events.get_action_key_label("trick", current_language) if is_instance_valid(Events) else "Ctrl"
+			k6.text = ("%s (Hold in mid-air)" if current_language == "en" else "%s (przytrzymaj w locie)") % trick_lbl
 		var a7 = ctrlGrid.get_node_or_null("Action7") as Label
 		if a7: a7.text = "Pause:" if current_language == "en" else "Pauza:"
+
+	if is_instance_valid(controls_rebind_ui):
+		controls_rebind_ui.refresh(current_language)
 		
 	# Update Language Panel labels
 	var langLabel = _find_in_settings("LanguagePanel/LangBox/Label") as Label

@@ -505,7 +505,7 @@ offset_left = 1090.0
 offset_top = 80.0
 offset_right = 1260.0
 offset_bottom = 105.0
-text = "Hold [C] in Air for Tricks!"
+text = "Hold [Ctrl] in Air for Tricks!"
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=582845555]
 
@@ -1100,7 +1100,7 @@ text = "Trick (w locie - ładuje staminę):"
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_font_sizes/font_size = 11
-text = "C (przytrzymaj w locie)"
+text = "Ctrl (przytrzymaj w locie)"
 
 [node name="Action7" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2

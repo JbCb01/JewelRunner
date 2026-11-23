@@ -191,7 +191,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"subtitle": "Żywioł: Wall Climb, Trampoliny & Studnie Tricków",
 				"dominant": "wall_climb",
 				"dna": {"wall_climb": 54, "dash": 18, "double_jump": 28},
-				"description": "Lodowe kominy wspinaczkowe, wysokie wieże i lodowate przepaście. Ładuj staminę Trickiem [C] podczas spadków.",
+				"description": "Lodowe kominy wspinaczkowe, wysokie wieże i lodowate przepaście. Ładuj staminę Trickiem [Ctrl] podczas spadków.",
 				"music_path": "res://audio/music/onmymommaimthegoat.wav",
 				"music_title": "On My Momma I'm The Goat"
 			}
@@ -472,7 +472,7 @@ static func _build_level_2_winter(use_cursed: bool) -> Dictionary:
 	jewels.append({"pos": Vector2(304, 76), "cursed_mechanic": "wall_climb" if use_cursed else "", "jewel_type": 0})
 	jewels.append({"pos": Vector2(400, 196), "cursed_mechanic": "", "jewel_type": 0})
 	enemies.append({"name": "WinterSlime1", "pos": Vector2(456, 294), "archetype": 0, "patrol_range": 64.0, "move_speed": 38.0, "detection_radius": 130.0})
-	labels.append({"pos": Vector2(96, 68), "text": "ZIMA ASCENT: Wspinaczka [W] -> Studnia Tricków [C]"})
+	labels.append({"pos": Vector2(96, 68), "text": "ZIMA ASCENT: Wspinaczka [W] -> Studnia Tricków [Ctrl]"})
 
 	_add_decor_tile(decorations, 3, 18, Vector2i(4, 3))
 	_add_decor_column(decorations, 7, 19, [Vector2i(7, 4), Vector2i(7, 5)])
@@ -491,7 +491,7 @@ static func _build_level_2_winter(use_cursed: bool) -> Dictionary:
 	blocks.append({"name": "TowerCrownPlat", "pos": Vector2(1016, 96), "size": Vector2(80, 16), "type": TileType.PLATFORM})
 	jewels.append({"pos": Vector2(1016, 60), "cursed_mechanic": "", "jewel_type": 2}) # SPEED_JEWEL
 	checkpoints.append({"name": "Checkpoint1", "id": "CP-1", "pos": Vector2(1096, 280)})
-	labels.append({"pos": Vector2(816, 56), "text": "Ładuj staminę Trickiem [C] podczas lotu!"})
+	labels.append({"pos": Vector2(816, 56), "text": "Ładuj staminę Trickiem [Ctrl] podczas lotu!"})
 	_add_decor_tile(decorations, 65, 18, Vector2i(6, 8))
 
 	# Sekcja 3 (1136..1760): Kolce i Schodkowa Wspinaczka na Szczyt Lodowca
@@ -610,7 +610,7 @@ static func _build_level_3_autumn(use_cursed: bool) -> Dictionary:
 	blocks.append({"name": "SkyDashPad2", "pos": Vector2(1344, 176), "size": Vector2(80, 16), "type": TileType.PLATFORM})
 	jewels.append({"pos": Vector2(1344, 140), "cursed_mechanic": "", "jewel_type": 3}) # IMMUNITY_JEWEL
 	blocks.append({"name": "SkyDashPad3", "pos": Vector2(1472, 240), "size": Vector2(64, 16), "type": TileType.PLATFORM})
-	labels.append({"pos": Vector2(1120, 96), "text": "Double Jump + Trick [C] + Dash"})
+	labels.append({"pos": Vector2(1120, 96), "text": "Double Jump + Trick [Ctrl] + Dash"})
 
 	# Sekcja 4 (1520..2576): Drugi Tunel Pędu, Trampolina nad Kolcami i Checkpoint 2
 	blocks.append({"name": "AutumnBank2", "pos": Vector2(1752, 328), "size": Vector2(464, 48), "type": TileType.FLOOR})

@@ -19,6 +19,8 @@
 [PASS] UT-18: Synchronizacja ze stroną pobiera profil, skórkę, kolor, czapkę oraz wzmocnienia (HP, Tarcza, Magnes)
 [PASS] UT-19: Generator map dostosowuje liczbę Jeweli, limit czasu i mechanikę do aktywnych zadań ze strony
 [PASS] UT-20: SkinManager poprawnie ładuje wszystkie 6 skórek z podfolderów assets/sprites i aplikuje SpriteFrames do postaci
+[PASS] UT-21: Domyślny klawisz tricku to Ctrl, a KeybindManager obsługuje rebind, konflikt/swap, zapis JSON i reset
+[PASS] UT-22: Dawnosaur movement, nerf same-wall jump, snappy dash, slide speed/friction, bufor kamery i animacja run_start/run
 [PASS] IT-01: Zebranie klejnotu aktualizuje licznik JEWELS (X/Y) na HUDzie
 [PASS] IT-02: Regeneracja staminy poprzez Trick w powietrzu aktualizuje pasek staminy na HUDzie
 [PASS] IT-03: Zmiana staminy w PlayerController aktualizuje pasek ProgressBar w HUDzie
@@ -38,8 +40,9 @@
 [PASS] IT-16: Podział muzyki na dwa niezależne suwaki: Muzyka w menu (MusicMenu) i Muzyka w poziomie (MusicLevel)
 [PASS] IT-17: Ekran pauzy zawiera opcję Settings otwierającą pełny SettingsView z regulacją głośności i powrotem
 [PASS] IT-18: Nawigacja strzałkami (Up / Down) działa poprawnie w PauseMenu, GameOverMenu oraz WinScreen
-[PASS] IT-19: Specjalne klejnoty: JewJewel (10s nieśmiertelność), SpeedJewel (2x speed 10s) oraz ImmunityJewel (tarcza na 1 hit)
+[PASS] IT-19: Specjalne klejnoty: JewJewel (10s nieśmiertelność), SpeedJewel (1.45x speed 10s) oraz ImmunityJewel (tarcza na 1 hit)
 [PASS] IT-20: Mechanika wroga: unikanie dashem, pokonanie skokiem z góry (stomp z bounce) oraz obrażenia przy normalnym kontakcie
 [PASS] IT-21: Wskaźnik HP (gwiazdki) nad graczem, widoczny na start i przy hicie; kolce estetycznie powiększone
 [PASS] IT-22: Knowledge Check: pula 15 pytań ABCD, losowanie na start, blokada wyjścia, obsługa strzałek i wymóg poprawnej odpowiedzi do wygranej
-PODSUMOWANIE: ZALICZONE: 43 | BŁĘDY: 0 | ŁĄCZNIE: 43
+[PASS] IT-23: Ustawienia Sterowania w Menu i Pauzie umożliwiają interaktywną zmianę klawiszy oraz przywrócenie domyślnych
+PODSUMOWANIE: ZALICZONE: 46 | BŁĘDY: 0 | ŁĄCZNIE: 46

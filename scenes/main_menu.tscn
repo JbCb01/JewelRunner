@@ -610,7 +610,7 @@ text = "Trick (w locie - ładuje staminę):"
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 11
-text = "C (przytrzymaj w locie)"
+text = "Ctrl (przytrzymaj w locie)"
 
 [node name="Action7" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=1505469521]
 layout_mode = 2

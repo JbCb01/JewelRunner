@@ -123,6 +123,7 @@ var current_state: State = State.IDLE
 @onready var audio_appear: AudioStreamPlayer2D = get_node_or_null("AudioAppear")
 
 # --- Zmienne Wewnętrzne / Timery ---
+var is_appearing: bool = false
 var facing_direction: float = 1.0
 var coyote_timer: float = 0.0
 var jump_buffer_timer: float = 0.0
@@ -221,9 +222,16 @@ func _ready() -> void:
 	Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
 	Events.player_health_changed.emit(current_health, max_health)
 	
-	if anim_sprite:
-		anim_sprite.animation_finished.connect(_on_animation_finished)
+	if anim_sprite and anim_sprite.sprite_frames and anim_sprite.sprite_frames.has_animation("appear"):
+		if not anim_sprite.animation_finished.is_connected(_on_animation_finished):
+			anim_sprite.animation_finished.connect(_on_animation_finished)
 		anim_sprite.play("appear")
+		is_appearing = true
+	else:
+		is_appearing = false
+		if is_instance_valid(Events):
+			Events.player_appear_finished.emit()
+			Events.level_started.emit()
 	_play_sfx(audio_appear)
 
 func _on_stamina_multipliers_updated(new_multipliers: Dictionary) -> void:
@@ -238,9 +246,16 @@ func _on_animation_finished() -> void:
 	if not anim_sprite:
 		return
 	if anim_sprite.animation == "appear":
+		is_appearing = false
 		anim_sprite.play("idle")
+		if is_instance_valid(Events):
+			Events.player_appear_finished.emit()
+			Events.level_started.emit()
 	elif anim_sprite.animation == "run_start" and current_state == State.RUN:
 		anim_sprite.play("run")
+	elif anim_sprite.animation == "idle_special":
+		anim_sprite.play("idle")
+		idle_trick_timer = 0.0
 
 func _exit_tree() -> void:
 	if _hitstop_active:
@@ -248,6 +263,16 @@ func _exit_tree() -> void:
 		_hitstop_active = false
 
 func _physics_process(delta: float) -> void:
+	if is_appearing:
+		velocity.x = 0.0
+		if not is_on_floor():
+			velocity.y = min(velocity.y + gravity * delta, max_fall_speed)
+		else:
+			velocity.y = 0.0
+		move_and_slide()
+		_update_camera(delta)
+		return
+
 	_was_on_floor = is_on_floor()
 	_prev_velocity_y = velocity.y
 	_update_timers(delta)
@@ -808,6 +833,9 @@ func _change_state(new_state: State) -> void:
 	if current_state == new_state:
 		return
 		
+	if new_state != State.IDLE:
+		idle_trick_timer = 0.0
+		
 	# Exit logic ze stanów kucania/wślizgu
 	if current_state == State.CROUCH or current_state == State.SLIDE:
 		if new_state != State.CROUCH and new_state != State.SLIDE:
@@ -903,10 +931,19 @@ func _state_ground(delta: float) -> void:
 	trick_point_buffer = 0.0
 	_apply_horizontal_movement(input_x, get_effective_speed(), false, false, delta)
 	if input_x != 0.0:
+		idle_trick_timer = 0.0
 		facing_direction = input_x
 		_change_state(State.RUN)
 	else:
 		_change_state(State.IDLE)
+		if absf(velocity.x) < 5.0 and is_on_floor():
+			idle_trick_timer += delta
+			if idle_trick_timer >= 7.0:
+				if anim_sprite and anim_sprite.animation != "idle_special":
+					if anim_sprite.sprite_frames and anim_sprite.sprite_frames.has_animation("idle_special"):
+						anim_sprite.play("idle_special")
+		else:
+			idle_trick_timer = 0.0
 		
 	velocity.y = 0.0
 
@@ -1337,7 +1374,8 @@ func _update_visuals(delta: float = 0.016) -> void:
 		
 	match current_state:
 		State.IDLE:
-			anim_sprite.play("idle")
+			if anim_sprite.animation != "idle_special" or not anim_sprite.is_playing():
+				anim_sprite.play("idle")
 		State.RUN:
 			if anim_sprite.animation != "run_start" and anim_sprite.animation != "run":
 				if anim_sprite.sprite_frames and anim_sprite.sprite_frames.has_animation("run_start") and absf(velocity.x) < get_effective_speed() * 0.85:

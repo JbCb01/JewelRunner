@@ -341,77 +341,248 @@ static func _build_level_1_forest(use_cursed: bool) -> Dictionary:
 
 	blocks.append({"name": "WallLeft", "pos": Vector2(0, 160), "size": Vector2(32, 384), "type": TileType.WALL})
 
-	# Sekcja 1 (16..576): Startowa Polana i Komin Wspinaczkowy
-	blocks.append({"name": "FloorStart", "pos": Vector2(296, 328), "size": Vector2(560, 48), "type": TileType.FLOOR})
+	# ==============================================================================
+	# Sekcja 1 (0..1152): Startowa Polana, Komin Wspinaczkowy i Wzgórza
+	# ==============================================================================
+	blocks.append({"name": "FloorStart", "pos": Vector2(384, 328), "size": Vector2(768, 48), "type": TileType.FLOOR})
 	blocks.append({"name": "ShaftWall1", "pos": Vector2(152, 176), "size": Vector2(16, 160), "type": TileType.WALL})
 	blocks.append({"name": "ShaftWall2", "pos": Vector2(232, 208), "size": Vector2(16, 192), "type": TileType.WALL})
 	blocks.append({"name": "ShaftTopPlat", "pos": Vector2(288, 120), "size": Vector2(80, 16), "type": TileType.PLATFORM})
 	jewels.append({"pos": Vector2(288, 84), "cursed_mechanic": "wall_climb" if use_cursed else "", "jewel_type": 0})
-	enemies.append({"name": "ForestSlime1", "pos": Vector2(432, 294), "archetype": 0, "patrol_range": 64.0, "move_speed": 36.0, "detection_radius": 120.0})
-	labels.append({"pos": Vector2(104, 72), "text": "LAS SYNERGII: Wspinaczka [W] lub Wall Jump w kominie"})
+	jewels.append({"pos": Vector2(448, 288), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(560, 288), "cursed_mechanic": "", "jewel_type": 0})
+	enemies.append({"name": "ForestSlime1", "pos": Vector2(512, 294), "archetype": 0, "patrol_range": 64.0, "move_speed": 36.0, "detection_radius": 120.0})
+	labels.append({"pos": Vector2(104, 72), "text": "GREEN HILL: Wspinaczka [W] lub Wall Jump w kominie"})
 
-	_add_decor_tile(decorations, 3, 18, Vector2i(4, 3))
-	_add_decor_column(decorations, 6, 19, [Vector2i(0, 3), Vector2i(0, 4), Vector2i(0, 5)])
-	_add_decor_tile(decorations, 20, 18, Vector2i(1, 6))
-	_add_decor_tile(decorations, 23, 18, Vector2i(0, 6))
-	_add_decor_tile(decorations, 24, 18, Vector2i(0, 6))
-	_add_decor_tile(decorations, 32, 18, Vector2i(9, 0))
+	# Alternatywna Górna Ścieżka (Upper Route): Start w koronach drzew ze szczytu komina
+	blocks.append({"name": "UpperCanopyEntry", "pos": Vector2(390, 116), "size": Vector2(64, 16), "type": TileType.PLATFORM})
+	blocks.append({"name": "UpperCanopyPlat1", "pos": Vector2(530, 112), "size": Vector2(128, 16), "type": TileType.PLATFORM})
+	blocks.append({"name": "UpperCanopyPlat2", "pos": Vector2(740, 104), "size": Vector2(128, 16), "type": TileType.PLATFORM})
+	blocks.append({"name": "UpperHillOverlook", "pos": Vector2(980, 112), "size": Vector2(144, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(530, 76), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(740, 68), "cursed_mechanic": "", "jewel_type": 2}) # SPEED_JEWEL za wejście na górę!
+	jewels.append({"pos": Vector2(980, 76), "cursed_mechanic": "", "jewel_type": 0})
 
-	# Sekcja 2 (576..1168): Pierwszy Kanion Kolców (SpikesGap) + Tunel Wślizgu
-	hazards.append({"name": "SpikesGap", "pos": Vector2(632, 324), "size": Vector2(112, 24), "kind": "spikes"})
-	jewels.append({"pos": Vector2(632, 248), "cursed_mechanic": "", "jewel_type": 2}) # SPEED_JEWEL
-	labels.append({"pos": Vector2(560, 204), "text": "Dash [Shift] nad kolcami!"})
+	# Schodkowe wzniesienia (zielone pagórki)
+	blocks.append({"name": "HillStep1", "pos": Vector2(848, 312), "size": Vector2(256, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "HillStep2", "pos": Vector2(1048, 280), "size": Vector2(208, 48), "type": TileType.FLOOR})
+	jewels.append({"pos": Vector2(848, 260), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(1048, 230), "cursed_mechanic": "", "jewel_type": 0})
 
-	blocks.append({"name": "FloorMid1", "pos": Vector2(928, 328), "size": Vector2(480, 48), "type": TileType.FLOOR})
-	blocks.append({"name": "LowCeilingTunnel", "pos": Vector2(840, 272), "size": Vector2(144, 16), "type": TileType.TUNNEL_CEILING})
-	jewels.append({"pos": Vector2(840, 288), "cursed_mechanic": "", "jewel_type": 0})
-	labels.append({"pos": Vector2(784, 236), "text": "Wślizg [S] pod niskim sufitem"})
-	enemies.append({"name": "ForestSpider1", "pos": Vector2(1040, 294), "archetype": 2, "patrol_range": 64.0, "move_speed": 40.0, "detection_radius": 135.0})
-	checkpoints.append({"name": "Checkpoint1", "id": "CP-1", "pos": Vector2(1136, 280)})
-	_add_decor_column(decorations, 45, 19, [Vector2i(8, 4), Vector2i(8, 5), Vector2i(8, 6)])
-	_add_decor_tile(decorations, 60, 18, Vector2i(1, 3))
+	# ==============================================================================
+	# GAP 1 (1152..1264): Pierwszy Kanion Kolców (otwarta przepaść z kolcami na dnie)
+	# ==============================================================================
+	hazards.append({"name": "SpikesGap1", "pos": Vector2(1208, 324), "size": Vector2(112, 24), "kind": "spikes"})
+	jewels.append({"pos": Vector2(1208, 240), "cursed_mechanic": "", "jewel_type": 2}) # SPEED_JEWEL
+	labels.append({"pos": Vector2(1136, 190), "text": "Dash [Shift] nad kolcami!"})
 
-	# Sekcja 3 (1168..1808): Zielone Bajoro Kwasu + Mostek Linowy + Trampolina Koron Drzew
-	hazards.append({"name": "AcidSea1", "pos": Vector2(1328, 336), "size": Vector2(320, 32), "kind": "liquid"})
-	blocks.append({"name": "ForestBridge1", "pos": Vector2(1264, 296), "size": Vector2(96, 16), "type": TileType.BRIDGE})
-	blocks.append({"name": "ForestPadMid", "pos": Vector2(1424, 272), "size": Vector2(64, 16), "type": TileType.PLATFORM})
-	jewels.append({"pos": Vector2(1352, 224), "cursed_mechanic": "dash" if use_cursed else "", "jewel_type": 0})
-	enemies.append({"name": "ForestBat1", "pos": Vector2(1328, 196), "archetype": 1, "patrol_range": 56.0, "move_speed": 38.0, "detection_radius": 135.0})
+	# Górny wiszący most nad GAP 1 (płynny przelot dla gracza na górnej ścieżce)
+	blocks.append({"name": "UpperSkyBridgeGap1", "pos": Vector2(1208, 104), "size": Vector2(144, 16), "type": TileType.BRIDGE})
+	jewels.append({"pos": Vector2(1208, 68), "cursed_mechanic": "", "jewel_type": 0})
 
-	blocks.append({"name": "FloorForestIsland", "pos": Vector2(1648, 328), "size": Vector2(320, 48), "type": TileType.FLOOR})
-	trampolines.append({"name": "ForestTrampoline1", "pos": Vector2(1584, 296), "bounce_velocity": -475.0})
-	labels.append({"pos": Vector2(1520, 232), "text": "Trampolina [!]: Wysokie wybicie!"})
-	blocks.append({"name": "CanopyPlat1", "pos": Vector2(1664, 176), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	blocks.append({"name": "CanopyPlat2", "pos": Vector2(1776, 128), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	jewels.append({"pos": Vector2(1776, 92), "cursed_mechanic": "", "jewel_type": 3}) # IMMUNITY_JEWEL
-	_add_decor_column(decorations, 95, 19, [Vector2i(0, 3), Vector2i(0, 4), Vector2i(0, 5)])
-	_add_decor_tile(decorations, 108, 18, Vector2i(10, 3))
+	# ==============================================================================
+	# Sekcja 2 (1264..1680): Tunel Wślizgu i Polana Przed Mostem
+	# ==============================================================================
+	blocks.append({"name": "FloorMid1", "pos": Vector2(1472, 328), "size": Vector2(416, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "LowCeilingTunnel1", "pos": Vector2(1420, 272), "size": Vector2(160, 16), "type": TileType.TUNNEL_CEILING})
+	jewels.append({"pos": Vector2(1420, 288), "cursed_mechanic": "", "jewel_type": 0})
+	labels.append({"pos": Vector2(1330, 236), "text": "Wślizg [S] pod niskim sufitem"})
+	enemies.append({"name": "ForestSpider1", "pos": Vector2(1580, 294), "archetype": 2, "patrol_range": 64.0, "move_speed": 40.0, "detection_radius": 135.0})
 
-	# Sekcja 4 (1808..2416): Drugi Kanion Kolców (SpikesGap2) + Ruiny Leśne
-	hazards.append({"name": "SpikesGap2", "pos": Vector2(1880, 324), "size": Vector2(144, 24), "kind": "spikes"})
-	blocks.append({"name": "SkyJumpPlat1", "pos": Vector2(1872, 232), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	jewels.append({"pos": Vector2(1872, 196), "cursed_mechanic": "", "jewel_type": 0})
-	enemies.append({"name": "ForestBat2", "pos": Vector2(1936, 168), "archetype": 1, "patrol_range": 48.0, "move_speed": 40.0, "detection_radius": 135.0})
+	# Górna autostrada nad tunelem wślizgu (omija czołganie się dołem!)
+	blocks.append({"name": "UpperSkyRunway1", "pos": Vector2(1420, 112), "size": Vector2(192, 16), "type": TileType.PLATFORM})
+	blocks.append({"name": "UpperSkyMidPlat", "pos": Vector2(1620, 104), "size": Vector2(96, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(1360, 76), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(1480, 76), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(1620, 68), "cursed_mechanic": "", "jewel_type": 0})
 
-	blocks.append({"name": "FloorRuins", "pos": Vector2(2184, 328), "size": Vector2(464, 48), "type": TileType.FLOOR})
-	blocks.append({"name": "RuinsWall1", "pos": Vector2(2120, 168), "size": Vector2(16, 160), "type": TileType.WALL})
-	blocks.append({"name": "RuinsPlat", "pos": Vector2(2208, 152), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	jewels.append({"pos": Vector2(2208, 116), "cursed_mechanic": "double_jump" if use_cursed else "", "jewel_type": 0})
-	enemies.append({"name": "ForestSlime2", "pos": Vector2(2288, 294), "archetype": 0, "patrol_range": 64.0, "move_speed": 42.0, "detection_radius": 130.0})
-	checkpoints.append({"name": "Checkpoint2", "id": "CP-2", "pos": Vector2(2384, 280)})
-	_add_decor_tile(decorations, 125, 18, Vector2i(1, 6))
-	_add_decor_tile(decorations, 146, 18, Vector2i(9, 3))
+	# ==============================================================================
+	# GAP 2 (1680..1920): Pierwszy Wodospad z Wiszącym Mostem i Podniebną Wyspą
+	# ==============================================================================
+	hazards.append({"name": "WaterfallChasm1", "pos": Vector2(1800, 336), "size": Vector2(240, 32), "kind": "liquid"})
+	blocks.append({"name": "ForestBridge1", "pos": Vector2(1800, 296), "size": Vector2(192, 16), "type": TileType.BRIDGE})
+	blocks.append({"name": "FloatingIsland1", "pos": Vector2(1800, 176), "size": Vector2(96, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(1800, 136), "cursed_mechanic": "dash" if use_cursed else "", "jewel_type": 0})
+	enemies.append({"name": "ForestBat1", "pos": Vector2(1800, 208), "archetype": 1, "patrol_range": 56.0, "move_speed": 38.0, "detection_radius": 135.0})
 
-	# Sekcja 5 (2416..3200): Leśny Przesmyk, Druga Trampolina, Sekret i Wyjście
-	hazards.append({"name": "AcidGorge2", "pos": Vector2(2480, 336), "size": Vector2(128, 32), "kind": "liquid"})
-	blocks.append({"name": "ForestBridge2", "pos": Vector2(2480, 296), "size": Vector2(64, 16), "type": TileType.BRIDGE})
+	# Górny most widokowy nad pierwszym wodospadem
+	blocks.append({"name": "UpperSkyBridge1", "pos": Vector2(1800, 96), "size": Vector2(208, 16), "type": TileType.BRIDGE})
+	jewels.append({"pos": Vector2(1800, 60), "cursed_mechanic": "", "jewel_type": 0})
 
-	blocks.append({"name": "FloorFinale", "pos": Vector2(2872, 328), "size": Vector2(656, 48), "type": TileType.FLOOR})
-	trampolines.append({"name": "ForestTrampoline2", "pos": Vector2(2640, 296), "bounce_velocity": -475.0})
-	blocks.append({"name": "SecretCanopy1", "pos": Vector2(2728, 184), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	blocks.append({"name": "SecretCanopy2", "pos": Vector2(2832, 128), "size": Vector2(80, 16), "type": TileType.PLATFORM})
+	# Sekcja za mostem i Checkpoint 1 (CP-1 stabilnie na podłożu!)
+	blocks.append({"name": "FloorAfterBridge1", "pos": Vector2(2088, 328), "size": Vector2(336, 48), "type": TileType.FLOOR})
+	checkpoints.append({"name": "Checkpoint1", "id": "CP-1", "pos": Vector2(2088, 280)})
+
+	# Podniebna estakada nad Checkpointem 1 i GAP 3
+	blocks.append({"name": "UpperSkyOverCP1", "pos": Vector2(2088, 104), "size": Vector2(160, 16), "type": TileType.PLATFORM})
+	blocks.append({"name": "UpperSkyChasmBridge1", "pos": Vector2(2320, 120), "size": Vector2(128, 16), "type": TileType.BRIDGE})
+	jewels.append({"pos": Vector2(2088, 68), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(2320, 84), "cursed_mechanic": "", "jewel_type": 0})
+
+	# ==============================================================================
+	# GAP 3 (2256..2352): Pierwsza Otwarta Przepaść (widoczna czeluść do przeskoczenia)
+	# ==============================================================================
+
+	# ==============================================================================
+	# Sekcja 3 (2352..3216): Falujące Wzgórza, Trampolina 1, Korony Drzew i Tunel 2
+	# ==============================================================================
+	blocks.append({"name": "HillRise1", "pos": Vector2(2456, 304), "size": Vector2(208, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "HillPlateau1", "pos": Vector2(2656, 272), "size": Vector2(256, 48), "type": TileType.FLOOR})
+	trampolines.append({"name": "ForestTrampoline1", "pos": Vector2(2600, 240), "bounce_velocity": -480.0})
+	labels.append({"pos": Vector2(2536, 184), "text": "Trampolina [!]: Wybicie w korony drzew!"})
+
+	# Górna ścieżka w koronach drzew (High Route)
+	blocks.append({"name": "CanopyPlat1", "pos": Vector2(2700, 144), "size": Vector2(96, 16), "type": TileType.PLATFORM})
+	blocks.append({"name": "CanopyPlat2", "pos": Vector2(2832, 112), "size": Vector2(96, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(2832, 76), "cursed_mechanic": "", "jewel_type": 3}) # IMMUNITY_JEWEL
+
+	# Wielka Górna Autostrada (High Skyway) nad doliną, tunelem 2 i przepaścią kolców
+	blocks.append({"name": "UpperHighBridge1", "pos": Vector2(3056, 96), "size": Vector2(160, 16), "type": TileType.BRIDGE})
+	blocks.append({"name": "UpperSkyPlatGap2", "pos": Vector2(3280, 80), "size": Vector2(160, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(3056, 60), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(3280, 44), "cursed_mechanic": "", "jewel_type": 2}) # SPEED_JEWEL!
+	labels.append({"pos": Vector2(3180, 24), "text": "GÓRNA ŚCIEŻKA: Trzymaj pęd w koronach drzew!"})
+
+	# Dolna dolina z tunelem wślizgu (Low Route)
+	blocks.append({"name": "ValleyFloor1", "pos": Vector2(2992, 328), "size": Vector2(448, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "LowCeilingTunnel2", "pos": Vector2(2940, 272), "size": Vector2(160, 16), "type": TileType.TUNNEL_CEILING})
+	jewels.append({"pos": Vector2(2940, 288), "cursed_mechanic": "", "jewel_type": 0})
+	enemies.append({"name": "ForestSlime2", "pos": Vector2(3100, 294), "archetype": 0, "patrol_range": 64.0, "move_speed": 40.0, "detection_radius": 130.0})
+
+	# ==============================================================================
+	# GAP 4 (3216..3344): Drugi Kanion Kolców z Podniebną Platformą
+	# ==============================================================================
+	hazards.append({"name": "SpikesGap2", "pos": Vector2(3280, 324), "size": Vector2(128, 24), "kind": "spikes"})
+	blocks.append({"name": "SkyJumpPlat1", "pos": Vector2(3280, 232), "size": Vector2(80, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(3280, 196), "cursed_mechanic": "", "jewel_type": 0})
+	enemies.append({"name": "ForestBat2", "pos": Vector2(3330, 168), "archetype": 1, "patrol_range": 48.0, "move_speed": 40.0, "detection_radius": 135.0})
+
+	# ==============================================================================
+	# Sekcja 4 (3344..4176): Leśne Ruiny i Komin Wspinaczkowy
+	# ==============================================================================
+	blocks.append({"name": "FloorRuinsEntry", "pos": Vector2(3512, 328), "size": Vector2(336, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "RuinsWallLeft", "pos": Vector2(3680, 176), "size": Vector2(16, 160), "type": TileType.WALL})
+	blocks.append({"name": "RuinsWallRight", "pos": Vector2(3760, 208), "size": Vector2(16, 192), "type": TileType.WALL})
+	blocks.append({"name": "RuinsPlatTop", "pos": Vector2(3824, 120), "size": Vector2(96, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(3824, 84), "cursed_mechanic": "double_jump" if use_cursed else "", "jewel_type": 0})
+
+	# Podniebna estakada nad ruinami, szybem wspinaczkowym i drugim wodospadem
+	blocks.append({"name": "RuinsHighRooftop", "pos": Vector2(3520, 80), "size": Vector2(160, 16), "type": TileType.PLATFORM})
+	blocks.append({"name": "RuinsSkyWalkway", "pos": Vector2(3760, 64), "size": Vector2(192, 16), "type": TileType.BRIDGE})
+	blocks.append({"name": "SkyOverGorgePlat", "pos": Vector2(4040, 80), "size": Vector2(144, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(3520, 44), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(3760, 28), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(4040, 44), "cursed_mechanic": "", "jewel_type": 0})
+
+	blocks.append({"name": "RuinsLowerFloor", "pos": Vector2(3952, 328), "size": Vector2(448, 48), "type": TileType.FLOOR})
+	enemies.append({"name": "ForestSpider2", "pos": Vector2(4048, 294), "archetype": 2, "patrol_range": 64.0, "move_speed": 42.0, "detection_radius": 135.0})
+
+	# ==============================================================================
+	# GAP 5 (4176..4464): Drugi Wodospad z Kładką i Wysepkami Krokowymi
+	# ==============================================================================
+	hazards.append({"name": "WaterfallChasm2", "pos": Vector2(4320, 336), "size": Vector2(288, 32), "kind": "liquid"})
+	blocks.append({"name": "ForestBridge2", "pos": Vector2(4260, 296), "size": Vector2(128, 16), "type": TileType.BRIDGE})
+	blocks.append({"name": "SteppingStone1", "pos": Vector2(4400, 264), "size": Vector2(64, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(4400, 224), "cursed_mechanic": "", "jewel_type": 0})
+
+	# Górny wiszący most nad drugim wodospadem i taras nad CP-2
+	blocks.append({"name": "SkyBridgeWaterfall2", "pos": Vector2(4320, 72), "size": Vector2(208, 16), "type": TileType.BRIDGE})
+	blocks.append({"name": "SkyMidwayStep", "pos": Vector2(4500, 76), "size": Vector2(64, 16), "type": TileType.PLATFORM})
+	blocks.append({"name": "SkyOverlookCP2", "pos": Vector2(4656, 80), "size": Vector2(160, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(4320, 36), "cursed_mechanic": "", "jewel_type": 3}) # IMMUNITY_JEWEL!
+	jewels.append({"pos": Vector2(4656, 44), "cursed_mechanic": "", "jewel_type": 0})
+
+	# Półmetek i Checkpoint 2 (CP-2 stabilnie na podłożu!)
+	blocks.append({"name": "FloorMidway", "pos": Vector2(4656, 328), "size": Vector2(384, 48), "type": TileType.FLOOR})
+	checkpoints.append({"name": "Checkpoint2", "id": "CP-2", "pos": Vector2(4656, 280)})
+	labels.append({"pos": Vector2(4560, 236), "text": "PÓŁMETEK: Przygotuj się na Wielką Rampę!"})
+
+	# ==============================================================================
+	# GAP 6 (4848..4944): Druga Otwarta Przepaść (czysta czeluść przed rampą)
+	# ==============================================================================
+	blocks.append({"name": "SkyChasmBridge2", "pos": Vector2(4848, 84), "size": Vector2(96, 16), "type": TileType.BRIDGE})
+
+	# ==============================================================================
+	# Sekcja 5 (4944..6224): Wielka Rampa, Podniebne Wyspy, Dolny Wąwóz i Trampolina 2
+	# ==============================================================================
+	blocks.append({"name": "SkyRampExpress", "pos": Vector2(4960, 88), "size": Vector2(144, 16), "type": TileType.PLATFORM})
+	blocks.append({"name": "SkyRampBridge", "pos": Vector2(5200, 104), "size": Vector2(144, 16), "type": TileType.BRIDGE})
+	jewels.append({"pos": Vector2(4960, 52), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(5200, 68), "cursed_mechanic": "", "jewel_type": 0})
+	blocks.append({"name": "RampFloor1", "pos": Vector2(5056, 304), "size": Vector2(224, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "RampFloor2", "pos": Vector2(5256, 272), "size": Vector2(208, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "HighIsland1", "pos": Vector2(5440, 160), "size": Vector2(112, 16), "type": TileType.PLATFORM})
+	blocks.append({"name": "HighIsland2", "pos": Vector2(5600, 128), "size": Vector2(112, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(5056, 252), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(5256, 220), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(5440, 120), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(5600, 88), "cursed_mechanic": "", "jewel_type": 2}) # SPEED_JEWEL
+
+	# Dolny wąwóz z kolcami i trampoliną powrotną (ForestTrampoline2 stabilnie na ziemi!)
+	hazards.append({"name": "SpikesValley1", "pos": Vector2(5440, 324), "size": Vector2(208, 24), "kind": "spikes"})
+	blocks.append({"name": "LowerFloorGorge", "pos": Vector2(5704, 328), "size": Vector2(368, 48), "type": TileType.FLOOR})
+	trampolines.append({"name": "ForestTrampoline2", "pos": Vector2(5580, 296), "bounce_velocity": -490.0})
+	enemies.append({"name": "ForestBat3", "pos": Vector2(5456, 192), "archetype": 1, "patrol_range": 64.0, "move_speed": 42.0, "detection_radius": 140.0})
+
+	# Plateau środkowe i tunel wślizgu 3
+	blocks.append({"name": "PlateauMid3", "pos": Vector2(6032, 328), "size": Vector2(384, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "LowCeilingTunnel3", "pos": Vector2(5980, 272), "size": Vector2(160, 16), "type": TileType.TUNNEL_CEILING})
+	jewels.append({"pos": Vector2(5980, 288), "cursed_mechanic": "", "jewel_type": 0})
+	enemies.append({"name": "ForestSlime3", "pos": Vector2(6120, 294), "archetype": 0, "patrol_range": 64.0, "move_speed": 42.0, "detection_radius": 135.0})
+
+	# Górny wiszący most nad tunelem 3 i GAP 7
+	blocks.append({"name": "UpperSkyBridge3", "pos": Vector2(5980, 112), "size": Vector2(176, 16), "type": TileType.BRIDGE})
+	blocks.append({"name": "UpperBridgeOverSpikes3", "pos": Vector2(6288, 96), "size": Vector2(160, 16), "type": TileType.BRIDGE})
+	jewels.append({"pos": Vector2(5980, 76), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(6288, 60), "cursed_mechanic": "", "jewel_type": 0})
+
+	# ==============================================================================
+	# GAP 7 (6224..6352): Trzeci Kanion Kolców z Kładką
+	# ==============================================================================
+	hazards.append({"name": "SpikesPit3", "pos": Vector2(6288, 324), "size": Vector2(128, 24), "kind": "spikes"})
+	blocks.append({"name": "BridgeOverSpikes3", "pos": Vector2(6288, 280), "size": Vector2(112, 16), "type": TileType.BRIDGE})
+	jewels.append({"pos": Vector2(6288, 240), "cursed_mechanic": "", "jewel_type": 0})
+
+	# ==============================================================================
+	# Sekcja 6 (6352..6968): Jaskinia Wodospadów, Komin i Checkpoint 3
+	# ==============================================================================
+	blocks.append({"name": "FloorCaveEntry", "pos": Vector2(6520, 328), "size": Vector2(336, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "FloorCaveShaft", "pos": Vector2(6824, 328), "size": Vector2(288, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "CaveWallShaft1", "pos": Vector2(6680, 184), "size": Vector2(16, 160), "type": TileType.WALL})
+	blocks.append({"name": "CaveWallShaft2", "pos": Vector2(6760, 216), "size": Vector2(16, 192), "type": TileType.WALL})
+	blocks.append({"name": "CaveShaftPlat", "pos": Vector2(6824, 128), "size": Vector2(96, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(6824, 92), "cursed_mechanic": "", "jewel_type": 0})
+	enemies.append({"name": "ForestSpider3", "pos": Vector2(6552, 294), "archetype": 2, "patrol_range": 64.0, "move_speed": 44.0, "detection_radius": 140.0})
+
+	# Górny dach jaskini i podniebna kładka nad Checkpointem 3
+	blocks.append({"name": "UpperCaveRooftop", "pos": Vector2(6520, 88), "size": Vector2(160, 16), "type": TileType.PLATFORM})
+	blocks.append({"name": "UpperCaveShaftWalk", "pos": Vector2(6760, 72), "size": Vector2(176, 16), "type": TileType.BRIDGE})
+	jewels.append({"pos": Vector2(6520, 52), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(6760, 36), "cursed_mechanic": "", "jewel_type": 0})
+
+	# Checkpoint 3 (CP-3 stoi stabilnie na FloorCaveShaft!)
+	checkpoints.append({"name": "Checkpoint3", "id": "CP-3", "pos": Vector2(6880, 280)})
+
+	# ==============================================================================
+	# GAP 8 (6968..7248): Trzeci Duży Wodospad z Kładką i Górną Półką Koron
+	# ==============================================================================
+	hazards.append({"name": "WaterfallChasm3", "pos": Vector2(7108, 336), "size": Vector2(280, 32), "kind": "liquid"})
+	blocks.append({"name": "ForestBridge3", "pos": Vector2(7080, 296), "size": Vector2(144, 16), "type": TileType.BRIDGE})
+	blocks.append({"name": "UpperCanopyLedge", "pos": Vector2(7216, 200), "size": Vector2(80, 16), "type": TileType.PLATFORM})
+	jewels.append({"pos": Vector2(7216, 160), "cursed_mechanic": "", "jewel_type": 0})
+
+	# Podniebny most nad wodospadem kierujący wprost do sekretu
+	blocks.append({"name": "UpperChasm3Bridge", "pos": Vector2(7108, 80), "size": Vector2(208, 16), "type": TileType.BRIDGE})
+	jewels.append({"pos": Vector2(7108, 44), "cursed_mechanic": "", "jewel_type": 0})
+
+	# ==============================================================================
+	# Sekcja 6 c.d. (7248..7584): Sekretne Wyspy i Trampolina 3 (ForestTrampoline3 na ziemi!)
+	# ==============================================================================
+	blocks.append({"name": "FloorSecretUnder", "pos": Vector2(7416, 328), "size": Vector2(336, 48), "type": TileType.FLOOR})
+	trampolines.append({"name": "ForestTrampoline3", "pos": Vector2(7320, 296), "bounce_velocity": -480.0})
+	blocks.append({"name": "SecretIslandFinale", "pos": Vector2(7440, 128), "size": Vector2(96, 16), "type": TileType.PLATFORM})
 	jewels.append({
-		"pos": Vector2(2832, 92),
+		"pos": Vector2(7440, 92),
 		"cursed_mechanic": "",
 		"jewel_type": 0,
 		"is_secret_special": true,
@@ -419,23 +590,71 @@ static func _build_level_1_forest(use_cursed: bool) -> Dictionary:
 		"special_name": "Klejnot Eteru #1",
 		"special_rarity": "Legendarny"
 	})
-	enemies.append({"name": "ForestSpider2", "pos": Vector2(2800, 294), "archetype": 2, "patrol_range": 64.0, "move_speed": 44.0, "detection_radius": 140.0})
-	enemies.append({"name": "ForestBat3", "pos": Vector2(2976, 212), "archetype": 1, "patrol_range": 48.0, "move_speed": 40.0, "detection_radius": 135.0})
-	jewels.append({"pos": Vector2(2960, 268), "cursed_mechanic": "", "jewel_type": 1}) # JEW_JEWEL
 
-	_add_decor_tile(decorations, 161, 18, Vector2i(7, 6))
-	_add_decor_column(decorations, 186, 19, [Vector2i(0, 3), Vector2i(0, 4), Vector2i(0, 5)])
-	_add_decor_tile(decorations, 190, 18, Vector2i(10, 0))
+	# ==============================================================================
+	# GAP 9 (7584..7680): Trzecia Otwarta Przepaść przed Finiszem
+	# ==============================================================================
 
-	blocks.append({"name": "WallRight", "pos": Vector2(3216, 160), "size": Vector2(32, 384), "type": TileType.WALL})
-	hazards.append({"name": "AbyssZone", "pos": Vector2(1616, 432), "size": Vector2(3840, 48), "is_abyss": true})
+	# ==============================================================================
+	# Sekcja 7 (7680..8800): Finałowy Pęd, Pagórki i Meta (Finish Goal)
+	# ==============================================================================
+	blocks.append({"name": "HillDrop1", "pos": Vector2(7792, 304), "size": Vector2(224, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "HillDrop2", "pos": Vector2(8000, 312), "size": Vector2(208, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "FloorFinaleRunway", "pos": Vector2(8384, 328), "size": Vector2(608, 48), "type": TileType.FLOOR})
+	enemies.append({"name": "ForestSlime4", "pos": Vector2(8120, 294), "archetype": 0, "patrol_range": 64.0, "move_speed": 42.0, "detection_radius": 130.0})
+	enemies.append({"name": "ForestBat4", "pos": Vector2(8320, 216), "archetype": 1, "patrol_range": 48.0, "move_speed": 40.0, "detection_radius": 135.0})
+
+	# Finałowy łuk klejnotów (jak w Sonicu przed tablicą z metą)
+	jewels.append({"pos": Vector2(7792, 252), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(8000, 268), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(8220, 280), "cursed_mechanic": "", "jewel_type": 0})
+	jewels.append({"pos": Vector2(8384, 268), "cursed_mechanic": "", "jewel_type": 1}) # JEW_JEWEL
+	jewels.append({"pos": Vector2(8540, 280), "cursed_mechanic": "", "jewel_type": 0})
+
+	# Platforma mety i tablica finiszu
+	blocks.append({"name": "FloorFinishPlat", "pos": Vector2(8712, 328), "size": Vector2(192, 48), "type": TileType.FLOOR})
+	blocks.append({"name": "WallRight", "pos": Vector2(8784, 160), "size": Vector2(32, 384), "type": TileType.WALL})
+	hazards.append({"name": "AbyssZone", "pos": Vector2(4400, 448), "size": Vector2(10000, 64), "is_abyss": true})
+
+	# ==============================================================================
+	# Dekoracje: Drzewa i Roślinność automatycznie osadzane dokładnie na szczycie stałego podłoża!
+	# ==============================================================================
+	_add_tree_decor(decorations, blocks, 6)
+	_add_plant_decor(decorations, blocks, 15, Vector2i(1, 6))
+	_add_plant_decor(decorations, blocks, 25, Vector2i(0, 6))
+	_add_tree_decor(decorations, blocks, 54)
+	_add_plant_decor(decorations, blocks, 60, Vector2i(9, 0))
+
+	_add_tree_decor(decorations, blocks, 88)
+	_add_plant_decor(decorations, blocks, 102, Vector2i(1, 3))
+	_add_tree_decor(decorations, blocks, 130)
+
+	_add_tree_decor(decorations, blocks, 155)
+	_add_plant_decor(decorations, blocks, 175, Vector2i(1, 6))
+	_add_tree_decor(decorations, blocks, 195)
+
+	_add_tree_decor(decorations, blocks, 225)
+	_add_plant_decor(decorations, blocks, 255, Vector2i(7, 6))
+
+	_add_tree_decor(decorations, blocks, 320)
+	_add_plant_decor(decorations, blocks, 345, Vector2i(9, 3))
+	_add_tree_decor(decorations, blocks, 375)
+
+	_add_tree_decor(decorations, blocks, 415)
+	_add_plant_decor(decorations, blocks, 440, Vector2i(1, 6))
+	_add_tree_decor(decorations, blocks, 465)
+
+	_add_tree_decor(decorations, blocks, 495)
+	_add_plant_decor(decorations, blocks, 515, Vector2i(10, 0))
+	_add_tree_decor(decorations, blocks, 535)
+	_add_plant_decor(decorations, blocks, 545, Vector2i(4, 3))
 
 	return {
 		"profile_id": MechanicProfile.SYNERGY_CLASSIC,
 		"biome_id": BiomeId.FOREST,
 		"respawn_pos": Vector2(72, 272),
-		"finish_pos": Vector2(3104, 276),
-		"level_width": 3248.0,
+		"finish_pos": Vector2(8650, 276),
+		"level_width": 8800.0,
 		"blocks": blocks,
 		"hazards": hazards,
 		"trampolines": trampolines,
@@ -692,6 +911,34 @@ static func _add_decor_column(decorations: Array[Dictionary], gx: int, ground_ro
 		var row_y: int = ground_row_y - (n - i)
 		_add_decor_tile(decorations, gx, row_y, atlas_top_to_bot[i])
 
+static func _find_ground_surface_row(blocks: Array[Dictionary], gx: int) -> int:
+	var world_x: float = float(gx * TILE_SIZE) + 8.0
+	var ground_y_top: float = INF
+	for b in blocks:
+		var bt: int = int(b.get("type", TileType.FLOOR))
+		if bt != TileType.FLOOR:
+			continue
+		var pos: Vector2 = b["pos"]
+		var sz: Vector2 = b["size"]
+		var x0: float = pos.x - sz.x * 0.5
+		var x1: float = pos.x + sz.x * 0.5
+		if world_x >= x0 and world_x <= x1:
+			var y_top: float = pos.y - sz.y * 0.5
+			ground_y_top = min(ground_y_top, y_top)
+	if ground_y_top < INF:
+		return int(round(ground_y_top / float(TILE_SIZE)))
+	return -1
+
+static func _add_tree_decor(decorations: Array[Dictionary], blocks: Array[Dictionary], gx: int) -> void:
+	var g_row: int = _find_ground_surface_row(blocks, gx)
+	if g_row > 0:
+		_add_decor_column(decorations, gx, g_row, [Vector2i(0, 3), Vector2i(0, 4), Vector2i(0, 5)])
+
+static func _add_plant_decor(decorations: Array[Dictionary], blocks: Array[Dictionary], gx: int, atlas: Vector2i) -> void:
+	var g_row: int = _find_ground_surface_row(blocks, gx)
+	if g_row > 0:
+		_add_decor_tile(decorations, gx, g_row - 1, atlas)
+
 static func _add_palm_decor(decorations: Array[Dictionary], gx: int, ground_row_y: int) -> void:
 	_add_decor_tile(decorations, gx, ground_row_y - 1, Vector2i(3, 8))
 	_add_decor_tile(decorations, gx, ground_row_y - 2, Vector2i(3, 7))
@@ -720,11 +967,21 @@ static func _rasterize_blocks_to_logical_grid(blocks: Array[Dictionary], hazards
 					cell_type = TileType.WALL_FILL
 				grid[Vector2i(gx, gy)] = cell_type
 
-	# Wypełnienie logicznej siatki pod planszą kafelkami FLOOR_FILL
-	for gx in range(-25, 260):
-		for gy in range(21, 38):
-			if not grid.has(Vector2i(gx, gy)):
-				grid[Vector2i(gx, gy)] = TileType.FLOOR_FILL
+	# Wypełnienie logicznej siatki kafelkami FLOOR_FILL wyłącznie bezpośrednio pod litą ziemią (FLOOR/WALL)
+	for b in blocks:
+		var bt: int = int(b.get("type", TileType.FLOOR))
+		if bt != TileType.FLOOR and bt != TileType.WALL:
+			continue
+		var pos: Vector2 = b["pos"]
+		var size: Vector2 = b["size"]
+		var top_left: Vector2 = pos - size * 0.5
+		var gx_start: int = int(floor(top_left.x / float(TILE_SIZE)))
+		var gy_bottom: int = int(ceil((top_left.y + size.y) / float(TILE_SIZE)))
+		var gx_end: int = int(ceil((top_left.x + size.x) / float(TILE_SIZE)))
+		for gx in range(gx_start, gx_end):
+			for gy in range(gy_bottom, 38):
+				if not grid.has(Vector2i(gx, gy)):
+					grid[Vector2i(gx, gy)] = TileType.FLOOR_FILL
 
 	for h in hazards:
 		if bool(h.get("is_abyss", false)):
@@ -931,17 +1188,27 @@ static func _render_biome_tilemap_layers(
 					tile_layer.set_cell(Vector2i(gx0 + ix, gy0 + iy), actual_src, liq_atlas)
 
 	# 5. Wypełnienie przestrzeni pod planszą kafelkami (floor_fill)
-	# Cały obszar pod planszą (od gy=21 / y=336 w dół do gy=38 / y=608) zostaje
-	# szczelnie wypełniony kafelkami podłoża (floor_fill), tak aby nie było na dole tła,
-	# lecz lita ziemia/skała na całej szerokości poziomu.
-	var min_fill_gx: int = -25
-	var max_fill_gx: int = int(ceil((level_width + 600.0) / float(TILE_SIZE))) + 15
+	# Kafelki podłoża (floor_fill) stemplujemy WYŁĄCZNIE pod blokami FLOOR i WALL,
+	# aby pod litą ziemią była lita skała, a wszelkie przepaście i doły były
+	# w 100% widoczne jako otwarte czeluści bez mylących tekstur, przez które gracz by spadał.
 	var fill_atlas: Vector2i = palette["floor_fill"]
 	if not FORBIDDEN_Q_TILES.has(fill_atlas):
-		for gx in range(min_fill_gx, max_fill_gx):
-			for gy in range(21, 38):
-				if tile_layer.get_cell_source_id(Vector2i(gx, gy)) == -1:
-					tile_layer.set_cell(Vector2i(gx, gy), actual_src, fill_atlas)
+		for b in blueprint.get("blocks", []):
+			var bt: int = int(b.get("type", TileType.FLOOR))
+			if bt != TileType.FLOOR and bt != TileType.WALL:
+				continue
+			var pos: Vector2 = b["pos"]
+			var sz: Vector2 = b["size"]
+			var top_left: Vector2 = pos - sz * 0.5
+			var gx0: int = int(round(top_left.x / float(TILE_SIZE)))
+			var gy0: int = int(round(top_left.y / float(TILE_SIZE)))
+			var gw: int = max(1, int(round(sz.x / float(TILE_SIZE))))
+			var gh: int = max(1, int(round(sz.y / float(TILE_SIZE))))
+			var gy_bottom: int = gy0 + gh
+			for ix in range(gw):
+				for gy in range(gy_bottom, 38):
+					if tile_layer.get_cell_source_id(Vector2i(gx0 + ix, gy)) == -1:
+						tile_layer.set_cell(Vector2i(gx0 + ix, gy), actual_src, fill_atlas)
 
 static func _clear_or_create_container(arena_root: Node2D, node_name: String, z_ord: int = 0) -> Node2D:
 	var container: Node2D = arena_root.get_node_or_null(node_name) as Node2D
@@ -1126,20 +1393,10 @@ static func _apply_blueprint_to_arena(
 		cp_area.set("checkpoint_id", String(cp.get("id", "CP-1")))
 		var cp_col := CollisionShape2D.new()
 		var cp_shape := RectangleShape2D.new()
-		cp_shape.size = Vector2(24, 48)
+		cp_shape.size = Vector2(36, 64)
+		cp_col.position = Vector2(0, -8)
 		cp_col.shape = cp_shape
 		cp_area.add_child(cp_col)
-
-		var pole := ColorRect.new()
-		pole.position = Vector2(-2, -24)
-		pole.size = Vector2(4, 48)
-		pole.color = Color(0.85, 0.88, 0.94, 0.95)
-		cp_area.add_child(pole)
-		var flag := ColorRect.new()
-		flag.position = Vector2(2, -24)
-		flag.size = Vector2(16, 10)
-		flag.color = Color(0.95, 0.65, 0.2, 0.95)
-		cp_area.add_child(flag)
 		cp_root.add_child(cp_area)
 
 	var enemy_color: int = int(palette.get("enemy_color", 0))

@@ -175,10 +175,10 @@ func _ready() -> void:
 		Events.ai_director.reset_session_state(true)
 		Events.ai_director.analyze_level(self)
 	
-	# Inicjalizacja ID sesji i start zegara poziomu
+	# Inicjalizacja ID sesji i start zegara poziomu (startuje po animacji appear)
 	session_id = Events.generate_session_id()
 	elapsed_time = 0.0
-	is_timer_running = true
+	is_timer_running = false
 	_report_active_life_booster()
 	
 	if pause_menu: pause_menu.visible = false
@@ -215,6 +215,13 @@ func _ready() -> void:
 	Events.portal_profile_synced.connect(_on_arena_portal_profile_synced)
 	Events.special_jewel_collected.connect(_on_special_jewel_collected)
 	Events.checkpoint_reached.connect(_on_checkpoint_reached)
+	Events.player_appear_finished.connect(_on_player_appear_finished)
+	
+	# Bezpiecznik: jeśli po 3.0s animacja lub sygnał nie wystąpiły, uruchom zegar
+	get_tree().create_timer(3.0).timeout.connect(func():
+		if not is_timer_running and not is_stage_cleared and not is_game_over:
+			is_timer_running = true
+	)
 	
 	if finish_goal and not finish_goal.body_entered.is_connected(_on_goal_entered):
 		finish_goal.body_entered.connect(_on_goal_entered)
@@ -313,9 +320,13 @@ func refresh_jewel_count() -> int:
 	_update_goal_visuals()
 	return total_jewels
 
-## Sprawdza, czy gracz zebrał wszystkie klejnoty wymagane do opuszczenia poziomu.
+## Zwraca liczbę klejnotów wymaganą do odblokowania wyjścia (minimum połowa wszystkich).
+func get_required_jewel_count() -> int:
+	return maxi(1, int(ceil(float(total_jewels) * 0.5)))
+
+## Sprawdza, czy gracz zebrał wymaganą liczbę klejnotów (minimum połowę) do opuszczenia poziomu.
 func can_exit_level() -> bool:
-	return collected_jewels >= total_jewels
+	return collected_jewels >= get_required_jewel_count()
 
 func _format_time(seconds: float) -> String:
 	var mins := int(seconds) / 60
@@ -425,6 +436,11 @@ func _on_checkpoint_reached(_checkpoint_id: String, pos: Vector2) -> void:
 	if respawn_point:
 		respawn_point.global_position = pos
 
+func _on_player_appear_finished() -> void:
+	is_timer_running = true
+	elapsed_time = 0.0
+	_update_time_hud()
+
 func _on_score_added(amount: int) -> void:
 	total_score += (amount * 2) if _has_portal_double_points() else amount
 
@@ -440,7 +456,8 @@ func _on_cursed_jewel_triggered(mechanic_name: String, duration: float) -> void:
 func _update_score_hud() -> void:
 	if hud_score_label:
 		if total_jewels > 0:
-			hud_score_label.text = " JEWELS: %d/%d " % [collected_jewels, total_jewels]
+			var req: int = get_required_jewel_count()
+			hud_score_label.text = " JEWELS: %d/%d (CEL: %d) " % [collected_jewels, total_jewels, req]
 		else:
 			hud_score_label.text = " JEWELS: %d " % collected_jewels
 	if hud_wallet_label and jewel_anim_timer <= 0.0:
@@ -452,12 +469,13 @@ func _update_goal_visuals() -> void:
 	var lbl: Label = finish_goal.get_node_or_null("LabelGoal")
 	var aura: ColorRect = finish_goal.get_node_or_null("Aura")
 	var unlocked: bool = can_exit_level()
+	var req: int = get_required_jewel_count()
 	if lbl:
 		if unlocked:
 			lbl.text = "EXIT OPEN"
 			lbl.modulate = Color(0.4, 1.0, 0.6, 1.0)
 		else:
-			lbl.text = "LOCKED %d/%d" % [collected_jewels, total_jewels]
+			lbl.text = "LOCKED %d/%d" % [collected_jewels, req]
 			lbl.modulate = Color(1.0, 0.55, 0.45, 1.0)
 	if aura:
 		aura.color = Color(0.2, 0.9, 0.7, 0.38) if unlocked else Color(0.9, 0.25, 0.25, 0.30)
@@ -795,13 +813,14 @@ func _submit_quiz_answer(idx: int) -> void:
 
 func _on_goal_entered(body: Node2D) -> void:
 	if body.is_in_group("player") and not is_game_over and not is_stage_cleared and not is_knowledge_check_active:
-		# Sprawdzenie, czy zebrano wszystkie klejnoty na poziomie!
+		# Sprawdzenie, czy zebrano minimum połowę klejnotów na poziomie!
 		if not can_exit_level():
+			var req: int = get_required_jewel_count()
 			if finish_goal:
 				var lbl: Label = finish_goal.get_node_or_null("LabelGoal")
 				if lbl:
-					lbl.text = "BRAK: %d/%d!" % [collected_jewels, total_jewels]
-			_show_hud_toast("[!] ZBIERZ WSZYSTKIE KLEJNOTY (%d/%d), ABY ODBLOKOWAĆ WYJŚCIE!" % [collected_jewels, total_jewels], Color(1.0, 0.75, 0.3, 1.0), 2.5)
+					lbl.text = "LOCKED %d/%d" % [collected_jewels, req]
+			_show_hud_toast("[!] ZBIERZ MINIMUM POŁOWĘ KLEJNOTÓW (%d/%d), ABY ODBLOKOWAĆ WYJŚCIE!" % [collected_jewels, req], Color(1.0, 0.75, 0.3, 1.0), 2.5)
 			return
 			
 		# Knowledge Check warunkiem ukończenia poziomu:

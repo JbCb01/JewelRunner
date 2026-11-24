@@ -223,6 +223,84 @@ func get_action_key_label(action_name: String, lang: String = "pl") -> String:
 		return keybind_manager.get_primary_key_label(action_name, lang)
 	return action_name
 
+func normalize_legacy_keybind_template(text: String) -> String:
+	var out := text
+	out = out.replace("[W]", "[{move_up}]")
+	out = out.replace("[S]", "[{crouch_slide}]")
+	out = out.replace("[A]", "[{move_left}]")
+	out = out.replace("[D]", "[{move_right}]")
+	out = out.replace("[Shift]", "[{dash}]")
+	out = out.replace("[Ctrl]", "[{trick}]")
+	out = out.replace("[Space]", "[{jump}]")
+	out = out.replace("[Spacja]", "[{jump}]")
+	return out
+
+func format_keybind_text(text: String, lang: String = "pl") -> String:
+	var out := normalize_legacy_keybind_template(text)
+	var actions: Array[String] = [
+		"move_left",
+		"move_right",
+		"move_up",
+		"move_down",
+		"jump",
+		"dash",
+		"crouch_slide",
+		"trick"
+	]
+	for action_name in actions:
+		var token := "{%s}" % action_name
+		if out.contains(token):
+			out = out.replace(token, get_action_key_label(action_name, lang))
+	return out
+
+func update_controls_grid_labels(ctrl_grid: Node, lang: String = "pl") -> void:
+	if not ctrl_grid:
+		return
+	var km := keybind_manager
+	var is_en: bool = (lang == "en")
+	var a1 := ctrl_grid.get_node_or_null("Action1") as Label
+	if a1: a1.text = "Horizontal Movement (Left / Right):" if is_en else "Ruch poziomy (Lewo / Prawo):"
+	var k1 := ctrl_grid.get_node_or_null("Key1") as Label
+	if k1:
+		var left_k := km.get_action_key_label("move_left", lang) if km else "A / ←"
+		var right_k := km.get_action_key_label("move_right", lang) if km else "D / →"
+		k1.text = "%s  |  %s" % [left_k, right_k]
+	var a2 := ctrl_grid.get_node_or_null("Action2") as Label
+	if a2: a2.text = "Jump / Double Jump:" if is_en else "Skok / Podwójny skok:"
+	var k2 := ctrl_grid.get_node_or_null("Key2") as Label
+	if k2: k2.text = km.get_action_key_label("jump", lang) if km else ("Space" if is_en else "Spacja")
+	var a3 := ctrl_grid.get_node_or_null("Action3") as Label
+	if a3: a3.text = "Dash:" if is_en else "Zryw (Dash):"
+	var k3 := ctrl_grid.get_node_or_null("Key3") as Label
+	if k3: k3.text = km.get_action_key_label("dash", lang) if km else "Shift"
+	var a4 := ctrl_grid.get_node_or_null("Action4") as Label
+	if a4: a4.text = "Crouch / Slide:" if is_en else "Kucanie / Wślizg:"
+	var k4 := ctrl_grid.get_node_or_null("Key4") as Label
+	if k4: k4.text = km.get_action_key_label("crouch_slide", lang) if km else "S / ↓"
+	var a5 := ctrl_grid.get_node_or_null("Action5") as Label
+	if a5: a5.text = "Wall Climb:" if is_en else "Wspinaczka (przy ścianie):"
+	var k5 := ctrl_grid.get_node_or_null("Key5") as Label
+	if k5: k5.text = km.get_action_key_label("move_up", lang) if km else "W / ↑"
+	var a6 := ctrl_grid.get_node_or_null("Action6") as Label
+	if a6: a6.text = "Mid-air Trick (Charges stamina):" if is_en else "Trick (w locie - ładuje staminę):"
+	var k6 := ctrl_grid.get_node_or_null("Key6") as Label
+	if k6:
+		var trick_lbl := km.get_action_key_label("trick", lang) if km else "Ctrl"
+		k6.text = ("%s (Hold in mid-air)" if is_en else "%s (przytrzymaj w locie)") % trick_lbl
+	var a7 := ctrl_grid.get_node_or_null("Action7") as Label
+	if a7: a7.text = "Pause:" if is_en else "Pauza:"
+
+func apply_audio_slider_tooltips(master_slider: Slider, music_slider: Slider, level_music_slider: Slider, sfx_slider: Slider, lang: String = "pl") -> void:
+	var is_en: bool = (lang == "en")
+	if master_slider:
+		master_slider.tooltip_text = "Controls overall game volume across all audio channels (Master bus)." if is_en else "Reguluje ogólną głośność wszystkich dźwięków i muzyki w grze (szyna Master)."
+	if music_slider:
+		music_slider.tooltip_text = "Controls background music volume in menus only (MusicMenu bus)." if is_en else "Reguluje głośność muzyki w menu głównym (szyna MusicMenu)."
+	if level_music_slider:
+		level_music_slider.tooltip_text = "Controls background music volume during gameplay levels (MusicLevel bus)." if is_en else "Reguluje głośność muzyki odtwarzanej podczas gry na poziomach (szyna MusicLevel)."
+	if sfx_slider:
+		sfx_slider.tooltip_text = "Controls sound effects volume: jumps, dashes, pickups and UI sounds (SFX bus)." if is_en else "Reguluje głośność efektów dźwiękowych: skoków, dashy, klejnotów i kliknięć menu (szyna SFX)."
+
 func _ensure_action(action_name: String, keys: Array) -> void:
 	if not InputMap.has_action(action_name):
 		InputMap.add_action(action_name)

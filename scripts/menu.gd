@@ -189,6 +189,8 @@ func _ready() -> void:
 			Events.portal_cloud_save_loaded.connect(_on_portal_cloud_save_loaded)
 		if not Events.portal_save_conflict.is_connected(_on_portal_save_conflict):
 			Events.portal_save_conflict.connect(_on_portal_save_conflict)
+		if not Events.keybinds_changed.is_connected(_on_menu_keybinds_changed):
+			Events.keybinds_changed.connect(_on_menu_keybinds_changed)
 		if is_instance_valid(Events.portal_sync):
 			Events.portal_sync.sync_if_needed(1.5)
 	
@@ -1403,6 +1405,14 @@ func _apply_language(lang_code: String) -> void:
 	if sfxLabel: sfxLabel.text = "Sound Effects (SFX):" if current_language == "en" else "Efekty dźwiękowe (SFX):"
 	var muteCheck = _find_in_settings("AudioPanel/MuteCheck") as CheckBox
 	if muteCheck: muteCheck.text = "Mute All Sounds" if current_language == "en" else "Wycisz wszystkie dźwięki (Mute All)"
+	if is_instance_valid(Events):
+		Events.apply_audio_slider_tooltips(
+			_find_in_settings("MasterSlider") as Slider,
+			_find_in_settings("MusicSlider") as Slider,
+			_find_in_settings("LevelMusicSlider") as Slider,
+			_find_in_settings("SfxSlider") as Slider,
+			current_language
+		)
 	
 	# Update Graphics Panel labels and options
 	var modeLabel = _find_in_settings("GraphicsPanel/ModeBox/Label") as Label
@@ -1437,31 +1447,8 @@ func _apply_language(lang_code: String) -> void:
 			
 	# Update Controls Panel labels
 	var ctrlGrid = _find_in_settings("ControlsPanel/Grid")
-	if ctrlGrid:
-		var a1 = ctrlGrid.get_node_or_null("Action1") as Label
-		if a1: a1.text = "Horizontal Movement (Left / Right):" if current_language == "en" else "Ruch poziomy (Lewo / Prawo):"
-		var k1 = ctrlGrid.get_node_or_null("Key1") as Label
-		if k1: k1.text = "A / D  (or Arrows)" if current_language == "en" else "A / D  (lub Strzałki)"
-		var a2 = ctrlGrid.get_node_or_null("Action2") as Label
-		if a2: a2.text = "Jump / Double Jump:" if current_language == "en" else "Skok / Podwójny skok:"
-		var k2 = ctrlGrid.get_node_or_null("Key2") as Label
-		if k2: k2.text = "Space / W" if current_language == "en" else "Spacja / W"
-		var a3 = ctrlGrid.get_node_or_null("Action3") as Label
-		if a3: a3.text = "Dash:" if current_language == "en" else "Zryw (Dash):"
-		var a4 = ctrlGrid.get_node_or_null("Action4") as Label
-		if a4: a4.text = "Crouch / Slide:" if current_language == "en" else "Kucanie / Wślizg:"
-		var k4 = ctrlGrid.get_node_or_null("Key4") as Label
-		if k4: k4.text = "S / Down Arrow" if current_language == "en" else "S / Strzałka w dół"
-		var a5 = ctrlGrid.get_node_or_null("Action5") as Label
-		if a5: a5.text = "Wall Climb:" if current_language == "en" else "Wspinaczka (przy ścianie):"
-		var a6 = ctrlGrid.get_node_or_null("Action6") as Label
-		if a6: a6.text = "Mid-air Trick (Charges stamina):" if current_language == "en" else "Trick (w locie - ładuje staminę):"
-		var k6 = ctrlGrid.get_node_or_null("Key6") as Label
-		if k6:
-			var trick_lbl := Events.get_action_key_label("trick", current_language) if is_instance_valid(Events) else "Ctrl"
-			k6.text = ("%s (Hold in mid-air)" if current_language == "en" else "%s (przytrzymaj w locie)") % trick_lbl
-		var a7 = ctrlGrid.get_node_or_null("Action7") as Label
-		if a7: a7.text = "Pause:" if current_language == "en" else "Pauza:"
+	if ctrlGrid and is_instance_valid(Events):
+		Events.update_controls_grid_labels(ctrlGrid, current_language)
 
 	if is_instance_valid(controls_rebind_ui):
 		controls_rebind_ui.refresh(current_language)
@@ -1491,6 +1478,9 @@ func _apply_language(lang_code: String) -> void:
 	_refresh_profile_screen_ui()
 	_refresh_zadania_ui()
 	_refresh_daily_reward_ui()
+
+func _on_menu_keybinds_changed() -> void:
+	_apply_language(current_language)
 
 func _switchSettingsTab(tabIdx: int) -> void:
 	if is_instance_valid(controls_rebind_ui):

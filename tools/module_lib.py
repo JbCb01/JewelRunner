@@ -85,7 +85,7 @@ for mid, top in (('climb_wall', 11), ('climb_wall_high', 10)):
     m = Mod(mid, 18, ['wall_climb'], tier=1 if top == 11 else 2, desc=f'Brick wall {G - top} tiles high: climb [W]')
     m.ground(); m.fill(6, 11, top, 18, '#').fill(6, 6, top, 18, 'B')
     m.put(9, top - 2, 'J'); m.put(3, 16, 'J'); m.put(14, 16, 'J'); m.put(8, top - 1, 's')
-    m.label('Climb [W]', 24, top * 16 - 40)
+    m.label('Climb [{move_up}]', 24, top * 16 - 40)
     m.zone('wall_climb', 2, top - 1, 6, 18)
     m.check(type='climb', start=[4, G], target=[7, top, 11, top])
     m.check(type='climb_dj', start=[4, G], target=[7, top, 11, top])
@@ -101,7 +101,7 @@ m = Mod('dash_corridor', 20, ['dash'], desc='Spike pit under a low ceiling: jump
 m.ground(); m.fill(6, 13, G, 20, '.'); m.fill(6, 13, 20, 20, '^')
 m.fill(4, 15, 13, 15, 'B'); m.fill(4, 15, 12, 12, '^')
 m.put(10, 17, 'J'); m.put(17, 16, 'J'); m.put(1, 18, 'r')
-m.label('Jump + Dash [Shift]', 40, 232)
+m.label('Jump + Dash [{dash}]', 40, 232)
 m.zone('dash', 4, 16, 15, 20)
 m.check(type='corridor', start=[2, G], edge_c=6, target=[14, G, 16, G])
 
@@ -112,7 +112,7 @@ for mid, gap, tier in (('dash_leap', 18, 2), ('dash_leap_short', 15, 1)):
     L = 16 + gap
     m.fill(L, L + 5, 15, RBOT, '#'); m.fill(L + 6, L + 7, 17, RBOT, '#'); m.fill(L + 6, w - 1, G, RBOT, '#')
     m.put(2, 18, 'K'); m.put(11, 13, 'J'); m.put(16 + gap // 2, 10, 'J'); m.put(L + 2, 13, 'J')
-    m.label('Leap: Double Jump + Dash >>' if gap == 18 else 'Leap: Dash [Shift] >>', 96, 150)
+    m.label('Leap: Double Jump + Dash >>' if gap == 18 else 'Leap: Dash [{dash}] >>', 96, 150)
     m.zone('dash', 16, 4, L - 1, 14); m.zone('double_jump', 16, 4, L - 1, 14)
     m.check(type='leap', start=[9, 15], edge_c=16, target=[L, 15, L + 5, 15], need='DJ+dash' if gap == 18 else 'dash')
 
@@ -131,7 +131,7 @@ m.zone('double_jump', 4, 6, 28, 18)
 m = Mod('slide_crawl', 20, ['slide'], desc='Spiked crawl tunnel: slide [S] and stay down')
 m.ground(); m.fill(4, 15, 9, 16, 'B'); m.fill(5, 14, 17, 17, 'v'); m.fill(4, 15, 8, 8, '^')
 m.put(8, 18, 'J'); m.put(12, 18, 'J'); m.put(17, 16, 'J'); m.put(1, 18, 's')
-m.label('Slide [S] >>', 0, 248)
+m.label('Slide [{crouch_slide}] >>', 0, 248)
 m.zone('slide', 4, 17, 15, 18)
 m.check(type='crawl', start=[1, G], crouch_c=3, end_c=17)
 
@@ -147,7 +147,7 @@ m = Mod('trick_well', 28, ['trick', 'trampoline'], desc='Launch onto a high perc
 m.ground(); m.put(2, G, 'T'); m.bounce = [-700.0]
 m.fill(10, 15, 3, 18, '#').fill(10, 10, 3, 18, 'B')
 m.put(13, 1, 'J'); m.put(18, 6, 'J'); m.put(19, 10, 'J'); m.put(20, 14, 'J'); m.put(25, 18, 'm')
-m.label('Hold [Ctrl] while falling to recharge stamina', 200, 40)
+m.label('Hold [{trick}] while falling to recharge stamina', 200, 40)
 m.zone('trick', 16, 3, 24, 18)
 m.check(type='trampoline', start=[-3, G], pad_c=2, target=[10, 3, 15, 3])
 
@@ -172,7 +172,7 @@ for c, r, k in ((3, 9, 'J'), (15, 7, 'J'), (23, 9, 'J'), (27, 9, '2'), (39, 6, '
 for c, r, k in ((10, 10, 'f'), (19, 10, 'p'), (29, 10, 's'), (0, 18, 'b'), (12, 18, 'f'), (32, 18, 'r'), (44, 18, 't'),
                 (47, 18, 'm'), (51, 10, 'p'), (63, 18, 'f')):
     m.put(c, r, k)
-m.label('Climb [W]', -40, 196); m.label('Slide [S] >>', -84, 252); m.label('Jump + Dash [Shift]', 256, 262)
+m.label('Climb [{move_up}]', -40, 196); m.label('Slide [{crouch_slide}] >>', -84, 252); m.label('Jump + Dash [{dash}]', 256, 262)
 m.label('Double Jump', 596, 190); m.label('Leap: Double Jump + Dash >>', 376, 100)
 m.zone('route:high', 2, -6, 30, 10); m.zone('route:low', 3, 17, 48, 18)
 m.zone('slide', 3, 17, 11, 18); m.zone('slide', 4, 9, 9, 10); m.zone('dash', 18, 16, 30, 20)
@@ -200,7 +200,7 @@ for c, r, k in ((0, 18, '3'), (8, 18, 'J'), (20, 17, 'J'), (44, 17, 'J'), (56, 1
     m.put(c, r, k)
 for c, r, k in ((3, 10, 'f'), (31, 18, 't'), (35, 18, 'm'), (46, 18, 'f'), (52, 18, 'r'), (66, 5, 'p'), (72, 5, 'b'), (77, 18, 'r')):
     m.put(c, r, k)
-m.label('Wall Jump ^', 60, 120); m.label('Slide [S] >>', -60, 248); m.label('Jump + Dash [Shift]', 230, 236)
+m.label('Wall Jump ^', 60, 120); m.label('Slide [{crouch_slide}] >>', -60, 248); m.label('Jump + Dash [{dash}]', 230, 236)
 m.zone('route:sky', 6, -13, 66, -1); m.zone('route:low', 3, 17, 59, 18); m.zone('wall_jump', 8, -6, 11, 10)
 m.zone('slide', 3, 17, 11, 18); m.zone('slide', 17, -8, 22, -7); m.zone('dash', 14, 16, 29, 20)
 m.zone('dash', 41, -12, 58, -5); m.zone('double_jump', 50, 13, 59, 18); m.zone('wall_climb', 55, 5, 60, 13)
@@ -258,7 +258,7 @@ for c, r, k in ((7, 9, '2'), (15, 7, 'J'), (21, 6, 'J'), (40, 3, 'J'), (8, 18, '
     m.put(c, r, k)
 for c, r, k in ((2, 18, 'i'), (5, 10, 's'), (30, 18, 'r'), (31, 18, 'b'), (51, 6, 'g'), (64, 18, 'f')):
     m.put(c, r, k)
-m.label('Climb [W]', 8, 150); m.label('Slide [S]', 330, 70); m.label('Leap: Double Jump + Dash >>', 380, 40)
+m.label('Climb [{move_up}]', 8, 150); m.label('Slide [{crouch_slide}]', 330, 70); m.label('Leap: Double Jump + Dash >>', 380, 40)
 m.label('Double Jump', 600, 210)
 m.zone('route:high', 4, -6, 48, 10); m.zone('route:low', 4, 17, 48, 18); m.zone('wall_climb', 1, 10, 4, 16)
 m.zone('slide', 19, 5, 23, 6); m.zone('dash', 31, -2, 48, 6); m.zone('slide', 21, 17, 29, 18)
@@ -287,7 +287,7 @@ for c, r, k in ((7, 7, 'J'), (13, -5, '2'), (22, -7, 'J'), (33, -5, 'J'), (47, -
     m.put(c, r, k)
 for c, r, k in ((2, 18, 'i'), (4, 18, 'k'), (27, 18, 'r'), (50, 18, 'k'), (59, 5, 't'), (68, 5, 'b'), (72, 18, 'r')):
     m.put(c, r, k)
-m.label('Climb [W]', 40, 120); m.label('Slide [S] >>', 30, 248); m.label('Jump + Dash [Shift]', 220, 232)
+m.label('Climb [{move_up}]', 40, 120); m.label('Slide [{crouch_slide}] >>', 30, 248); m.label('Jump + Dash [{dash}]', 220, 232)
 m.label('Trampoline ^', 150, 110); m.label('Leap: Double Jump + Dash >>', 420, -90)
 m.zone('route:high', 6, -13, 64, 8); m.zone('route:low', 6, 17, 56, 18); m.zone('wall_climb', 3, 8, 6, 16)
 m.zone('trampoline', 7, 4, 11, 8); m.zone('slide', 26, -5, 30, -4); m.zone('dash', 39, -10, 56, -4)

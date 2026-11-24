@@ -27,64 +27,121 @@ var current_state: State = State.IDLE
 
 # --- Parametry Ruchu (Strojenie na żywo w Inspektorze Godot) ---
 @export_group("Ruch Poziomy (Akceleracja / Max Speed / Deakceleracja)")
+## Bazowa prędkość biegu na ziemi (px/s), od której włącza się łagodniejsze, nieograniczone przyspieszanie pierwiastkowe.
 @export var speed: float = 165.0
+## Początkowe przyspieszenie powyżej bazowej prędkości biegu (px/s²). Im wyższe, tym szybciej postać nabiera prędkości po przekroczeniu `speed`.
+@export_range(0.0, 200.0, 1.0, "or_greater") var uncapped_accel_rate: float = 48.0
+## Parametr krzywej pierwiastkowej (px/s). Im mniejszy, tym wyraźniej maleje przyspieszenie w miarę dalszego rozpędzania się postaci.
+@export_range(5.0, 200.0, 1.0, "or_greater") var uncapped_accel_falloff: float = 45.0
+## Tempo początkowego rozpędzania na ziemi od zera do bazowej prędkości `speed`.
 @export var run_accel_amount: float = 11.0
+## Tempo wyhamowywania po puszczeniu klawisza kierunku ruchu.
 @export var run_deccel_amount: float = 14.0
+## Wykładnik krzywej przyspieszenia/hamowania (wartości < 1 dają ostrzejszy start, > 1 płynniejsze rozpędzanie).
 @export_range(0.5, 2.0, 0.02) var vel_power: float = 0.92
+## Mnożnik kontroli poziomej podczas przyspieszania w powietrzu (skala względem `run_accel_amount`).
 @export_range(0.0, 1.5, 0.05) var accel_in_air: float = 0.65
+## Mnożnik hamowania w powietrzu po puszczeniu klawiszy kierunku (skala względem `run_deccel_amount`).
 @export_range(0.0, 1.5, 0.05) var deccel_in_air: float = 0.65
+## Mnożnik przyspieszenia przy nagłej zmianie kierunku biegu na przeciwny (szybszy zawrót).
 @export_range(1.0, 3.0, 0.05) var turnaround_accel_mult: float = 1.6
+## Siła tarcia na ziemi zatrzymująca postać po puszczeniu klawiszy ruchu.
 @export_range(0.0, 1.0, 0.02) var friction_amount: float = 0.22
+## Gdy włączone, postać w locie zachowuje pęd szybszy niż bazowa prędkość zamiast hamować do `speed`.
 @export var do_conserve_momentum: bool = true
 
 @export_group("Skoki")
+## Początkowa prędkość pionowa zwykłego skoku z ziemi (wartość ujemna = ruch w górę, px/s).
 @export var jump_velocity: float = -315.0
+## Początkowa prędkość pionowa podwójnego skoku w powietrzu (wartość ujemna = ruch w górę, px/s).
 @export var double_jump_velocity: float = -275.0
+## Mnożnik skrócenia skoku po wcześniejszym puszczeniu klawisza skoku (mniejsza wartość = mocniejsze ścięcie skoku).
 @export var jump_cut_multiplier: float = 0.5
+## Podstawowa grawitacja działająca na postać podczas wznoszenia (px/s²).
 @export var gravity: float = 880.0
+## Maksymalna prędkość opadania w dół (px/s).
 @export var max_fall_speed: float = 390.0
+## Czas po zejściu z krawędzi (s), w którym nadal można wykonać zwykły skok z ziemi.
 @export var coyote_time: float = 0.13
+## Czas wyprzedzenia (s), przez który wciśnięty skok przed lądowaniem zostanie wykonany od razu po dotknięciu ziemi.
 @export var jump_buffer_time: float = 0.14
+## Mnożnik grawitacji podczas opadania (`velocity.y > 0`), przyspiesza spadanie po szczycie skoku.
 @export var fall_gravity_multiplier: float = 1.25
+## Próg prędkości pionowej (px/s), poniżej którego aktywuje się strefa zawisu na szczycie skoku (apex hang).
 @export var jump_hang_time_threshold: float = 45.0
+## Mnożnik grawitacji w najwyższym punkcie skoku (mniejsza wartość = dłuższy, bardziej kontrolowany zawis).
 @export var jump_hang_gravity_mult: float = 0.55
+## Mnożnik przyspieszenia poziomego na szczycie skoku (ułatwia precyzyjne lądowanie).
 @export var jump_hang_accel_mult: float = 1.15
+## Mnożnik docelowej prędkości poziomej w strefie szczytu skoku.
 @export var jump_hang_max_speed_mult: float = 1.10
+## Liczba pikseli przesunięcia na boki przy otarciu głową o róg sufitu podczas skoku (corner correction).
 @export var corner_correction_pixels: int = 5
 
 @export_group("Dash (Zryw)")
+## Minimalna prędkość pozioma podczas zrywu (dasha) w px/s.
 @export var dash_speed: float = 480.0
+## Czas trwania pojedynczego dasha (s).
 @export var dash_duration: float = 0.19
+## Czas odnowienia (cooldown) pomiędzy kolejnymi dashami (s).
 @export var dash_cooldown: float = 0.50
+## Część prędkości dasha zachowywana po jego zakończeniu (o ile postać nie miała wcześniej wyższego pędu).
 @export var dash_exit_speed_factor: float = 0.45
+## Czas buforowania wciśnięcia dasha przed lądowaniem lub końcem cooldownu (s).
 @export var dash_buffer_time: float = 0.12
 
 @export_group("Kucanie i Wślizg")
+## Maksymalna prędkość poruszania się podczas zwykłego kucania (px/s).
 @export var crouch_speed: float = 70.0
+## Maksymalna prędkość startowa wślizgu dla normalnego biegu (px/s; szybszy rozpęd zachowuje wyższy pęd).
 @export var slide_max_speed: float = 250.0
+## Minimalna początkowa prędkość po rozpoczęciu wślizgu (px/s).
 @export var slide_initial_speed: float = 250.0
+## Siła tarcia wyhamowująca postać podczas wślizgu (px/s²).
 @export var slide_friction: float = 620.0
+## Mnożnik hamowania wślizgu przy wciśnięciu przeciwnego kierunku ruchu.
 @export var slide_brake_multiplier: float = 1.6
+## Próg prędkości (px/s), poniżej którego wślizg przechodzi w kucanie lub stanie.
 @export var slide_min_speed: float = 80.0
+## Czas odnowienia (cooldown) pomiędzy kolejnymi wślizgami (s).
+@export var slide_cooldown: float = 0.35
 
 @export_group("Ściany (Wall Actions)")
+## Prędkość zsuwania się po ścianie (px/s).
 @export var wall_slide_speed: float = 55.0
+## Prędkość wspinania się w górę po ścianie (px/s).
 @export var wall_climb_speed: float = 100.0
+## Maksymalna pojemność paska staminy na ruchy specjalne (wspinaczka, double jump, dash).
 @export var wall_climb_max_stamina: float = 2.0
+## Wektor prędkości odbicia przy wall jumpie (X = odepchnięcie od ściany, Y = wybicie w górę).
 @export var wall_jump_velocity: Vector2 = Vector2(215.0, -295.0)
+## Czas po oderwaniu od ściany (s), w którym wciąż można wykonać wall jump.
 @export var wall_coyote_time: float = 0.12
+## Krótka blokada odklejenia się od ściany (s), ułatwiająca wykonanie wall jumpa przed odpadnięciem.
 @export var wall_stick_time: float = 0.08
+## Koszt staminy za kolejny skok z tej samej ściany (zabezpieczenie przed wspinaniem samym wall jumpem).
 @export var same_wall_jump_stamina_cost: float = 0.65
+## Współczynnik osłabiania kolejnych skoków z tej samej ściany (wykładniczy spadek wysokości wybicia).
 @export var same_wall_jump_decay: float = 0.72
+## Czas częściowego ograniczenia powrotu sterowania w stronę ściany tuż po wall jumpie (s).
 @export var wall_jump_control_lock_time: float = 0.16
+## Mnożnik kontroli w stronę opuszczonej ściany podczas trwania `wall_jump_control_lock_time`.
 @export_range(0.0, 1.0, 0.05) var wall_jump_air_control_mult: float = 0.25
 
 @export_group("Kamera i Game Feel")
+## Mnożnik zachowany dla kompatybilności wyliczeń bazowych w power-upach prędkości.
 @export var speed_powerup_multiplier: float = 1.45
+## Mnożnik przyspieszania postaci przyznawany po zebraniu Speed Gema lub power-upu prędkości.
+@export_range(1.0, 5.0, 0.05) var speed_powerup_accel_multiplier: float = 2.5
+## Poziomy margines martwej strefy kamery (ułamek szerokości ekranu zanim kamera zacznie podążać).
 @export_range(0.0, 0.5, 0.01) var camera_drag_horizontal_margin: float = 0.22
+## Pionowy margines martwej strefy kamery (ułamek wysokości ekranu zanim kamera zacznie podążać).
 @export_range(0.0, 0.5, 0.01) var camera_drag_vertical_margin: float = 0.18
+## Szybkość płynnego podążania kamery za postacią.
 @export_range(1.0, 25.0, 0.5) var camera_smoothing_speed: float = 8.5
+## Szybkość powrotu sprita do normalnych proporcji po rozciągnięciu/spłaszczeniu (squash & stretch).
 @export var squash_recovery_speed: float = 14.0
+## Czas krótkiego zamrożenia klatki (hitstop) po otrzymaniu obrażeń (s).
 @export var hitstop_duration: float = 0.045
 
 @export_group("Stamina i Balans Ruchów Specjalnych")
@@ -104,10 +161,13 @@ var current_state: State = State.IDLE
 @export_range(0.0, 1.0, 0.01, "or_greater") var passive_stamina_regen_per_sec: float = 0.10
 
 @export_group("Tricki w Powietrzu")
+## Liczba punktów przyznawana za każdą sekundę wykonywania tricku w powietrzu.
 @export var trick_points_per_second: float = 120.0
 
 @export_group("Punkty Życia (HP) i Odporność")
+## Maksymalna liczba punktów życia (gwiazdek HP) postaci.
 @export var max_health: int = 3
+## Czas nietykalności po otrzymaniu obrażeń lub respawnie przy checkpoincie (s).
 @export var invulnerability_duration: float = 1.0
 
 # --- Referencje do Węzłów ---
@@ -138,7 +198,9 @@ var dash_cooldown_timer: float = 0.0
 var dash_direction: float = 1.0
 
 var slide_timer: float = 0.0
+var slide_cooldown_timer: float = 0.0
 var slide_direction: float = 1.0
+var _slide_needs_release: bool = false
 
 var wall_stamina: float = 2.0
 var last_wall_normal: Vector2 = Vector2.ZERO
@@ -157,6 +219,7 @@ var _shake_strength: float = 0.0
 var _shake_decay: float = 18.0
 var _afterimage_timer: float = 0.0
 var _hitstop_active: bool = false
+var _pre_dash_speed: float = 0.0
 
 # Lokalna kopia mnożników ruchów specjalnych (zsynchronizowana z Events.ai_director)
 var move_multipliers: Dictionary = {
@@ -176,6 +239,7 @@ var is_invulnerable: bool = false
 var invulnerability_timer: float = 0.0
 
 # --- Wyświetlanie Wskaźnika HP (Gwiazdek) ---
+## Czas wyświetlania gwiazdek HP nad postacią po starcie poziomu lub utracie życia (s).
 @export var hp_display_duration: float = 2.5
 var hp_display_timer: float = 3.0 ## Widoczne przez 3s na początku poziomu oraz po otrzymaniu obrażeń
 
@@ -332,6 +396,9 @@ func _physics_process(delta: float) -> void:
 		if current_state == State.JUMP or current_state == State.FALL:
 			if jump_buffer_timer > 0.0:
 				_execute_jump()
+			elif _is_crouch_pressed() and (_slide_needs_release or absf(velocity.x) <= 95.0):
+				_change_state(State.CROUCH)
+				_set_collider_crouched(true)
 			else:
 				_change_state(State.RUN if _get_input_direction() != 0.0 else State.IDLE)
 
@@ -493,6 +560,11 @@ func _update_timers(delta: float) -> void:
 	if dash_cooldown_timer > 0.0:
 		dash_cooldown_timer = max(0.0, dash_cooldown_timer - delta)
 
+	if slide_cooldown_timer > 0.0:
+		slide_cooldown_timer = max(0.0, slide_cooldown_timer - delta)
+	if not _is_crouch_pressed():
+		_slide_needs_release = false
+
 	if invulnerability_timer > 0.0:
 		invulnerability_timer = max(0.0, invulnerability_timer - delta)
 		if invulnerability_timer <= 0.0:
@@ -615,6 +687,7 @@ func respawn_at_checkpoint() -> void:
 	last_wall_jump_normal = Vector2.ZERO
 	consecutive_same_wall_jumps = 0
 	wall_jump_lock_timer = 0.0
+	_set_collider_crouched(false)
 	_change_state(State.IDLE)
 	is_invulnerable = true
 	invulnerability_timer = invulnerability_duration
@@ -663,6 +736,15 @@ func is_dashing() -> bool:
 
 func get_effective_speed() -> float:
 	return speed * (speed_powerup_multiplier if speed_powerup_timer > 0.0 else 1.0)
+
+func get_accel_boost_multiplier() -> float:
+	var boost: float = 1.0
+	if speed_powerup_timer > 0.0:
+		boost = maxf(boost, speed_powerup_accel_multiplier)
+	if has_powerup("SPEED_BOOST"):
+		var p_val: float = float(active_powerups.get("SPEED_BOOST", {}).get("value", 1.0))
+		boost = maxf(boost, maxf(speed_powerup_accel_multiplier, p_val))
+	return boost
 
 func take_damage(amount: int, source_position: Vector2 = Vector2.ZERO) -> void:
 	if is_invulnerable or current_health <= 0:
@@ -872,16 +954,23 @@ func _change_state(new_state: State) -> void:
 
 # --- Logika Stanów (Model Dawnosaur: Akceleracja / Max Speed / Deakceleracja) ---
 
-func _apply_horizontal_movement(input_x: float, max_spd: float, is_air: bool, is_apex: bool, delta: float, control_scale: float = 1.0) -> void:
+func _apply_horizontal_movement(input_x: float, max_spd: float, is_air: bool, is_apex: bool, delta: float, control_scale: float = 1.0, allow_uncapped: bool = true) -> void:
 	var target_speed: float = input_x * max_spd
 	if is_air and is_apex:
 		target_speed *= jump_hang_max_speed_mult
 
+	var accel_boost: float = get_accel_boost_multiplier()
+	if allow_uncapped and not is_air and absf(input_x) > 0.01 and signf(velocity.x) == signf(input_x) and absf(velocity.x) >= absf(target_speed):
+		var over_speed: float = maxf(0.0, absf(velocity.x) - absf(target_speed))
+		var sqrt_accel: float = (uncapped_accel_rate * accel_boost * control_scale) / (1.0 + over_speed / maxf(1.0, uncapped_accel_falloff))
+		velocity.x += input_x * sqrt_accel * delta
+		return
+
 	var accel_rate: float
 	if not is_air:
-		accel_rate = run_accel_amount if absf(target_speed) > 0.01 else run_deccel_amount
+		accel_rate = (run_accel_amount * accel_boost) if absf(target_speed) > 0.01 else run_deccel_amount
 	else:
-		accel_rate = (run_accel_amount * accel_in_air) if absf(target_speed) > 0.01 else (run_deccel_amount * deccel_in_air)
+		accel_rate = (run_accel_amount * accel_boost * accel_in_air) if absf(target_speed) > 0.01 else (run_deccel_amount * deccel_in_air)
 
 	if is_air and is_apex:
 		accel_rate *= jump_hang_accel_mult
@@ -921,7 +1010,7 @@ func _state_ground(delta: float) -> void:
 		
 	# Wejście w Kucanie lub Wślizg
 	if _is_crouch_pressed():
-		if abs(velocity.x) > 95.0:
+		if not _slide_needs_release and slide_cooldown_timer <= 0.0 and abs(velocity.x) > 95.0:
 			_start_slide()
 			return
 		else:
@@ -950,10 +1039,10 @@ func _state_ground(delta: float) -> void:
 		_change_state(State.FALL)
 		return
 		
-	# Ruch poziomy (3 etapy: akceleracja, max speed, deakceleracja + tarcie)
+	# Ruch poziomy (3 etapy: akceleracja, nieograniczona prędkość pierwiastkowa, deakceleracja + tarcie)
 	is_tricking = false
 	trick_point_buffer = 0.0
-	_apply_horizontal_movement(input_x, get_effective_speed(), false, false, delta)
+	_apply_horizontal_movement(input_x, speed, false, false, delta, 1.0, true)
 	if input_x != 0.0:
 		idle_trick_timer = 0.0
 		facing_direction = input_x
@@ -983,7 +1072,7 @@ func _state_air(delta: float) -> void:
 
 	if input_x != 0.0:
 		facing_direction = input_x
-	_apply_horizontal_movement(input_x, get_effective_speed(), true, is_apex, delta, ctrl_scale)
+	_apply_horizontal_movement(input_x, speed, true, is_apex, delta, ctrl_scale, false)
 		
 	# Wejście w Dash w powietrzu (wymaga staminy, obsługuje bufor!)
 	if dash_buffer_timer > 0.0 and can_air_dash and dash_cooldown_timer <= 0.0:
@@ -1045,6 +1134,9 @@ func _state_air(delta: float) -> void:
 		trick_point_buffer = 0.0
 		if jump_buffer_timer > 0.0:
 			_execute_jump()
+		elif _is_crouch_pressed() and (_slide_needs_release or absf(velocity.x) <= 95.0):
+			_change_state(State.CROUCH)
+			_set_collider_crouched(true)
 		else:
 			_change_state(State.RUN if input_x != 0.0 else State.IDLE)
 		return
@@ -1070,7 +1162,7 @@ func _state_air(delta: float) -> void:
 func _state_dash(delta: float) -> void:
 	idle_trick_timer = 0.0
 	dash_timer -= delta
-	velocity.x = dash_direction * dash_speed
+	velocity.x = dash_direction * maxf(dash_speed, _pre_dash_speed)
 	velocity.y = 0.0
 
 	_afterimage_timer -= delta
@@ -1078,14 +1170,15 @@ func _state_dash(delta: float) -> void:
 		_afterimage_timer = 0.028
 		_spawn_afterimage(Color(0.45, 0.92, 1.0, 0.58))
 
+	var exit_speed: float = maxf(_pre_dash_speed, dash_speed * dash_exit_speed_factor)
 	# Pozwala przerwać naziemny dash skokiem z zachowaniem płynnego pędu
 	if is_on_floor() and jump_buffer_timer > 0.0:
-		velocity.x = dash_direction * dash_speed * dash_exit_speed_factor
+		velocity.x = dash_direction * exit_speed
 		_execute_jump()
 		return
 	
 	if dash_timer <= 0.0:
-		velocity.x = dash_direction * dash_speed * dash_exit_speed_factor
+		velocity.x = dash_direction * exit_speed
 		if is_on_floor():
 			_change_state(State.RUN if _get_input_direction() != 0.0 else State.IDLE)
 		else:
@@ -1098,6 +1191,7 @@ func _start_dash(input_x: float) -> void:
 	trick_point_buffer = 0.0
 	dash_buffer_timer = 0.0
 	dash_direction = input_x if input_x != 0.0 else facing_direction
+	_pre_dash_speed = absf(velocity.x) if signf(velocity.x) == signf(dash_direction) else 0.0
 	facing_direction = dash_direction
 	dash_timer = dash_duration
 	dash_cooldown_timer = dash_cooldown
@@ -1131,7 +1225,7 @@ func _state_crouch(delta: float) -> void:
 		
 	if input_x != 0.0:
 		facing_direction = input_x
-	_apply_horizontal_movement(input_x, crouch_speed, false, false, delta)
+	_apply_horizontal_movement(input_x, crouch_speed, false, false, delta, 1.0, false)
 		
 	if not is_on_floor():
 		velocity.y = min(velocity.y + gravity * delta, max_fall_speed)
@@ -1161,7 +1255,7 @@ func _state_slide(delta: float) -> void:
 			_change_state(State.CROUCH)
 		else:
 			_set_collider_crouched(false)
-			_change_state(State.IDLE)
+			_change_state(State.RUN if input_x != 0.0 else State.IDLE)
 		return
 			
 	if not is_on_floor():
@@ -1173,7 +1267,10 @@ func _state_slide(delta: float) -> void:
 
 func _start_slide() -> void:
 	slide_direction = facing_direction
-	var launch_spd: float = clampf(maxf(absf(velocity.x) * 1.15, slide_initial_speed), slide_initial_speed, slide_max_speed)
+	_slide_needs_release = true
+	slide_cooldown_timer = slide_cooldown
+	var cur_spd: float = absf(velocity.x)
+	var launch_spd: float = (cur_spd * 1.05) if cur_spd > slide_max_speed else clampf(maxf(cur_spd * 1.15, slide_initial_speed), slide_initial_speed, slide_max_speed)
 	velocity.x = slide_direction * launch_spd
 	_set_collider_crouched(true)
 	_change_state(State.SLIDE)
@@ -1383,7 +1480,7 @@ func _update_visuals(delta: float = 0.016) -> void:
 	elif is_tricking:
 		var pulse = (sin(Time.get_ticks_msec() * 0.022) + 1.0) * 0.5
 		visuals.modulate = Color(1.0, 0.92 + pulse * 0.08, 0.65 + pulse * 0.35, 1.0)
-	elif has_shield:
+	elif has_shield or bool(get_meta("has_portal_shield", false)):
 		visuals.modulate = Color(0.7, 0.95, 1.0, 1.0)
 	else:
 		visuals.modulate = Color(1.0, 1.0, 1.0, 1.0)

@@ -10,7 +10,15 @@ func _ready() -> void:
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 
+func _physics_process(_delta: float) -> void:
+	for body in get_overlapping_bodies():
+		if body is Node2D:
+			_apply_hazard_to_body(body as Node2D)
+
 func _on_body_entered(body: Node2D) -> void:
+	_apply_hazard_to_body(body)
+
+func _apply_hazard_to_body(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		if is_abyss and body.has_method("handle_abyss_fall"):
 			body.handle_abyss_fall(damage)

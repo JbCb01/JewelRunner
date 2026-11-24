@@ -246,7 +246,7 @@ const MODULES: Dictionary = {
 		"w": 18, "tier": 1, "tags": ["wall_climb"],
 		"desc": "Brick wall 8 tiles high: climb [W]",
 		"bounce": [],
-		"labels": [{"text": "Climb [W]", "x": 24, "y": 136}],
+		"labels": [{"text": "Climb [{move_up}]", "x": 24, "y": 136}],
 		"zones": [{"tag": "wall_climb", "rect": [2, 10, 6, 18]}],
 		"checks": [{"type": "climb", "start": [4, 19], "target": [7, 11, 11, 11]}, {"type": "climb_dj", "start": [4, 19], "target": [7, 11, 11, 11]}],
 		"map": [
@@ -292,7 +292,7 @@ const MODULES: Dictionary = {
 		"w": 18, "tier": 2, "tags": ["wall_climb"],
 		"desc": "Brick wall 9 tiles high: climb [W]",
 		"bounce": [],
-		"labels": [{"text": "Climb [W]", "x": 24, "y": 120}],
+		"labels": [{"text": "Climb [{move_up}]", "x": 24, "y": 120}],
 		"zones": [{"tag": "wall_climb", "rect": [2, 9, 6, 18]}],
 		"checks": [{"type": "climb", "start": [4, 19], "target": [7, 10, 11, 10]}, {"type": "climb_dj", "start": [4, 19], "target": [7, 10, 11, 10]}],
 		"map": [
@@ -384,7 +384,7 @@ const MODULES: Dictionary = {
 		"w": 20, "tier": 1, "tags": ["dash"],
 		"desc": "Spike pit under a low ceiling: jump + dash",
 		"bounce": [],
-		"labels": [{"text": "Jump + Dash [Shift]", "x": 40, "y": 232}],
+		"labels": [{"text": "Jump + Dash [{dash}]", "x": 40, "y": 232}],
 		"zones": [{"tag": "dash", "rect": [4, 16, 15, 20]}],
 		"checks": [{"type": "corridor", "start": [2, 19], "edge_c": 6, "target": [14, 19, 16, 19]}],
 		"map": [
@@ -476,7 +476,7 @@ const MODULES: Dictionary = {
 		"w": 41, "tier": 1, "tags": ["dash"],
 		"desc": "15-wide leap over the abyss, landing off-screen",
 		"bounce": [],
-		"labels": [{"text": "Leap: Dash [Shift] >>", "x": 96, "y": 150}],
+		"labels": [{"text": "Leap: Dash [{dash}] >>", "x": 96, "y": 150}],
 		"zones": [{"tag": "dash", "rect": [16, 4, 30, 14]}, {"tag": "double_jump", "rect": [16, 4, 30, 14]}],
 		"checks": [{"type": "leap", "start": [9, 15], "edge_c": 16, "target": [31, 15, 36, 15], "need": "dash"}],
 		"map": [
@@ -614,7 +614,7 @@ const MODULES: Dictionary = {
 		"w": 20, "tier": 1, "tags": ["slide"],
 		"desc": "Spiked crawl tunnel: slide [S] and stay down",
 		"bounce": [],
-		"labels": [{"text": "Slide [S] >>", "x": 0, "y": 248}],
+		"labels": [{"text": "Slide [{crouch_slide}] >>", "x": 0, "y": 248}],
 		"zones": [{"tag": "slide", "rect": [4, 17, 15, 18]}],
 		"checks": [{"type": "crawl", "start": [1, 19], "crouch_c": 3, "end_c": 17}],
 		"map": [
@@ -706,7 +706,7 @@ const MODULES: Dictionary = {
 		"w": 28, "tier": 1, "tags": ["trick", "trampoline"],
 		"desc": "Launch onto a high perch, then a long trick fall",
 		"bounce": [-700.0],
-		"labels": [{"text": "Hold [Ctrl] while falling to recharge stamina", "x": 200, "y": 40}],
+		"labels": [{"text": "Hold [{trick}] while falling to recharge stamina", "x": 200, "y": 40}],
 		"zones": [{"tag": "trick", "rect": [16, 3, 24, 18]}],
 		"checks": [{"type": "trampoline", "start": [-3, 19], "pad_c": 2, "target": [10, 3, 15, 3]}],
 		"map": [
@@ -798,7 +798,7 @@ const MODULES: Dictionary = {
 		"w": 66, "tier": 2, "tags": ["fork", "wall_climb", "slide", "dash", "double_jump"],
 		"desc": "L1 fork 1: high = climb, slide, DJ+dash leap | low = crawl, dash corridor, DJ ledge, climb",
 		"bounce": [],
-		"labels": [{"text": "Climb [W]", "x": -40, "y": 196}, {"text": "Slide [S] >>", "x": -84, "y": 252}, {"text": "Jump + Dash [Shift]", "x": 256, "y": 262}, {"text": "Double Jump", "x": 596, "y": 190}, {"text": "Leap: Double Jump + Dash >>", "x": 376, "y": 100}],
+		"labels": [{"text": "Climb [{move_up}]", "x": -40, "y": 196}, {"text": "Slide [{crouch_slide}] >>", "x": -84, "y": 252}, {"text": "Jump + Dash [{dash}]", "x": 256, "y": 262}, {"text": "Double Jump", "x": 596, "y": 190}, {"text": "Leap: Double Jump + Dash >>", "x": 376, "y": 100}],
 		"zones": [{"tag": "route:high", "rect": [2, -6, 30, 10]}, {"tag": "route:low", "rect": [3, 17, 48, 18]}, {"tag": "slide", "rect": [3, 17, 11, 18]}, {"tag": "slide", "rect": [4, 9, 9, 10]}, {"tag": "dash", "rect": [18, 16, 30, 20]}, {"tag": "dash", "rect": [31, 0, 48, 10]}, {"tag": "double_jump", "rect": [35, 13, 42, 18]}, {"tag": "wall_climb", "rect": [0, 10, 2, 18]}, {"tag": "wall_climb", "rect": [45, 10, 49, 18]}],
 		"checks": [{"type": "leap", "start": [25, 11], "edge_c": 31, "target": [49, 11, 59, 11], "need": "DJ+dash"}, {"type": "corridor", "start": [17, 19], "edge_c": 20, "target": [28, 19, 30, 19]}, {"type": "crawl", "start": [0, 19], "crouch_c": 2, "end_c": 13}, {"type": "climb", "start": [0, 19], "target": [3, 11, 11, 11]}, {"type": "climb", "start": [47, 19], "target": [50, 11, 59, 11]}, {"type": "ledge", "start": [32, 19], "face_c": 38, "target": [38, 14, 42, 14]}],
 		"map": [
@@ -844,7 +844,7 @@ const MODULES: Dictionary = {
 		"w": 80, "tier": 3, "tags": ["fork", "wall_jump", "wall_climb", "slide", "dash", "double_jump"],
 		"desc": "L1 fork 2: sky = wall-jump chimney above the screen, slide, DJ+dash leap | low = crawl, dash corridor, DJ step, climb",
 		"bounce": [],
-		"labels": [{"text": "Wall Jump ^", "x": 60, "y": 120}, {"text": "Slide [S] >>", "x": -60, "y": 248}, {"text": "Jump + Dash [Shift]", "x": 230, "y": 236}],
+		"labels": [{"text": "Wall Jump ^", "x": 60, "y": 120}, {"text": "Slide [{crouch_slide}] >>", "x": -60, "y": 248}, {"text": "Jump + Dash [{dash}]", "x": 230, "y": 236}],
 		"zones": [{"tag": "route:sky", "rect": [6, -13, 66, -1]}, {"tag": "route:low", "rect": [3, 17, 59, 18]}, {"tag": "wall_jump", "rect": [8, -6, 11, 10]}, {"tag": "slide", "rect": [3, 17, 11, 18]}, {"tag": "slide", "rect": [17, -8, 22, -7]}, {"tag": "dash", "rect": [14, 16, 29, 20]}, {"tag": "dash", "rect": [41, -12, 58, -5]}, {"tag": "double_jump", "rect": [50, 13, 59, 18]}, {"tag": "wall_climb", "rect": [55, 5, 60, 13]}, {"tag": "wall_climb", "rect": [0, 10, 2, 18]}],
 		"checks": [{"type": "chimney", "start": [3, 11], "shaft": [8, 11], "top_row": -6}, {"type": "leap", "start": [34, -6], "edge_c": 41, "target": [59, -6, 66, -6], "need": "DJ+dash"}, {"type": "corridor", "start": [13, 19], "edge_c": 16, "target": [24, 19, 28, 19]}, {"type": "crawl", "start": [0, 19], "crouch_c": 2, "end_c": 13}, {"type": "climb", "start": [57, 14], "target": [61, 6, 70, 6]}],
 		"map": [
@@ -936,7 +936,7 @@ const MODULES: Dictionary = {
 		"w": 68, "tier": 2, "tags": ["fork", "wall_climb", "slide", "dash", "double_jump", "trampoline"],
 		"desc": "Iceflow fork: high = tower climb, bead hops, slide, DJ+dash leap to the crown | low = doorway, pool hop, crawl, DJ over water, climb",
 		"bounce": [-660.0],
-		"labels": [{"text": "Climb [W]", "x": 8, "y": 150}, {"text": "Slide [S]", "x": 330, "y": 70}, {"text": "Leap: Double Jump + Dash >>", "x": 380, "y": 40}, {"text": "Double Jump", "x": 600, "y": 210}],
+		"labels": [{"text": "Climb [{move_up}]", "x": 8, "y": 150}, {"text": "Slide [{crouch_slide}]", "x": 330, "y": 70}, {"text": "Leap: Double Jump + Dash >>", "x": 380, "y": 40}, {"text": "Double Jump", "x": 600, "y": 210}],
 		"zones": [{"tag": "route:high", "rect": [4, -6, 48, 10]}, {"tag": "route:low", "rect": [4, 17, 48, 18]}, {"tag": "wall_climb", "rect": [1, 10, 4, 16]}, {"tag": "slide", "rect": [19, 5, 23, 6]}, {"tag": "dash", "rect": [31, -2, 48, 6]}, {"tag": "slide", "rect": [21, 17, 29, 18]}, {"tag": "double_jump", "rect": [31, 12, 48, 18]}, {"tag": "wall_climb", "rect": [45, 6, 49, 14]}, {"tag": "trampoline", "rect": [53, -6, 57, 6]}],
 		"checks": [{"type": "climb", "start": [2, 19], "target": [5, 11, 9, 11]}, {"type": "leap", "start": [24, 7], "edge_c": 31, "target": [49, 7, 62, 7], "need": "DJ+dash"}, {"type": "crawl", "start": [19, 19], "crouch_c": 21, "end_c": 29}, {"type": "jd_gap", "start": [30, 19], "edge_c": 36, "target": [44, 15, 48, 15], "need": "DJ"}, {"type": "climb", "start": [46, 15], "target": [50, 7, 59, 7]}, {"type": "trampoline", "start": [50, 7], "pad_c": 55, "target": [55, -4, 67, -4]}],
 		"map": [
@@ -982,7 +982,7 @@ const MODULES: Dictionary = {
 		"w": 75, "tier": 2, "tags": ["fork", "wall_climb", "trampoline", "slide", "dash", "double_jump"],
 		"desc": "Blazing fork: high = climb the stack, trampoline to a bead line above the screen, slide, DJ+dash leap | low = crawl, lava corridor, DJ over lava, climb",
 		"bounce": [-620.0],
-		"labels": [{"text": "Climb [W]", "x": 40, "y": 120}, {"text": "Slide [S] >>", "x": 30, "y": 248}, {"text": "Jump + Dash [Shift]", "x": 220, "y": 232}, {"text": "Trampoline ^", "x": 150, "y": 110}, {"text": "Leap: Double Jump + Dash >>", "x": 420, "y": -90}],
+		"labels": [{"text": "Climb [{move_up}]", "x": 40, "y": 120}, {"text": "Slide [{crouch_slide}] >>", "x": 30, "y": 248}, {"text": "Jump + Dash [{dash}]", "x": 220, "y": 232}, {"text": "Trampoline ^", "x": 150, "y": 110}, {"text": "Leap: Double Jump + Dash >>", "x": 420, "y": -90}],
 		"zones": [{"tag": "route:high", "rect": [6, -13, 64, 8]}, {"tag": "route:low", "rect": [6, 17, 56, 18]}, {"tag": "wall_climb", "rect": [3, 8, 6, 16]}, {"tag": "trampoline", "rect": [7, 4, 11, 8]}, {"tag": "slide", "rect": [26, -5, 30, -4]}, {"tag": "dash", "rect": [39, -10, 56, -4]}, {"tag": "slide", "rect": [6, 17, 11, 18]}, {"tag": "dash", "rect": [14, 16, 25, 20]}, {"tag": "double_jump", "rect": [34, 12, 51, 18]}, {"tag": "wall_climb", "rect": [53, 5, 57, 13]}],
 		"checks": [{"type": "climb", "start": [4, 19], "target": [7, 9, 8, 9]}, {"type": "leap", "start": [31, -3], "edge_c": 39, "target": [57, -3, 64, -3], "need": "DJ+dash"}, {"type": "corridor", "start": [12, 19], "edge_c": 16, "target": [24, 19, 30, 19]}, {"type": "crawl", "start": [2, 19], "crouch_c": 4, "end_c": 13}, {"type": "jd_gap", "start": [32, 19], "edge_c": 36, "target": [47, 19, 51, 19]}, {"type": "climb", "start": [54, 14], "target": [58, 6, 66, 6]}],
 		"map": [

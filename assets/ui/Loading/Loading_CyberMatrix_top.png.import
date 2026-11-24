@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bnwhhj4s1a66l"
-path="res://.godot/imported/Loading_CyberMatrix_top.png-c2c3e2027f7d0bc0b197f1eed32287bc.ctex"
+path="res://.godot/imported/Loading_CyberMatrix_top.png-5ea85aa56eed19442bf696b3488e0156.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/loading/Loading_CyberMatrix_top.png"
-dest_files=["res://.godot/imported/Loading_CyberMatrix_top.png-c2c3e2027f7d0bc0b197f1eed32287bc.ctex"]
+source_file="res://assets/ui/Loading/Loading_CyberMatrix_top.png"
+dest_files=["res://.godot/imported/Loading_CyberMatrix_top.png-5ea85aa56eed19442bf696b3488e0156.ctex"]
 
 [params]
 

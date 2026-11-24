@@ -186,6 +186,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"music_title": "Yessirski"
 			}
 		MechanicProfile.VERTICAL_ASCENT:
+			var trick_key := Events.get_action_key_label("trick", "pl") if is_instance_valid(Events) else "Ctrl"
 			return {
 				"id": 2,
 				"biome_id": BiomeId.WINTER,
@@ -193,7 +194,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"subtitle": "Żywioł: Wall Climb, Trampoliny & Studnie Tricków",
 				"dominant": "wall_climb",
 				"dna": {"wall_climb": 54, "dash": 18, "double_jump": 28},
-				"description": "Lodowe wieże, komin do wall jumpów, zamarznięte sadzawki i Lodowa Korona z sekretną półką nad ekranem. Ładuj staminę Trickiem [Ctrl] podczas spadków.",
+				"description": "Lodowe wieże, komin do wall jumpów, zamarznięte sadzawki i Lodowa Korona z sekretną półką nad ekranem. Ładuj staminę Trickiem [%s] podczas spadków." % trick_key,
 				"music_path": "res://audio/music/onmymommaimthegoat.wav",
 				"music_title": "On My Momma I'm The Goat"
 			}
@@ -396,7 +397,7 @@ static func _build_level_1_forest(use_cursed: bool) -> Dictionary:
 	jewels.append({"pos": Vector2(448, 288), "cursed_mechanic": "", "jewel_type": 0})
 	jewels.append({"pos": Vector2(560, 288), "cursed_mechanic": "", "jewel_type": 0})
 	enemies.append({"name": "ForestSlime1", "pos": Vector2(512, 294), "archetype": 0, "patrol_range": 64.0, "move_speed": 36.0, "detection_radius": 120.0})
-	labels.append({"pos": Vector2(104, 72), "text": "GREEN HILL: Wspinaczka [W] lub Wall Jump w kominie"})
+	labels.append({"pos": Vector2(104, 72), "text": "GREEN HILL: Wspinaczka [{move_up}] lub Wall Jump w kominie"})
 
 	# Alternatywna Górna Ścieżka (Upper Route): Start w koronach drzew ze szczytu komina
 	blocks.append({"name": "UpperCanopyEntry", "pos": Vector2(390, 116), "size": Vector2(64, 16), "type": TileType.PLATFORM})
@@ -418,7 +419,7 @@ static func _build_level_1_forest(use_cursed: bool) -> Dictionary:
 	# ==============================================================================
 	hazards.append({"name": "SpikesGap1", "pos": Vector2(1208, 324), "size": Vector2(112, 24), "kind": "spikes"})
 	jewels.append({"pos": Vector2(1208, 240), "cursed_mechanic": "", "jewel_type": 2}) # SPEED_JEWEL
-	labels.append({"pos": Vector2(1136, 190), "text": "Dash [Shift] nad kolcami!"})
+	labels.append({"pos": Vector2(1136, 190), "text": "Dash [{dash}] nad kolcami!"})
 
 	# Górny wiszący most nad GAP 1 (płynny przelot dla gracza na górnej ścieżce)
 	blocks.append({"name": "UpperSkyBridgeGap1", "pos": Vector2(1208, 104), "size": Vector2(144, 16), "type": TileType.BRIDGE})
@@ -430,7 +431,7 @@ static func _build_level_1_forest(use_cursed: bool) -> Dictionary:
 	blocks.append({"name": "FloorMid1", "pos": Vector2(1472, 328), "size": Vector2(416, 48), "type": TileType.FLOOR})
 	blocks.append({"name": "LowCeilingTunnel1", "pos": Vector2(1420, 272), "size": Vector2(160, 16), "type": TileType.TUNNEL_CEILING})
 	jewels.append({"pos": Vector2(1420, 288), "cursed_mechanic": "", "jewel_type": 0})
-	labels.append({"pos": Vector2(1330, 236), "text": "Wślizg [S] pod niskim sufitem"})
+	labels.append({"pos": Vector2(1330, 236), "text": "Wślizg [{crouch_slide}] pod niskim sufitem"})
 	enemies.append({"name": "ForestSpider1", "pos": Vector2(1580, 294), "archetype": 2, "patrol_range": 64.0, "move_speed": 40.0, "detection_radius": 135.0})
 
 	# Górna autostrada nad tunelem wślizgu (omija czołganie się dołem!)
@@ -1153,8 +1154,9 @@ static func _apply_blueprint_to_arena(
 		tramp_root.add_child(pad)
 
 	for h in blueprint["hazards"]:
-		var is_abyss_zone: bool = bool(h.get("is_abyss", false))
+		var is_abyss_flag: bool = bool(h.get("is_abyss", false))
 		var h_kind: String = String(h.get("kind", "spikes"))
+		var is_abyss_zone: bool = is_abyss_flag or (h_kind == "liquid")
 		var area := Area2D.new()
 		area.name = String(h["name"])
 		area.position = h["pos"]
@@ -1170,7 +1172,7 @@ static func _apply_blueprint_to_arena(
 		col.shape = rect_shape
 		area.add_child(col)
 
-		if not is_abyss_zone and h_kind == "spikes":
+		if not is_abyss_flag and h_kind == "spikes":
 			if ResourceLoader.exists("res://assets/Kolce.png"):
 				var spike_tex: Texture2D = load("res://assets/Kolce.png")
 				var trect := TextureRect.new()
@@ -1189,7 +1191,7 @@ static func _apply_blueprint_to_arena(
 				rect.size = sz
 				rect.color = Color(0.78, 0.22, 0.22, 1.0)
 				area.add_child(rect)
-		elif show_placeholder_visuals and not is_abyss_zone:
+		elif show_placeholder_visuals and not is_abyss_flag:
 			var rect := ColorRect.new()
 			rect.position = -sz * 0.5
 			rect.size = sz

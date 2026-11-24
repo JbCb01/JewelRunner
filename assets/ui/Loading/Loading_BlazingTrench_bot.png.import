@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c56ldmk6m4qw"
-path="res://.godot/imported/Loading_BlazingTrench_bot.png-aa3df30b21b1e045e09fbb467c46425d.ctex"
+path="res://.godot/imported/Loading_BlazingTrench_bot.png-1a9ae6675bf3163d15992aa6bf234861.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/loading/Loading_BlazingTrench_bot.png"
-dest_files=["res://.godot/imported/Loading_BlazingTrench_bot.png-aa3df30b21b1e045e09fbb467c46425d.ctex"]
+source_file="res://assets/ui/Loading/Loading_BlazingTrench_bot.png"
+dest_files=["res://.godot/imported/Loading_BlazingTrench_bot.png-1a9ae6675bf3163d15992aa6bf234861.ctex"]
 
 [params]
 

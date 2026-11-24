@@ -3,7 +3,7 @@ extends Area2D
 enum JewelType {
 	NORMAL,
 	JEW_JEWEL,        ## Nieśmiertelność na 10s (brak otrzymywania obrażeń)
-	SPEED_JEWEL,      ## Zwiększenie prędkości gracza 2x na 10s
+	SPEED_JEWEL,      ## Boost przyspieszania postaci na 10s
 	IMMUNITY_JEWEL    ## Tarcza chroniąca przed 1 uderzeniem (brak obrażeń na 1 hit)
 }
 

@@ -472,16 +472,19 @@ func build(arena: Node2D, tile_layer: TileMapLayer, tileset: TileSet, blueprint:
 		_spikes(haz, "SpikesCeiling%d" % hn, rc, true)
 	for rc in merge_rects(_is("~")):
 		hn += 1
-		var liquid := _area(haz, "Liquid%d" % hn, Rect2(rc.position.x * T + 2, rc.position.y * T + 5, rc.size.x * T - 4, rc.size.y * T - 5))
+		var liquid := _make_area("Liquid%d" % hn, Rect2(rc.position.x * T + 2, rc.position.y * T + 5, rc.size.x * T - 4, rc.size.y * T - 5))
 		liquid.set_script(HazardScript)
+		liquid.set("is_abyss", true)
 		liquid.collision_layer = 16
 		liquid.collision_mask = 2
+		haz.add_child(liquid)
 	var w_px: float = width * T
-	var abyss := _area(haz, "AbyssZone", Rect2(-200, 388, w_px + 400, 64))
+	var abyss := _make_area("AbyssZone", Rect2(-200, 388, w_px + 400, 64))
 	abyss.set_script(HazardScript)
 	abyss.set("is_abyss", true)
 	abyss.collision_layer = 16
 	abyss.collision_mask = 2
+	haz.add_child(abyss)
 
 	# --- byty: checkpointy, trampoliny, wrogowie, klejnoty, strefy
 	var cp_i: int = 0
@@ -544,11 +547,12 @@ func build(arena: Node2D, tile_layer: TileMapLayer, tileset: TileSet, blueprint:
 		arena.add_child(j)
 	for z in zones:
 		var rc: Rect2i = z["rect"]
-		var za := _area(zone_root, "Zone_%s_%s" % [String(z["tag"]).replace(":", "_"), String(z["uid"]).replace("#", "_")],
+		var za := _make_area("Zone_%s_%s" % [String(z["tag"]).replace(":", "_"), String(z["uid"]).replace("#", "_")],
 			Rect2(rc.position.x * T, rc.position.y * T, rc.size.x * T, rc.size.y * T))
 		za.set_script(SkillZoneScript)
 		za.set("tag", String(z["tag"]))
 		za.set("module_uid", String(z["uid"]))
+		zone_root.add_child(za)
 
 	# --- napisy
 	if labels_root:
@@ -594,7 +598,7 @@ func _body(parent: Node, nm: String, r: Rect2, one_way: bool) -> void:
 	sb.add_child(col)
 	parent.add_child(sb)
 
-func _area(parent: Node, nm: String, r: Rect2) -> Area2D:
+func _make_area(nm: String, r: Rect2) -> Area2D:
 	var a := Area2D.new()
 	a.name = nm
 	a.position = r.position + r.size * 0.5
@@ -603,7 +607,6 @@ func _area(parent: Node, nm: String, r: Rect2) -> Area2D:
 	sh.size = r.size
 	col.shape = sh
 	a.add_child(col)
-	parent.add_child(a)
 	return a
 
 func _spikes(parent: Node, nm: String, rc: Rect2i, ceiling: bool) -> void:

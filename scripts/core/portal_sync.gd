@@ -701,7 +701,10 @@ func apply_cosmetics_and_boosters_to_player(player: Node2D) -> void:
 	if not bool(player.get_meta("portal_boosters_applied", false)):
 		var boosters: Dictionary = cosmetics_state.get("boosters", {})
 		if int(boosters.get("dodatkowe życie", 0)) > 0 and player.has_method("set_max_health"):
-			player.call("set_max_health", 4, true)
+			var should_refill: bool = ("current_health" in player and "max_health" in player and int(player.current_health) >= int(player.max_health))
+			player.call("set_max_health", 4, should_refill)
+			if not should_refill and player.has_method("heal"):
+				player.call("heal", 1)
 			player.set_meta("has_portal_extra_life", true)
 		if int(boosters.get("tarcza", 0)) > 0:
 			player.set_meta("has_portal_shield", true)

@@ -208,6 +208,7 @@ func _ready() -> void:
 	
 	_setup_hud_fonts()
 	_apply_pixel_font_to_level_labels()
+	_refresh_dynamic_control_labels()
 	_ensure_ai_hud_panel()
 	_update_score_hud()
 	_update_time_hud()
@@ -218,6 +219,7 @@ func _ready() -> void:
 		hud_session_label.text = "ID: %s" % session_id
 		
 	_setup_level_music(profile_id)
+	_ensure_game_over_audio()
 	
 	Events.player_died.connect(_on_player_died)
 	Events.player_hit.connect(_on_player_hit)
@@ -234,6 +236,8 @@ func _ready() -> void:
 	Events.special_jewel_collected.connect(_on_special_jewel_collected)
 	Events.checkpoint_reached.connect(_on_checkpoint_reached)
 	Events.player_appear_finished.connect(_on_player_appear_finished)
+	if not Events.keybinds_changed.is_connected(_on_keybinds_changed):
+		Events.keybinds_changed.connect(_on_keybinds_changed)
 	
 	# Bezpiecznik: jeśli po 3.0s animacja lub sygnał nie wystąpiły, uruchom zegar
 	get_tree().create_timer(3.0).timeout.connect(func():
@@ -548,6 +552,22 @@ func _apply_pixel_font_to_level_labels() -> void:
 			lbl.add_theme_font_override("font", big)
 			lbl.add_theme_constant_override("outline_size", 0)
 			lbl.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+func _refresh_dynamic_control_labels() -> void:
+	var labels_root: Node = get_node_or_null("Labels")
+	if not labels_root or not is_instance_valid(Events):
+		return
+	for lbl in labels_root.get_children():
+		if lbl is Label:
+			var tmpl: String = String(lbl.get_meta("keybind_template", ""))
+			if tmpl.is_empty():
+				tmpl = Events.normalize_legacy_keybind_template(lbl.text)
+				lbl.set_meta("keybind_template", tmpl)
+			lbl.text = Events.format_keybind_text(tmpl, current_language)
+
+func _on_keybinds_changed() -> void:
+	_refresh_dynamic_control_labels()
+	_apply_language(current_language)
 
 func _update_hud_effects(delta: float) -> void:
 	_hud_blink_t += delta
@@ -1659,6 +1679,14 @@ func _apply_language(lang_code: String) -> void:
 	if sfxLabel: sfxLabel.text = "Sound Effects (SFX):" if current_language == "en" else "Efekty dźwiękowe (SFX):"
 	var muteCheck = _find_in_settings("AudioPanel/MuteCheck") as CheckBox
 	if muteCheck: muteCheck.text = "Mute All Sounds" if current_language == "en" else "Wycisz wszystkie dźwięki (Mute All)"
+	if is_instance_valid(Events):
+		Events.apply_audio_slider_tooltips(
+			_find_in_settings("MasterSlider") as Slider,
+			_find_in_settings("MusicSlider") as Slider,
+			_find_in_settings("LevelMusicSlider") as Slider,
+			_find_in_settings("SfxSlider") as Slider,
+			current_language
+		)
 	
 	# Update Graphics Panel labels and options
 	var modeLabel = _find_in_settings("GraphicsPanel/ModeBox/Label") as Label
@@ -1693,34 +1721,12 @@ func _apply_language(lang_code: String) -> void:
 			
 	# Update Controls Panel labels
 	var ctrlGrid = _find_in_settings("ControlsPanel/Grid")
-	if ctrlGrid:
-		var a1 = ctrlGrid.get_node_or_null("Action1") as Label
-		if a1: a1.text = "Horizontal Movement (Left / Right):" if current_language == "en" else "Ruch poziomy (Lewo / Prawo):"
-		var k1 = ctrlGrid.get_node_or_null("Key1") as Label
-		if k1: k1.text = "A / D  (or Arrows)" if current_language == "en" else "A / D  (lub Strzałki)"
-		var a2 = ctrlGrid.get_node_or_null("Action2") as Label
-		if a2: a2.text = "Jump / Double Jump:" if current_language == "en" else "Skok / Podwójny skok:"
-		var k2 = ctrlGrid.get_node_or_null("Key2") as Label
-		if k2: k2.text = "Space / W" if current_language == "en" else "Spacja / W"
-		var a3 = ctrlGrid.get_node_or_null("Action3") as Label
-		if a3: a3.text = "Dash:" if current_language == "en" else "Zryw (Dash):"
-		var a4 = ctrlGrid.get_node_or_null("Action4") as Label
-		if a4: a4.text = "Crouch / Slide:" if current_language == "en" else "Kucanie / Wślizg:"
-		var k4 = ctrlGrid.get_node_or_null("Key4") as Label
-		if k4: k4.text = "S / Down Arrow" if current_language == "en" else "S / Strzałka w dół"
-		var a5 = ctrlGrid.get_node_or_null("Action5") as Label
-		if a5: a5.text = "Wall Climb:" if current_language == "en" else "Wspinaczka (przy ścianie):"
-		var a6 = ctrlGrid.get_node_or_null("Action6") as Label
-		if a6: a6.text = "Mid-air Trick (Charges stamina):" if current_language == "en" else "Trick (w locie - ładuje staminę):"
-		var k6 = ctrlGrid.get_node_or_null("Key6") as Label
-		if k6:
-			var trick_lbl := Events.get_action_key_label("trick", current_language) if is_instance_valid(Events) else "Ctrl"
-			k6.text = ("%s (Hold in mid-air)" if current_language == "en" else "%s (przytrzymaj w locie)") % trick_lbl
-		var a7 = ctrlGrid.get_node_or_null("Action7") as Label
-		if a7: a7.text = "Pause:" if current_language == "en" else "Pauza:"
+	if ctrlGrid and is_instance_valid(Events):
+		Events.update_controls_grid_labels(ctrlGrid, current_language)
 
 	if is_instance_valid(controls_rebind_ui):
 		controls_rebind_ui.refresh(current_language)
+	_refresh_dynamic_control_labels()
 		
 	# Update Language Panel labels
 	var langLabel = _find_in_settings("LanguagePanel/LangBox/Label") as Label
@@ -1753,22 +1759,9 @@ func _quit_or_menu() -> void:
 	else:
 		get_tree().quit()
 
-func _on_player_died() -> void:
-	if is_game_over or is_stage_cleared:
-		return
-	is_game_over = true
-	is_timer_running = false
-	var lvl_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
-	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
-		Events.portal_sync.submit_game_run(session_id, lvl_id, false, total_score, elapsed_time, collected_jewels, enemies_defeated_count)
-	get_tree().paused = true
-	if music_level:
-		music_level.stop()
-	if game_over_menu:
-		game_over_menu.visible = true
-		game_over_focus_idx = 0
-		_set_button_focus(game_over_buttons, 0)
-	
+const GAME_OVER_SFX_START_OFFSET: float = 0.0
+
+func _ensure_game_over_audio() -> void:
 	if not audio_game_over:
 		audio_game_over = get_node_or_null("HUD/AudioGameOver") as AudioStreamPlayer
 	if not audio_game_over and ResourceLoader.exists("res://audio/sfx/Fahh.mp3"):
@@ -1784,8 +1777,25 @@ func _on_player_died() -> void:
 				hud_node.add_child(audio_game_over)
 			else:
 				add_child(audio_game_over)
+
+func _on_player_died() -> void:
+	if is_game_over or is_stage_cleared:
+		return
+	is_game_over = true
+	is_timer_running = false
+	if music_level:
+		music_level.stop()
+	_ensure_game_over_audio()
 	if audio_game_over:
-		audio_game_over.play()
+		audio_game_over.play(GAME_OVER_SFX_START_OFFSET)
+	var lvl_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
+	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
+		Events.portal_sync.submit_game_run(session_id, lvl_id, false, total_score, elapsed_time, collected_jewels, enemies_defeated_count)
+	get_tree().paused = true
+	if game_over_menu:
+		game_over_menu.visible = true
+		game_over_focus_idx = 0
+		_set_button_focus(game_over_buttons, 0)
 
 func _on_player_hit(_damage: int) -> void:
 	pass

@@ -165,14 +165,14 @@ fill(322, 323, R0, R1, 'B')
 WIDTH = 324 * T
 
 # ------------------------------------------------------------------ labels
-LBL('LabelWall', 'Climb [W]', 344, 196, 80)
-LBL('LabelTunnel', 'Slide [S] >>', 300, 252, 100)
+LBL('LabelWall', 'Climb [{move_up}]', 344, 196, 80)
+LBL('LabelTunnel', 'Slide [{crouch_slide}] >>', 300, 252, 100)
 LBL('LabelPlatforms', 'Double Jump', 980, 190, 100)
-LBL('LabelGap', 'Jump + Dash [Shift]', 640, 262, 150)
+LBL('LabelGap', 'Jump + Dash [{dash}]', 640, 262, 150)
 LBL('LabelLeap', 'Leap: Double Jump + Dash >>', 760, 100, 220)
 LBL('LabelChimney', 'Wall Jump ^', 1660, 120, 100)
 LBL('LabelTrampoline', 'Trampoline ^', 2950, 40, 100)
-LBL('LabelAirTrick', 'Hold [Ctrl] while falling to recharge stamina', 4372, 60, 340)
+LBL('LabelAirTrick', 'Hold [{trick}] while falling to recharge stamina', 4372, 60, 340)
 
 
 # ------------------------------------------------------------------ skill zones (PlayStyleProfiler sensors)

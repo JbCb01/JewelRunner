@@ -2105,14 +2105,14 @@ offset_left = 344.0
 offset_top = 196.0
 offset_right = 424.0
 offset_bottom = 219.0
-text = "Climb [W]"
+text = "Climb [{move_up}]"
 
 [node name="LabelTunnel" type="Label" parent="Labels"]
 offset_left = 300.0
 offset_top = 252.0
 offset_right = 400.0
 offset_bottom = 275.0
-text = "Slide [S] >>"
+text = "Slide [{crouch_slide}] >>"
 
 [node name="LabelPlatforms" type="Label" parent="Labels"]
 offset_left = 980.0
@@ -2126,7 +2126,7 @@ offset_left = 640.0
 offset_top = 262.0
 offset_right = 790.0
 offset_bottom = 285.0
-text = "Jump + Dash [Shift]"
+text = "Jump + Dash [{dash}]"
 
 [node name="LabelLeap" type="Label" parent="Labels"]
 offset_left = 760.0
@@ -2154,7 +2154,7 @@ offset_left = 4372.0
 offset_top = 60.0
 offset_right = 4712.0
 offset_bottom = 83.0
-text = "Hold [Ctrl] while falling to recharge stamina"
+text = "Hold [{trick}] while falling to recharge stamina"
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=582845555]
 
@@ -2920,7 +2920,7 @@ text = "Skok / Podwójny skok:"
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_font_sizes/font_size = 11
-text = "Spacja / W"
+text = "Spacja"
 
 [node name="Action3" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
@@ -2931,7 +2931,7 @@ text = "Zryw (Dash):"
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_font_sizes/font_size = 11
-text = "Shift / Shift prawy"
+text = "Shift"
 
 [node name="Action4" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
@@ -2942,7 +2942,7 @@ text = "Kucanie / Wślizg:"
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_font_sizes/font_size = 11
-text = "S / Strzałka w dół"
+text = "S / ↓"
 
 [node name="Action5" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
@@ -2953,7 +2953,7 @@ text = "Wspinaczka (przy ścianie):"
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_font_sizes/font_size = 11
-text = "W / Strzałka w górę"
+text = "W / ↑"
 
 [node name="Action6" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
@@ -2964,7 +2964,7 @@ text = "Trick (w locie - ładuje staminę):"
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_font_sizes/font_size = 11
-text = "C (przytrzymaj w locie)"
+text = "Ctrl (przytrzymaj w locie)"
 
 [node name="Action7" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2

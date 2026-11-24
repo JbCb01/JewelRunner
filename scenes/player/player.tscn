@@ -1,11 +1,11 @@
-[gd_scene load_steps=10 format=3 uid="uid://iivxn17ei4mu"]
+[gd_scene format=3 uid="uid://iivxn17ei4mu"]
 
 [ext_resource type="Script" uid="uid://jy7r17uxay3w" path="res://scripts/actors/player/player_controller.gd" id="1_controller"]
-[ext_resource type="SpriteFrames" path="res://scenes/player/player_sprite_frames.tres" id="2_sprite_frames"]
-[ext_resource type="AudioStream" path="res://audio/sfx/jump.wav" id="3_audio_jump"]
-[ext_resource type="AudioStream" path="res://audio/sfx/stardash.wav" id="4_audio_dash"]
-[ext_resource type="AudioStream" path="res://audio/sfx/star_appear.wav" id="5_audio_appear"]
-[ext_resource type="Texture2D" path="res://assets/Gwiazdka.png" id="6_gwiazdka"]
+[ext_resource type="SpriteFrames" uid="uid://bi4us3glv8ays" path="res://scenes/player/player_sprite_frames.tres" id="2_sprite_frames"]
+[ext_resource type="AudioStream" uid="uid://q2dqui2jb8p8" path="res://audio/sfx/jump.wav" id="3_audio_jump"]
+[ext_resource type="AudioStream" uid="uid://bnn6vi6del6ge" path="res://audio/sfx/stardash.wav" id="4_audio_dash"]
+[ext_resource type="AudioStream" uid="uid://c81rbcqnx4v7x" path="res://audio/sfx/star_appear.wav" id="5_audio_appear"]
+[ext_resource type="Texture2D" uid="uid://cahm61rgexrkr" path="res://assets/Gwiazdka.png" id="6_gwiazdka"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
 size = Vector2(18, 30)
@@ -38,7 +38,7 @@ shape = SubResource("RectangleShape2D_player")
 
 [node name="Visuals" type="Node2D" parent="." unique_id=1644744034]
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visuals"]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visuals" unique_id=1455180011]
 scale = Vector2(0.5, 0.5)
 sprite_frames = ExtResource("2_sprite_frames")
 animation = &"idle"
@@ -74,29 +74,28 @@ drag_top_margin = 0.18
 drag_right_margin = 0.22
 drag_bottom_margin = 0.18
 
-[node name="AudioJump" type="AudioStreamPlayer2D" parent="."]
+[node name="AudioJump" type="AudioStreamPlayer2D" parent="." unique_id=491994714]
 stream = ExtResource("3_audio_jump")
 
-[node name="AudioDash" type="AudioStreamPlayer2D" parent="."]
+[node name="AudioDash" type="AudioStreamPlayer2D" parent="." unique_id=1114375151]
 stream = ExtResource("4_audio_dash")
 
-[node name="AudioAppear" type="AudioStreamPlayer2D" parent="."]
+[node name="AudioAppear" type="AudioStreamPlayer2D" parent="." unique_id=1377486454]
 stream = ExtResource("5_audio_appear")
 
-[node name="HpSquares" type="Node2D" parent="."]
+[node name="HpSquares" type="Node2D" parent="." unique_id=703066194]
 position = Vector2(0, -28)
 
-[node name="Star1" type="Sprite2D" parent="HpSquares"]
+[node name="Star1" type="Sprite2D" parent="HpSquares" unique_id=507765620]
 position = Vector2(-13, 0)
 scale = Vector2(0.65, 0.65)
 texture = ExtResource("6_gwiazdka")
 
-[node name="Star2" type="Sprite2D" parent="HpSquares"]
-position = Vector2(0, 0)
+[node name="Star2" type="Sprite2D" parent="HpSquares" unique_id=579441176]
 scale = Vector2(0.65, 0.65)
 texture = ExtResource("6_gwiazdka")
 
-[node name="Star3" type="Sprite2D" parent="HpSquares"]
+[node name="Star3" type="Sprite2D" parent="HpSquares" unique_id=26693607]
 position = Vector2(13, 0)
 scale = Vector2(0.65, 0.65)
 texture = ExtResource("6_gwiazdka")

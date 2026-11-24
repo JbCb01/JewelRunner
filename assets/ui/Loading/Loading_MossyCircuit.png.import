@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dfwkqf143e11o"
-path="res://.godot/imported/Loading_MossyCircuit.png-e4c74c5c1f6f211bfb1ae2c889bfd67e.ctex"
+path="res://.godot/imported/Loading_MossyCircuit.png-47102ef7c9127c2fa59a71b775ed6197.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/Loading/Loading_MossyCircuit.png"
-dest_files=["res://.godot/imported/Loading_MossyCircuit.png-e4c74c5c1f6f211bfb1ae2c889bfd67e.ctex"]
+source_file="res://assets/ui/loading/Loading_MossyCircuit.png"
+dest_files=["res://.godot/imported/Loading_MossyCircuit.png-47102ef7c9127c2fa59a71b775ed6197.ctex"]
 
 [params]
 

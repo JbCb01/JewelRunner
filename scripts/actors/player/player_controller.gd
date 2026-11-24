@@ -1038,8 +1038,9 @@ func _state_air(delta: float) -> void:
 		_execute_double_jump()
 		return
 			
-	# Detekcja lądowania
-	if is_on_floor():
+	# Detekcja lądowania (nie przy ruchu w górę – np. w klatce wybicia z trampoliny
+	# is_on_floor() jest jeszcze nieaktualne i zbuforowany skok nadpisałby wybicie)
+	if is_on_floor() and velocity.y >= 0.0:
 		is_tricking = false
 		trick_point_buffer = 0.0
 		if jump_buffer_timer > 0.0:
@@ -1244,7 +1245,8 @@ func _execute_jump() -> void:
 	airborne_origin_y = global_position.y
 	airborne_stamina_ceiling = wall_climb_max_stamina
 	used_special_in_current_air = false
-	velocity.y = jump_velocity
+	# Skok nigdy nie spowalnia szybszego ruchu w górę (np. zbuforowany skok w klatce wybicia z trampoliny)
+	velocity.y = minf(velocity.y, jump_velocity)
 	coyote_timer = 0.0
 	wall_coyote_timer = 0.0
 	wall_stick_timer = 0.0

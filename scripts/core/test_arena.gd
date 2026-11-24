@@ -18,6 +18,13 @@ const ControlsRebindUIScript = preload("res://scripts/core/controls_rebind_ui.gd
 @onready var hud_score_label: Label = get_node_or_null("HUD/ScorePanel/ScoreText") if has_node("HUD/ScorePanel/ScoreText") else get_node_or_null("HUD/JewelPanel/JewelText")
 @onready var hud_time_label: Label = get_node_or_null("HUD/TimePanel/TimeText")
 @onready var hud_session_label: Label = get_node_or_null("HUD/SessionLabel")
+@onready var hud_goal_bar: ProgressBar = get_node_or_null("HUD/ScorePanel/GoalBar")
+@onready var hud_goal_flag: TextureRect = get_node_or_null("HUD/ScorePanel/GoalFlag")
+@onready var hud_powerup_tray: HBoxContainer = get_node_or_null("HUD/PowerupTray")
+var _hud_exit_was_open: bool = false
+var _hud_low_stamina: bool = false
+var _hud_blink_t: float = 0.0
+var _powerup_chips: Dictionary = {}
 @onready var pause_menu: Control = get_node_or_null("HUD/PauseMenu")
 @onready var settings_view: Control = get_node_or_null("HUD/SettingsView")
 @onready var game_over_menu: Control = get_node_or_null("HUD/GameOverMenu")
@@ -72,10 +79,19 @@ func _setup_level_music(profile_id: int) -> void:
 
 @onready var finish_goal: Area2D = get_node_or_null("FinishGoal")
 
-const MULT_COLOR_IDLE := Color(0.60, 0.64, 0.70, 0.85)
-const MULT_COLOR_UP := Color(0.28, 0.96, 0.48, 1.0)
-const MULT_COLOR_DOWN := Color(1.0, 0.34, 0.34, 1.0)
-const MULT_COLOR_LOCKED := Color(1.0, 0.38, 0.32, 1.0)
+const MULT_COLOR_IDLE := Color(0.78, 0.74, 0.80, 0.85)
+const MULT_COLOR_UP := Color8(107, 201, 108)
+const MULT_COLOR_DOWN := Color8(234, 98, 98)
+const MULT_COLOR_LOCKED := Color8(238, 143, 203)
+
+# --- Pikselowy HUD (paleta gry) ---
+const HUD_FONT_PATHS: Array[String] = ["res://assets/ui/hud/hud_font.fnt", "res://assets/ui/hud/hud_font_big.fnt"]
+const HUD_ICONS_PATH := "res://assets/ui/hud/hud_icons.png"
+const HUD_CHIP_PATH := "res://assets/ui/hud/hud_chip.png"
+const HUD_ICON_INDEX: Dictionary = {"shield": 8, "speed": 9, "star": 10}
+const STAMINA_COLORS: Array[Color] = [Color8(107, 201, 108), Color8(252, 239, 141), Color8(234, 98, 98)]
+const GOAL_COLOR_LOCKED := Color8(212, 110, 179)
+const GOAL_COLOR_OPEN := Color8(171, 221, 100)
 const MULT_HOLD_DURATION: float = 0.45
 const MULT_FADE_SPEED: float = 0.55
 
@@ -190,6 +206,8 @@ func _ready() -> void:
 		var saved_lang = String(Events.portal_sync.cosmetics_state.get("language", Events.portal_sync.profile_settings.get("language", "pl")))
 		_apply_language(saved_lang)
 	
+	_setup_hud_fonts()
+	_apply_pixel_font_to_level_labels()
 	_ensure_ai_hud_panel()
 	_update_score_hud()
 	_update_time_hud()
@@ -305,6 +323,7 @@ func _process(delta: float) -> void:
 		_update_jewel_hud_animation(delta)
 		_update_multiplier_hud_highlights(delta)
 		_update_status_toast(delta)
+		_update_hud_effects(delta)
 
 ## Zlicza wszystkie klejnoty obecne aktualnie na scenie.
 func refresh_jewel_count() -> int:
@@ -336,7 +355,7 @@ func _format_time(seconds: float) -> String:
 
 func _update_time_hud() -> void:
 	if hud_time_label:
-		hud_time_label.text = " TIME: %s " % _format_time(elapsed_time)
+		hud_time_label.text = _format_time(elapsed_time)
 
 func _on_player_stamina_changed(current: float, max_stamina: float) -> void:
 	if hud_stamina_bar:
@@ -346,12 +365,10 @@ func _on_player_stamina_changed(current: float, max_stamina: float) -> void:
 			var fill_sb := hud_stamina_bar.get_theme_stylebox("fill") as StyleBoxFlat
 			if fill_sb:
 				var ratio: float = current / maxf(0.01, max_stamina)
-				if ratio > 0.5:
-					fill_sb.bg_color = Color(0.24, 0.92, 0.48, 0.95)
-				elif ratio > 0.25:
-					fill_sb.bg_color = Color(0.96, 0.80, 0.24, 0.95)
-				else:
-					fill_sb.bg_color = Color(0.96, 0.28, 0.28, 0.95)
+				var col: Color = STAMINA_COLORS[0] if ratio > 0.5 else (STAMINA_COLORS[1] if ratio > 0.25 else STAMINA_COLORS[2])
+				fill_sb.bg_color = col
+				fill_sb.border_color = col.lightened(0.35)
+				_hud_low_stamina = ratio <= 0.25
 
 func _report_active_life_booster() -> void:
 	if DisplayServer.get_name() == "headless" or not is_inside_tree():
@@ -409,7 +426,7 @@ func _trigger_grouped_jewel_hud_animation(added_count: int = 1) -> void:
 		hud_score_label.pivot_offset = hud_score_label.size * 0.5
 		hud_score_label.scale = Vector2(jewel_hud_scale, jewel_hud_scale)
 	if hud_wallet_label:
-		hud_wallet_label.text = "PORTFEL: %d (+%d)" % [get_total_wallet_balance(), jewel_anim_batch_count]
+		hud_wallet_label.text = "%d (+%d)" % [get_total_wallet_balance(), jewel_anim_batch_count]
 
 func _update_jewel_hud_animation(delta: float) -> void:
 	if jewel_anim_timer <= 0.0:
@@ -424,7 +441,7 @@ func _update_jewel_hud_animation(delta: float) -> void:
 		if hud_score_label:
 			hud_score_label.scale = Vector2.ONE
 		if hud_wallet_label:
-			hud_wallet_label.text = "PORTFEL: %d" % get_total_wallet_balance()
+			hud_wallet_label.text = "%d" % get_total_wallet_balance()
 
 func _on_special_jewel_collected(_special_id: String, jewel_name: String, rarity: String, already_owned: bool) -> void:
 	if already_owned:
@@ -456,12 +473,32 @@ func _on_cursed_jewel_triggered(mechanic_name: String, duration: float) -> void:
 func _update_score_hud() -> void:
 	if hud_score_label:
 		if total_jewels > 0:
-			var req: int = get_required_jewel_count()
-			hud_score_label.text = " JEWELS: %d/%d (CEL: %d) " % [collected_jewels, total_jewels, req]
+			hud_score_label.text = " JEWELS: %d/%d " % [collected_jewels, total_jewels]
 		else:
 			hud_score_label.text = " JEWELS: %d " % collected_jewels
 	if hud_wallet_label and jewel_anim_timer <= 0.0:
-		hud_wallet_label.text = "PORTFEL: %d" % get_total_wallet_balance()
+		hud_wallet_label.text = "%d" % get_total_wallet_balance()
+	_update_goal_bar()
+
+## Pasek postępu do wyjścia: flaga stoi w miejscu wymaganej połowy klejnotów, po jej osiągnięciu pasek zielenieje.
+func _update_goal_bar() -> void:
+	if not hud_goal_bar:
+		return
+	var total: int = maxi(1, total_jewels)
+	hud_goal_bar.max_value = float(total)
+	hud_goal_bar.value = float(collected_jewels)
+	var open: bool = total_jewels > 0 and can_exit_level()
+	var fill_sb := hud_goal_bar.get_theme_stylebox("fill") as StyleBoxFlat
+	if fill_sb:
+		fill_sb.bg_color = GOAL_COLOR_OPEN if open else GOAL_COLOR_LOCKED
+		fill_sb.border_color = fill_sb.bg_color.lightened(0.4)
+	if hud_goal_flag:
+		var frac: float = float(get_required_jewel_count()) / float(total)
+		hud_goal_flag.position.x = hud_goal_bar.position.x + roundf(hud_goal_bar.size.x * frac) - 2.0
+		hud_goal_flag.modulate = Color(0.75, 1.0, 0.6, 1.0) if open else Color(1, 1, 1, 1)
+	if open and not _hud_exit_was_open and collected_jewels > 0 and is_inside_tree():
+		_show_hud_toast("WYJŚCIE OTWARTE! Zebrano %d/%d klejnotów" % [collected_jewels, total_jewels], Color8(171, 221, 100), 2.6)
+	_hud_exit_was_open = open
 
 func _update_goal_visuals() -> void:
 	if not finish_goal:
@@ -492,6 +529,105 @@ func _make_hud_pill_style(bg_alpha: float = 0.72) -> StyleBoxFlat:
 	sb.content_margin_bottom = 2.0
 	return sb
 
+## Pikselowa czcionka HUD nie ma polskich znaków – brakujące glify bierze z domyślnej czcionki.
+func _setup_hud_fonts() -> void:
+	for path in HUD_FONT_PATHS:
+		if ResourceLoader.exists(path):
+			var f := load(path) as Font
+			if f and f.fallbacks.is_empty() and ThemeDB.fallback_font:
+				f.fallbacks = [ThemeDB.fallback_font]
+
+## Napisy w świecie gry (podpowiedzi, tablica analizy AI) tą samą pikselową czcionką co HUD (rozmiar 2x).
+func _apply_pixel_font_to_level_labels() -> void:
+	var labels_root: Node = get_node_or_null("Labels")
+	if not labels_root or not ResourceLoader.exists(HUD_FONT_PATHS[1]):
+		return
+	var big := load(HUD_FONT_PATHS[1]) as Font
+	for lbl in labels_root.get_children():
+		if lbl is Label:
+			lbl.add_theme_font_override("font", big)
+			lbl.add_theme_constant_override("outline_size", 0)
+			lbl.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+func _update_hud_effects(delta: float) -> void:
+	_hud_blink_t += delta
+	# Ostrzeżenie o niskiej staminie: pulsujący pasek
+	if hud_stamina_bar:
+		if _hud_low_stamina:
+			var a: float = 0.55 + 0.45 * absf(sin(_hud_blink_t * 7.0))
+			hud_stamina_bar.modulate = Color(1, 1, 1, a)
+		else:
+			hud_stamina_bar.modulate = Color.WHITE
+	_update_powerup_tray()
+
+func _hud_icon(index: int) -> AtlasTexture:
+	var at := AtlasTexture.new()
+	at.atlas = load(HUD_ICONS_PATH)
+	at.region = Rect2(index * 12, 0, 12, 12)
+	return at
+
+## Aktywne wzmocnienia (tarcza, przyspieszenie, nieśmiertelność) jako chipy z ikoną i licznikiem czasu.
+func _update_powerup_tray() -> void:
+	if not hud_powerup_tray or not is_inside_tree():
+		return
+	var plr: Node = get_tree().get_first_node_in_group("player")
+	if not plr:
+		return
+	var active: Dictionary = {}
+	var t_inv: float = float(plr.get("invincibility_powerup_timer")) if plr.get("invincibility_powerup_timer") != null else 0.0
+	var t_spd: float = float(plr.get("speed_powerup_timer")) if plr.get("speed_powerup_timer") != null else 0.0
+	if plr.has_method("get_powerup_time_left"):
+		t_inv = maxf(t_inv, float(plr.call("get_powerup_time_left", "INVINCIBILITY")))
+		t_spd = maxf(t_spd, float(plr.call("get_powerup_time_left", "SPEED_BOOST")))
+	if t_inv > 0.0:
+		active["star"] = "%.1fs" % t_inv
+	if t_spd > 0.0:
+		active["speed"] = "%.1fs" % t_spd
+	if bool(plr.get("has_shield")) or bool(plr.get_meta("has_portal_shield", false)):
+		active["shield"] = "x1"
+	for key in _powerup_chips.keys():
+		if not active.has(key):
+			var old: Node = _powerup_chips[key]
+			if is_instance_valid(old):
+				old.queue_free()
+			_powerup_chips.erase(key)
+	for key in active.keys():
+		var chip: PanelContainer = _powerup_chips.get(key) as PanelContainer
+		if not is_instance_valid(chip):
+			chip = PanelContainer.new()
+			chip.name = "Powerup_%s" % key
+			chip.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			var sb := StyleBoxTexture.new()
+			sb.texture = load(HUD_CHIP_PATH)
+			sb.set_texture_margin_all(3.0)
+			sb.content_margin_left = 4.0
+			sb.content_margin_right = 5.0
+			sb.content_margin_top = 2.0
+			sb.content_margin_bottom = 2.0
+			chip.add_theme_stylebox_override("panel", sb)
+			var hb := HBoxContainer.new()
+			hb.add_theme_constant_override("separation", 3)
+			chip.add_child(hb)
+			var ic := TextureRect.new()
+			ic.texture = _hud_icon(int(HUD_ICON_INDEX[key]))
+			ic.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+			ic.custom_minimum_size = Vector2(12, 12)
+			hb.add_child(ic)
+			var lb := Label.new()
+			lb.name = "Time"
+			if ResourceLoader.exists(HUD_FONT_PATHS[0]):
+				lb.add_theme_font_override("font", load(HUD_FONT_PATHS[0]))
+			lb.add_theme_color_override("font_color", Color8(252, 239, 141) if key == "star" else (Color8(171, 221, 100) if key == "speed" else Color8(174, 226, 255)))
+			hb.add_child(lb)
+			hud_powerup_tray.add_child(chip)
+			_powerup_chips[key] = chip
+		var tl := chip.find_child("Time", true, false) as Label
+		if tl:
+			tl.text = String(active[key])
+		# miganie w ostatnich 2 sekundach
+		var secs: float = String(active[key]).to_float()
+		chip.modulate.a = (0.5 + 0.5 * absf(sin(_hud_blink_t * 10.0))) if (secs > 0.0 and secs < 2.0) else 1.0
+
 func _ensure_ai_hud_panel() -> void:
 	var hud: Node = get_node_or_null("HUD")
 	if not hud:
@@ -515,7 +651,7 @@ func _ensure_ai_hud_panel() -> void:
 		wallet_panel.add_theme_stylebox_override("panel", _make_hud_pill_style(0.72))
 		hud.add_child(wallet_panel)
 
-	hud_wallet_label = wallet_panel.get_node_or_null("WalletBalanceLabel") as Label
+	hud_wallet_label = wallet_panel.find_child("WalletBalanceLabel", true, false) as Label
 	if not hud_wallet_label:
 		hud_wallet_label = Label.new()
 		hud_wallet_label.name = "WalletBalanceLabel"
@@ -524,7 +660,7 @@ func _ensure_ai_hud_panel() -> void:
 		hud_wallet_label.add_theme_font_size_override("font_size", 10)
 		hud_wallet_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.42, 0.96))
 		wallet_panel.add_child(hud_wallet_label)
-	hud_wallet_label.text = "PORTFEL: %d" % get_total_wallet_balance()
+	hud_wallet_label.text = "%d" % get_total_wallet_balance()
 
 	# 2. Minimalistyczna pigułka mnożników w 2. wierszu (y=37..57)
 	hud_ai_panel = hud.get_node_or_null("AIMultipliersPanel") as PanelContainer
@@ -601,6 +737,15 @@ func _show_hud_toast(msg: String, color: Color, duration: float = 2.6) -> void:
 	hud_status_toast.modulate.a = 1.0
 	hud_status_toast.visible = true
 	status_toast_timer = duration
+	# Baner wyśrodkowany u góry ekranu, szerokość dopasowana do tekstu
+	hud_status_toast.size = Vector2.ZERO
+	hud_status_toast.reset_size()
+	var vp_w: float = 640.0
+	if is_inside_tree():
+		vp_w = get_viewport().get_visible_rect().size.x
+	# Mieści się między panelami u góry -> y=8, dłuższy komunikat schodzi pod panele
+	var toast_y: float = 8.0 if hud_status_toast.size.x <= vp_w - 2.0 * 156.0 else 90.0
+	hud_status_toast.position = Vector2(roundf((vp_w - hud_status_toast.size.x) * 0.5), toast_y)
 
 func _update_status_toast(delta: float) -> void:
 	if not hud_status_toast or status_toast_timer <= 0.0:

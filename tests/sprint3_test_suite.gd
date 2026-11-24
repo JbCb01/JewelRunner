@@ -85,6 +85,10 @@ func _ready() -> void:
 	utTrampolinePadLaunchesPlayerAndRefreshesAirMoves()
 	utEnemyArchetypesAiStatesAndSpriteRows()
 	utSzachownicaAiSeedDeterminismVariationAndValidation()
+
+	print("\n--- [10] TESTY PROFILU STYLU GRY I POZIOMU AI (CYBER MATRIX) ---")
+	utPlaystyleProfilerTracksZonesRoutesAndPersists()
+	utAiLevelAdaptsToPlaystyleProfile()
 	
 	print("\n==================================================================")
 	print(" PODSUMOWANIE SPRINT 3: ZALICZONE: %d | BŁĘDY: %d | ŁĄCZNIE: %d" % [passCnt, failCnt, passCnt + failCnt])
@@ -755,10 +759,14 @@ func utTilesetLoadsAndRendersAllBiomesWithoutQuestionBlocks() -> void:
 		var decorLayer := mockArena.get_node_or_null("DecorTileMapLayer") as TileMapLayer
 		var ceilLayer := mockArena.get_node_or_null("CeilingTileMapLayer") as TileMapLayer
 
-		if lvlLayer == null or bgLayer == null or decorLayer == null:
+		# Tło: dawniej pas kafelków BgTileMapLayer, obecnie obraz/animacja (LevelBackground) lub TextureRect lasu
+		var hasBackground: bool = (bgLayer != null and bgLayer.get_used_cells().size() >= 20) \
+			or mockArena.get_node_or_null("Geometry/LevelBackground") != null \
+			or mockArena.get_node_or_null("Background") is TextureRect
+		if lvlLayer == null or decorLayer == null or not hasBackground:
 			allLayersOk = false
 		else:
-			if lvlLayer.get_used_cells().size() < 40 or bgLayer.get_used_cells().size() < 20 or decorLayer.get_used_cells().is_empty():
+			if lvlLayer.get_used_cells().size() < 40 or decorLayer.get_used_cells().is_empty():
 				allLayersOk = false
 			for layer in [lvlLayer, bgLayer, decorLayer, ceilLayer]:
 				if layer == null:
@@ -938,6 +946,97 @@ func utSzachownicaAiSeedDeterminismVariationAndValidation() -> void:
 	dir.clear_historical_profile()
 	dir.reset_session_state(true)
 	assertCond(detOk and singleBiomeOk and allSeedsValid and playstyleOk and variationOk and challengeOk, "LVL-09", "Szachownica AI jest deterministyczna po seedzie, trzyma jeden biom Aether, kontruje styl i przechodzi walidator")
+
+# ==============================================================================
+# 10. TESTY PROFILU STYLU GRY I POZIOMU AI (Cyber Matrix)
+# ==============================================================================
+
+func utPlaystyleProfilerTracksZonesRoutesAndPersists() -> void:
+	var prof = Events.playstyle_profiler
+	var saved_data: Dictionary = prof.data.duplicate(true)
+	var saved_path: String = prof.save_path
+	prof.save_path = "user://playstyle_profile_test.json"
+	prof.reset_profile()
+
+	Events.level_started.emit()
+	# Gracz wybiera dolną (bezpieczną) trasę, dwa razy wchodzi w strefę wspinaczki i obrywa w niej
+	prof.zone_entered("route:low", "fork_hill#2")
+	prof.zone_entered("route:high", "fork_hill#2")   # drugi wybór na tym samym rozwidleniu się nie liczy
+	prof.zone_entered("wall_climb", "climb_wall#3")
+	Events.player_hit.emit(1)
+	prof.zone_exited("wall_climb", "climb_wall#3")
+	prof.zone_entered("wall_climb", "climb_wall_high#5")
+	Events.player_fell_in_abyss.emit(Vector2.ZERO)
+	for i in range(6):
+		Events.player_dashed.emit(Vector2.RIGHT)
+	Events.player_jumped.emit(true)
+	Events.level_completed.emit()
+
+	var p: Dictionary = prof.get_profile()
+	var zonesOk: bool = int(prof.data["zones"]["wall_climb"]["entries"]) == 2 and int(prof.data["zones"]["wall_climb"]["hits"]) == 1 and int(prof.data["zones"]["wall_climb"]["falls"]) == 1
+	var routeOk: bool = int(prof.data["routes"]["safe"]) == 1 and int(prof.data["routes"]["risky"]) == 0 and float(p["risk_appetite"]) < 0.5
+	var analysisOk: bool = String(p["favorite"]) == "dash" and String(p["weakest"]) == "wall_climb" and bool(p["has_data"])
+
+	# Zapis -> odczyt
+	var before: Dictionary = prof.data.duplicate(true)
+	prof.reset_profile()
+	prof.data = before
+	prof.save_profile()
+	prof._reset_data()
+	prof.load_profile()
+	var persistOk: bool = int(prof.data["moves"]["dash"]) == 6 and int(prof.data["completions"]) == 1
+
+	assertCond(zonesOk and routeOk and analysisOk and persistOk, "AI-01", "Profil stylu gry zlicza ruchy, błędy w strefach mechanik i wybory tras oraz przetrwa zapis/odczyt")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(prof.save_path))
+	prof.save_path = saved_path
+	prof.data = saved_data
+
+func utAiLevelAdaptsToPlaystyleProfile() -> void:
+	var prof = Events.playstyle_profiler
+	var saved_data: Dictionary = prof.data.duplicate(true)
+	var dir: AdaptiveAIDirector = Events.ai_director
+	dir.clear_historical_profile()
+	dir.historical_move_uses["dash"] = 30.0
+	dir.historical_move_uses["double_jump"] = 10.0
+	dir.historical_move_uses["wall_climb"] = 1.0
+
+	# Profil A: gracz bez historii
+	prof._reset_data()
+	var rngA := RandomNumberGenerator.new()
+	rngA.seed = 5150
+	var bpA: Dictionary = LevelGeneratorScript.generate_blueprint(LevelGeneratorScript.MechanicProfile.AI_PROCEDURAL, rngA, {})
+
+	# Profil B: wprawny gracz, który ciągle obrywa przy wspinaczce i omija górne trasy, zbiera wszystko
+	prof._reset_data()
+	prof.data["runs"] = 8
+	prof.data["completions"] = 8
+	prof.data["play_seconds"] = 900.0
+	prof.data["moves"]["dash"] = 120.0
+	prof.data["moves"]["double_jump"] = 60.0
+	prof.data["moves"]["slide"] = 2.0
+	prof.data["moves"]["trick"] = 1.0
+	prof.data["zones"]["wall_climb"] = {"entries": 6, "hits": 5, "falls": 2}
+	prof.data["routes"] = {"risky": 0, "safe": 5}
+	prof.data["jewels_collected"] = 190
+	prof.data["jewels_available"] = 200
+	var rngB := RandomNumberGenerator.new()
+	rngB.seed = 5150
+	var bpB: Dictionary = LevelGeneratorScript.generate_blueprint(LevelGeneratorScript.MechanicProfile.AI_PROCEDURAL, rngB, {})
+
+	var seqA: Array = bpA["chunk_sequence"]
+	var seqB: Array = bpB["chunk_sequence"]
+	var reasons: Array = bpB["playstyle_report"]["reasons"]
+	var joined: String = " ".join(reasons)
+	var adaptsOk: bool = seqA != seqB and joined.contains("tarczą") and joined.contains("omijasz") and joined.contains("Zbierasz")
+	var halvesOk: bool = String(bpB["first_half_mechanic"]) == "dash" and String(bpB["second_half_mechanic"]) == "wall_climb"
+	var shieldOk: bool = false
+	for j in bpB["jewels"]:
+		if int(j.get("jewel_type", 0)) == 3:
+			shieldOk = true
+	var validOk: bool = bool(bpA["validation"]["passed"]) and bool(bpB["validation"]["passed"])
+	assertCond(adaptsOk and halvesOk and shieldOk and validOk, "AI-02", "Poziom AI (Cyber Matrix) dobiera moduły, tarczę, sekret i trudność pod profil stylu gry, przechodząc walidator")
+	prof.data = saved_data
+	dir.clear_historical_profile()
 
 # ==============================================================================
 # FUNKCJE POMOCNICZE

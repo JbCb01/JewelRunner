@@ -1262,7 +1262,8 @@ func _execute_jump() -> void:
 func _execute_double_jump() -> void:
 	if not consume_special_move_stamina("double_jump"):
 		return
-	velocity.y = double_jump_velocity
+	# Podwójny skok nigdy nie hamuje szybszego wznoszenia (np. tuż po wybiciu z trampoliny)
+	velocity.y = minf(velocity.y, double_jump_velocity)
 	can_double_jump = false
 	jump_buffer_timer = 0.0
 	_change_state(State.JUMP)

@@ -27,6 +27,20 @@
 
 [ext_resource type="Script" path="res://scripts/core/trampoline_pad.gd" id="20_trampoline"]
 
+[ext_resource type="Script" path="res://scripts/core/skill_zone.gd" id="21_skill_zone"]
+
+[ext_resource type="FontFile" path="res://assets/ui/hud/hud_font.fnt" id="22_hud_font"]
+
+[ext_resource type="FontFile" path="res://assets/ui/hud/hud_font_big.fnt" id="23_hud_font_big"]
+
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_panel.png" id="24_hud_panel"]
+
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_chip.png" id="25_hud_chip"]
+
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_icons.png" id="26_hud_icons"]
+
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_bar_ticks.png" id="27_hud_ticks"]
+
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_set_empty"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_set_hover"]
@@ -310,6 +324,171 @@ size = Vector2(36, 64)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl65"]
 size = Vector2(36, 64)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl66"]
+size = Vector2(464, 272)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl67"]
+size = Vector2(736, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl68"]
+size = Vector2(48, 144)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl69"]
+size = Vector2(144, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl70"]
+size = Vector2(96, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl71"]
+size = Vector2(208, 80)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl72"]
+size = Vector2(288, 176)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl73"]
+size = Vector2(128, 96)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl74"]
+size = Vector2(64, 144)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl75"]
+size = Vector2(1008, 208)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl76"]
+size = Vector2(960, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl77"]
+size = Vector2(64, 272)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl78"]
+size = Vector2(144, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl79"]
+size = Vector2(96, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl80"]
+size = Vector2(256, 80)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl81"]
+size = Vector2(288, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl82"]
+size = Vector2(160, 96)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl83"]
+size = Vector2(80, 144)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl84"]
+size = Vector2(992, 208)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl85"]
+size = Vector2(976, 112)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl86"]
+size = Vector2(80, 112)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl87"]
+size = Vector2(96, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl88"]
+size = Vector2(160, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl89"]
+size = Vector2(288, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl90"]
+size = Vector2(240, 96)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl91"]
+size = Vector2(176, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl92"]
+size = Vector2(80, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl93"]
+size = Vector2(80, 144)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl94"]
+size = Vector2(96, 176)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lvl95"]
+size = Vector2(80, 208)
+
+[sub_resource type="StyleBoxTexture" id="HudSB_panel"]
+content_margin_left = 5.0
+content_margin_top = 3.0
+content_margin_right = 5.0
+content_margin_bottom = 3.0
+texture = ExtResource("24_hud_panel")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxTexture" id="HudSB_chip"]
+content_margin_left = 6.0
+content_margin_top = 3.0
+content_margin_right = 6.0
+content_margin_bottom = 2.0
+texture = ExtResource("25_hud_chip")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxFlat" id="HudSB_bar_bg"]
+bg_color = Color(0.0784, 0.0431, 0.1098, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4824, 0.3294, 0.502, 1)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="HudSB_stamina_fill"]
+bg_color = Color(0.4196, 0.7882, 0.4235, 1)
+border_width_top = 1
+border_color = Color(0.6706, 0.8667, 0.3922, 1)
+anti_aliasing = false
+
+[sub_resource type="StyleBoxFlat" id="HudSB_goal_fill"]
+bg_color = Color(0.8314, 0.4314, 0.702, 1)
+border_width_top = 1
+border_color = Color(1, 0.7647, 0.949, 1)
+anti_aliasing = false
+
+[sub_resource type="AtlasTexture" id="HudIcon_jewel"]
+atlas = ExtResource("26_hud_icons")
+region = Rect2(0, 0, 12, 12)
+
+[sub_resource type="AtlasTexture" id="HudIcon_bolt"]
+atlas = ExtResource("26_hud_icons")
+region = Rect2(12, 0, 12, 12)
+
+[sub_resource type="AtlasTexture" id="HudIcon_clock"]
+atlas = ExtResource("26_hud_icons")
+region = Rect2(24, 0, 12, 12)
+
+[sub_resource type="AtlasTexture" id="HudIcon_wallet"]
+atlas = ExtResource("26_hud_icons")
+region = Rect2(36, 0, 12, 12)
+
+[sub_resource type="AtlasTexture" id="HudIcon_double_jump"]
+atlas = ExtResource("26_hud_icons")
+region = Rect2(48, 0, 12, 12)
+
+[sub_resource type="AtlasTexture" id="HudIcon_wall_climb"]
+atlas = ExtResource("26_hud_icons")
+region = Rect2(60, 0, 12, 12)
+
+[sub_resource type="AtlasTexture" id="HudIcon_dash"]
+atlas = ExtResource("26_hud_icons")
+region = Rect2(72, 0, 12, 12)
+
+[sub_resource type="AtlasTexture" id="HudIcon_flag"]
+atlas = ExtResource("26_hud_icons")
+region = Rect2(84, 0, 12, 12)
 
 [node name="TestArena" type="Node2D" unique_id=903465747]
 script = ExtResource("1_test_arena")
@@ -1326,6 +1505,368 @@ checkpoint_id = "CP-4"
 position = Vector2(0, -8)
 shape = SubResource("RectangleShape2D_lvl65")
 
+[node name="Zones" type="Node2D" parent="."]
+
+[node name="Zone1_route_high" type="Area2D" parent="Zones"]
+position = Vector2(648, 40)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "route:high"
+module_uid = "L1F1"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone1_route_high"]
+shape = SubResource("RectangleShape2D_lvl66")
+
+[node name="Zone2_route_low" type="Area2D" parent="Zones"]
+position = Vector2(800, 288)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "route:low"
+module_uid = "L1F1"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone2_route_low"]
+shape = SubResource("RectangleShape2D_lvl67")
+
+[node name="Zone3_wall_climb" type="Area2D" parent="Zones"]
+position = Vector2(408, 232)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "wall_climb"
+module_uid = "L1F1"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone3_wall_climb"]
+shape = SubResource("RectangleShape2D_lvl68")
+
+[node name="Zone4_slide" type="Area2D" parent="Zones"]
+position = Vector2(504, 288)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "slide"
+module_uid = "L1F1"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone4_slide"]
+shape = SubResource("RectangleShape2D_lvl69")
+
+[node name="Zone5_slide" type="Area2D" parent="Zones"]
+position = Vector2(496, 160)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "slide"
+module_uid = "L1F1"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone5_slide"]
+shape = SubResource("RectangleShape2D_lvl70")
+
+[node name="Zone6_dash" type="Area2D" parent="Zones"]
+position = Vector2(776, 296)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "dash"
+module_uid = "L1F1"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone6_dash"]
+shape = SubResource("RectangleShape2D_lvl71")
+
+[node name="Zone7_dash" type="Area2D" parent="Zones"]
+position = Vector2(1024, 88)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "dash"
+module_uid = "L1F1"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone7_dash"]
+shape = SubResource("RectangleShape2D_lvl72")
+
+[node name="Zone8_double_jump" type="Area2D" parent="Zones"]
+position = Vector2(1008, 256)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "double_jump"
+module_uid = "L1F1"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone8_double_jump"]
+shape = SubResource("RectangleShape2D_lvl73")
+
+[node name="Zone9_wall_climb" type="Area2D" parent="Zones"]
+position = Vector2(1152, 232)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "wall_climb"
+module_uid = "L1F1"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone9_wall_climb"]
+shape = SubResource("RectangleShape2D_lvl74")
+
+[node name="Zone10_route_sky" type="Area2D" parent="Zones"]
+position = Vector2(2200, -104)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "route:sky"
+module_uid = "L1F2"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone10_route_sky"]
+shape = SubResource("RectangleShape2D_lvl75")
+
+[node name="Zone11_route_low" type="Area2D" parent="Zones"]
+position = Vector2(2080, 288)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "route:low"
+module_uid = "L1F2"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone11_route_low"]
+shape = SubResource("RectangleShape2D_lvl76")
+
+[node name="Zone12_wall_jump" type="Area2D" parent="Zones"]
+position = Vector2(1760, 40)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "wall_jump"
+module_uid = "L1F2"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone12_wall_jump"]
+shape = SubResource("RectangleShape2D_lvl77")
+
+[node name="Zone13_slide" type="Area2D" parent="Zones"]
+position = Vector2(1720, 288)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "slide"
+module_uid = "L1F2"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone13_slide"]
+shape = SubResource("RectangleShape2D_lvl78")
+
+[node name="Zone14_slide" type="Area2D" parent="Zones"]
+position = Vector2(1920, -112)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "slide"
+module_uid = "L1F2"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone14_slide"]
+shape = SubResource("RectangleShape2D_lvl79")
+
+[node name="Zone15_dash" type="Area2D" parent="Zones"]
+position = Vector2(1952, 296)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "dash"
+module_uid = "L1F2"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone15_dash"]
+shape = SubResource("RectangleShape2D_lvl80")
+
+[node name="Zone16_dash" type="Area2D" parent="Zones"]
+position = Vector2(2400, -128)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "dash"
+module_uid = "L1F2"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone16_dash"]
+shape = SubResource("RectangleShape2D_lvl81")
+
+[node name="Zone17_double_jump" type="Area2D" parent="Zones"]
+position = Vector2(2480, 256)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "double_jump"
+module_uid = "L1F2"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone17_double_jump"]
+shape = SubResource("RectangleShape2D_lvl82")
+
+[node name="Zone18_wall_climb" type="Area2D" parent="Zones"]
+position = Vector2(2536, 152)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "wall_climb"
+module_uid = "L1F2"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone18_wall_climb"]
+shape = SubResource("RectangleShape2D_lvl83")
+
+[node name="Zone19_route_canopy" type="Area2D" parent="Zones"]
+position = Vector2(3536, -104)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "route:canopy"
+module_uid = "L1F3"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone19_route_canopy"]
+shape = SubResource("RectangleShape2D_lvl84")
+
+[node name="Zone20_route_under" type="Area2D" parent="Zones"]
+position = Vector2(3544, 232)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "route:under"
+module_uid = "L1F3"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone20_route_under"]
+shape = SubResource("RectangleShape2D_lvl85")
+
+[node name="Zone21_trampoline" type="Area2D" parent="Zones"]
+position = Vector2(3000, 56)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "trampoline"
+module_uid = "L1F3"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone21_trampoline"]
+shape = SubResource("RectangleShape2D_lvl86")
+
+[node name="Zone22_slide" type="Area2D" parent="Zones"]
+position = Vector2(3328, -48)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "slide"
+module_uid = "L1F3"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone22_slide"]
+shape = SubResource("RectangleShape2D_lvl87")
+
+[node name="Zone23_slide" type="Area2D" parent="Zones"]
+position = Vector2(3488, 224)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "slide"
+module_uid = "L1F3"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone23_slide"]
+shape = SubResource("RectangleShape2D_lvl88")
+
+[node name="Zone24_dash" type="Area2D" parent="Zones"]
+position = Vector2(3632, -96)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "dash"
+module_uid = "L1F3"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone24_dash"]
+shape = SubResource("RectangleShape2D_lvl89")
+
+[node name="Zone25_dash" type="Area2D" parent="Zones"]
+position = Vector2(3720, 240)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "dash"
+module_uid = "L1F3"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone25_dash"]
+shape = SubResource("RectangleShape2D_lvl90")
+
+[node name="Zone26_double_jump" type="Area2D" parent="Zones"]
+position = Vector2(3272, 208)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "double_jump"
+module_uid = "L1F3"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone26_double_jump"]
+shape = SubResource("RectangleShape2D_lvl91")
+
+[node name="Zone27_wall_climb" type="Area2D" parent="Zones"]
+position = Vector2(3896, -96)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "wall_climb"
+module_uid = "L1F3"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone27_wall_climb"]
+shape = SubResource("RectangleShape2D_lvl92")
+
+[node name="Zone28_wall_climb" type="Area2D" parent="Zones"]
+position = Vector2(4008, 168)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "wall_climb"
+module_uid = "L1F3"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone28_wall_climb"]
+shape = SubResource("RectangleShape2D_lvl93")
+
+[node name="Zone29_trick" type="Area2D" parent="Zones"]
+position = Vector2(4496, 216)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "trick"
+module_uid = "L1END"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone29_trick"]
+shape = SubResource("RectangleShape2D_lvl94")
+
+[node name="Zone30_trampoline" type="Area2D" parent="Zones"]
+position = Vector2(4936, 200)
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+script = ExtResource("21_skill_zone")
+tag = "trampoline"
+module_uid = "L1END"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Zones/Zone30_trampoline"]
+shape = SubResource("RectangleShape2D_lvl95")
+
 [node name="Trampolines" type="Node2D" parent="."]
 z_index = 1
 
@@ -1617,70 +2158,293 @@ text = "Hold [Ctrl] while falling to recharge stamina"
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=582845555]
 
-[node name="ControlsPanel" type="PanelContainer" parent="HUD" unique_id=1341534265]
-offset_left = 12.0
-offset_top = 10.0
-offset_right = 628.0
-offset_bottom = 38.0
+[node name="ScorePanel" type="Panel" parent="HUD"]
+texture_filter = 1
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 150.0
+offset_bottom = 45.0
+theme_override_styles/panel = SubResource("HudSB_panel")
 
-[node name="ControlsLabel" type="Label" parent="HUD/ControlsPanel" unique_id=263129487]
-layout_mode = 2
-text = "A/D: Ruch | Spacja: Skok / Double Jump (Stamina) | Shift: Dash (Stamina) | W: Wspinaczka (Stamina) | C w locie: Trick (Regen Staminy!) | R: Restart"
-horizontal_alignment = 1
+[node name="JewelIcon" type="TextureRect" parent="HUD/ScorePanel"]
+texture_filter = 1
+mouse_filter = 2
+offset_left = 5.0
+offset_top = 4.0
+offset_right = 17.0
+offset_bottom = 16.0
+texture = SubResource("HudIcon_jewel")
+stretch_mode = 2
+
+[node name="ScoreText" type="Label" parent="HUD/ScorePanel"]
+layout_mode = 0
+offset_left = 21.0
+offset_top = 5.0
+offset_right = 136.0
+offset_bottom = 16.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("22_hud_font")
+text = " JEWELS: 0/0 "
 vertical_alignment = 1
 
-[node name="StaminaPanel" type="PanelContainer" parent="HUD" unique_id=640386557]
-offset_left = 12.0
-offset_top = 44.0
-offset_right = 170.0
-offset_bottom = 68.0
+[node name="GoalBar" type="ProgressBar" parent="HUD/ScorePanel"]
+texture_filter = 1
+layout_mode = 0
+offset_left = 22.0
+offset_top = 28.0
+offset_right = 134.0
+offset_bottom = 33.0
+mouse_filter = 2
+theme_override_styles/background = SubResource("HudSB_bar_bg")
+theme_override_styles/fill = SubResource("HudSB_goal_fill")
+max_value = 1.0
+step = 0.0
+show_percentage = false
 
-[node name="HBox" type="HBoxContainer" parent="HUD/StaminaPanel" unique_id=1732204959]
-layout_mode = 2
+[node name="Ticks" type="TextureRect" parent="HUD/ScorePanel/GoalBar"]
+texture_filter = 1
+texture_repeat = 2
+mouse_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 1.0
+offset_top = 1.0
+offset_right = -1.0
+offset_bottom = -1.0
+texture = ExtResource("27_hud_ticks")
+stretch_mode = 1
 
-[node name="StaminaText" type="Label" parent="HUD/StaminaPanel/HBox" unique_id=1761827493]
-layout_mode = 2
-text = " STAMINA "
+[node name="GoalFlag" type="TextureRect" parent="HUD/ScorePanel"]
+texture_filter = 1
+mouse_filter = 2
+offset_left = 74.0
+offset_top = 20.0
+offset_right = 86.0
+tooltip_text = "Cel: połowa klejnotów otwiera wyjście"
+offset_bottom = 32.0
+texture = SubResource("HudIcon_flag")
+stretch_mode = 2
 
-[node name="HudStaminaBar" type="ProgressBar" parent="HUD/StaminaPanel/HBox" unique_id=1770568659]
-custom_minimum_size = Vector2(75, 10)
+[node name="StaminaPanel" type="Panel" parent="HUD"]
+texture_filter = 1
+offset_left = 8.0
+offset_top = 47.0
+offset_right = 150.0
+offset_bottom = 65.0
+theme_override_styles/panel = SubResource("HudSB_panel")
+
+[node name="HBox" type="HBoxContainer" parent="HUD/StaminaPanel"]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 3.0
+offset_right = 136.0
+offset_bottom = 15.0
+theme_override_constants/separation = 4
+
+[node name="BoltIcon" type="TextureRect" parent="HUD/StaminaPanel/HBox"]
+texture_filter = 1
+mouse_filter = 2
+custom_minimum_size = Vector2(12, 12)
 layout_mode = 2
 size_flags_vertical = 4
+texture = SubResource("HudIcon_bolt")
+stretch_mode = 2
+
+[node name="HudStaminaBar" type="ProgressBar" parent="HUD/StaminaPanel/HBox"]
+texture_filter = 1
+custom_minimum_size = Vector2(110, 6)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/background = SubResource("HudSB_bar_bg")
+theme_override_styles/fill = SubResource("HudSB_stamina_fill")
 max_value = 2.0
+step = 0.0
 value = 2.0
 show_percentage = false
 
-[node name="ScorePanel" type="PanelContainer" parent="HUD" unique_id=382745071]
-offset_left = 180.0
-offset_top = 44.0
-offset_right = 300.0
-offset_bottom = 68.0
+[node name="Ticks" type="TextureRect" parent="HUD/StaminaPanel/HBox/HudStaminaBar"]
+texture_filter = 1
+texture_repeat = 2
+mouse_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 1.0
+offset_top = 1.0
+offset_right = -1.0
+offset_bottom = -1.0
+texture = ExtResource("27_hud_ticks")
+stretch_mode = 1
 
-[node name="ScoreText" type="Label" parent="HUD/ScorePanel" unique_id=1926785231]
+[node name="AIMultipliersPanel" type="PanelContainer" parent="HUD"]
+texture_filter = 1
+offset_left = 8.0
+offset_top = 67.0
+offset_right = 150.0
+offset_bottom = 83.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("HudSB_chip")
+
+[node name="HBox" type="HBoxContainer" parent="HUD/AIMultipliersPanel"]
 layout_mode = 2
-text = " JEWELS: 0/5 "
+theme_override_constants/separation = 3
+
+[node name="DoubleJumpIcon" type="TextureRect" parent="HUD/AIMultipliersPanel/HBox"]
+texture_filter = 1
+mouse_filter = 2
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_vertical = 4
+texture = SubResource("HudIcon_double_jump")
+stretch_mode = 2
+
+[node name="DoubleJumpMultLabel" type="Label" parent="HUD/AIMultipliersPanel/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.74, 0.8, 0.85)
+theme_override_fonts/font = ExtResource("22_hud_font")
+text = "Double Jump: 1.0x"
+vertical_alignment = 1
+
+[node name="Sep1" type="Label" parent="HUD/AIMultipliersPanel/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.33, 0.5, 0.8)
+theme_override_fonts/font = ExtResource("22_hud_font")
+text = "|"
+vertical_alignment = 1
+
+[node name="WallClimbIcon" type="TextureRect" parent="HUD/AIMultipliersPanel/HBox"]
+texture_filter = 1
+mouse_filter = 2
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_vertical = 4
+texture = SubResource("HudIcon_wall_climb")
+stretch_mode = 2
+
+[node name="WallClimbMultLabel" type="Label" parent="HUD/AIMultipliersPanel/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.74, 0.8, 0.85)
+theme_override_fonts/font = ExtResource("22_hud_font")
+text = "Wall Climb: 1.0x"
+vertical_alignment = 1
+
+[node name="Sep2" type="Label" parent="HUD/AIMultipliersPanel/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.33, 0.5, 0.8)
+theme_override_fonts/font = ExtResource("22_hud_font")
+text = "|"
+vertical_alignment = 1
+
+[node name="DashIcon" type="TextureRect" parent="HUD/AIMultipliersPanel/HBox"]
+texture_filter = 1
+mouse_filter = 2
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_vertical = 4
+texture = SubResource("HudIcon_dash")
+stretch_mode = 2
+
+[node name="DashMultLabel" type="Label" parent="HUD/AIMultipliersPanel/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.74, 0.8, 0.85)
+theme_override_fonts/font = ExtResource("22_hud_font")
+text = "Dash: 1.0x"
+vertical_alignment = 1
+
+[node name="TimePanel" type="Panel" parent="HUD"]
+texture_filter = 1
+offset_left = 528.0
+offset_top = 8.0
+offset_right = 632.0
+offset_bottom = 34.0
+theme_override_styles/panel = SubResource("HudSB_panel")
+
+[node name="ClockIcon" type="TextureRect" parent="HUD/TimePanel"]
+texture_filter = 1
+mouse_filter = 2
+offset_left = 6.0
+offset_top = 7.0
+offset_right = 18.0
+offset_bottom = 19.0
+texture = SubResource("HudIcon_clock")
+stretch_mode = 2
+
+[node name="TimeText" type="Label" parent="HUD/TimePanel"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 3.0
+offset_right = 99.0
+offset_bottom = 23.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("23_hud_font_big")
+text = "00:00.0"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="WalletPanel" type="PanelContainer" parent="HUD"]
+texture_filter = 1
+offset_left = 528.0
+offset_top = 36.0
+offset_right = 632.0
+offset_bottom = 54.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("HudSB_chip")
+
+[node name="HBox" type="HBoxContainer" parent="HUD/WalletPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="WalletIcon" type="TextureRect" parent="HUD/WalletPanel/HBox"]
+texture_filter = 1
+mouse_filter = 2
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_vertical = 4
+texture = SubResource("HudIcon_wallet")
+stretch_mode = 2
+
+[node name="WalletBalanceLabel" type="Label" parent="HUD/WalletPanel/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.988, 0.937, 0.553, 1)
+theme_override_fonts/font = ExtResource("22_hud_font")
+text = "0"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="StatusToastLabel" type="Label" parent="HUD"]
+visible = false
+texture_filter = 1
+offset_left = 220.0
+offset_top = 8.0
+offset_right = 420.0
+offset_bottom = 26.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("22_hud_font")
+theme_override_styles/normal = SubResource("HudSB_chip")
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="TimePanel" type="PanelContainer" parent="HUD" unique_id=1826972773]
-offset_left = 310.0
-offset_top = 44.0
-offset_right = 430.0
-offset_bottom = 68.0
+[node name="PowerupTray" type="HBoxContainer" parent="HUD"]
+offset_left = 8.0
+offset_top = 332.0
+offset_right = 320.0
+offset_bottom = 352.0
+mouse_filter = 2
+theme_override_constants/separation = 4
 
-[node name="TimeText" type="Label" parent="HUD/TimePanel" unique_id=112600319]
-layout_mode = 2
-text = " TIME: 00:00.0 "
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="SessionLabel" type="Label" parent="HUD" unique_id=977209595]
-offset_left = 440.0
-offset_top = 46.0
-offset_right = 628.0
-offset_bottom = 66.0
-theme_override_colors/font_color = Color(0.7, 0.75, 0.85, 0.6)
-theme_override_font_sizes/font_size = 11
+[node name="SessionLabel" type="Label" parent="HUD"]
+offset_left = 432.0
+offset_top = 342.0
+offset_right = 632.0
+offset_bottom = 353.0
+theme_override_colors/font_color = Color(0.85, 0.74, 0.78, 0.35)
+theme_override_fonts/font = ExtResource("22_hud_font")
 text = "ID: SES-..."
 horizontal_alignment = 2
 vertical_alignment = 1

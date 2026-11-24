@@ -620,10 +620,11 @@ func itGoalRequiresAllJewelsAndRecordsTime() -> void:
 	arena.elapsed_time = 34.2
 	var plr = _createMockPlayer()
 	
-	arena._on_jewel_collected(100, Vector2.ZERO)
+	# Wyjście otwiera połowa klejnotów – bez żadnego klejnotu FinishGoal musi być zablokowany
 	arena._on_goal_entered(plr)
 	var blockedWhenIncomplete: bool = (not arena.is_stage_cleared) and (not arena.win_screen.visible)
 	
+	arena._on_jewel_collected(100, Vector2.ZERO)
 	arena._on_jewel_collected(100, Vector2.ZERO)
 	arena._on_goal_entered(plr)
 	get_tree().paused = false

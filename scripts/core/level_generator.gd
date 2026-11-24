@@ -12,6 +12,8 @@ const HazardScript = preload("res://scripts/core/hazard_area.gd")
 const CheckpointScript = preload("res://scripts/core/checkpoint.gd")
 const TrampolineScript = preload("res://scripts/core/trampoline_pad.gd")
 const AILevelComposer = preload("res://scripts/core/ai_level_composer.gd")
+const GridLevelScript = preload("res://scripts/core/grid_level.gd")
+const LevelModulesLib = preload("res://scripts/core/level_modules.gd")
 const JewelScene = preload("res://scenes/Jewel.tscn")
 const EnemyScene = preload("res://scenes/enemies/enemy_mockup.tscn")
 const DEFAULT_TILESET_PATH := "res://assets/tileset_world.tres"
@@ -179,7 +181,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"subtitle": "Balans: Climb + Dash + Double Jump + Trampoliny",
 				"dominant": "balanced",
 				"dna": {"wall_climb": 33, "dash": 33, "double_jump": 34},
-				"description": "Leśny tor łączący szyby wspinaczkowe, tunele, mostki nad kwasem i trampoliny [!]. Idealny do opanowania flow.",
+				"description": "Trzy rozwidlenia: górą wspinaczka, ślizg i skok na ślepo z dashem, dołem tunele z kolcami, korytarze dasha i trampoliny. 4 checkpointy, wyjście otwiera połowa klejnotów.",
 				"music_path": "res://audio/music/yessirski.wav",
 				"music_title": "Yessirski"
 			}
@@ -191,7 +193,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"subtitle": "Żywioł: Wall Climb, Trampoliny & Studnie Tricków",
 				"dominant": "wall_climb",
 				"dna": {"wall_climb": 54, "dash": 18, "double_jump": 28},
-				"description": "Lodowe kominy wspinaczkowe, wysokie wieże i lodowate przepaście. Ładuj staminę Trickiem [Ctrl] podczas spadków.",
+				"description": "Lodowe wieże, komin do wall jumpów, zamarznięte sadzawki i Lodowa Korona z sekretną półką nad ekranem. Ładuj staminę Trickiem [Ctrl] podczas spadków.",
 				"music_path": "res://audio/music/onmymommaimthegoat.wav",
 				"music_title": "On My Momma I'm The Goat"
 			}
@@ -203,7 +205,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"subtitle": "Żywioł: Slide -> Air Dash nad kanionami lawy",
 				"dominant": "dash",
 				"dna": {"wall_climb": 14, "dash": 52, "double_jump": 34},
-				"description": "Jesienne tunele pędu, mostki nad morzem lawy i dynamiczne zrywy powietrzne. Utrzymuj tempo biegu!",
+				"description": "Komin pieca z trampoliną na trasę ponad ekranem, tunele z kolcami, korytarze nad lawą i skoki na ślepo z dashem. Utrzymuj tempo biegu!",
 				"music_path": "res://audio/music/onsumbull.wav",
 				"music_title": "On Sum Bull"
 			}
@@ -220,7 +222,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"subtitle": "1. połowa: %s -> 2. połowa: %s" % [fav.to_upper(), least.to_upper()],
 				"dominant": least,
 				"dna": {"wall_climb": 35, "dash": 30, "double_jump": 35},
-				"description": "Lokalny Generator AI (biom Aether): losuje warianty modułów z seeda, kontruje styl gracza i realizuje zadania z portalu!",
+				"description": "AI składa poziom z modułów poziomów 1-3 według Twojego profilu stylu gry: rozgrzewka na ulubionym ruchu, trening unikanego, tarcze tam, gdzie najczęściej obrywasz, sekret na trasie, którą omijasz.",
 				"music_path": "res://audio/music/onsumbull.wav",
 				"music_title": "On Sum Bull"
 			}
@@ -258,7 +260,12 @@ static func build_level_for_arena(
 		rng.seed = int(Time.get_unix_time_from_system()) + profile_id * 7919
 
 	var blueprint: Dictionary = generate_blueprint(profile_id, rng, challenge_reqs)
-	_apply_blueprint_to_arena(arena_root, tile_layer, blueprint, resolved_tileset)
+	if blueprint.has("grid"):
+		# Poziomy 2-4: budowa z modułów (ten sam styl co ręcznie zaprojektowany Level 1)
+		var grid: GridLevel = blueprint["grid"]
+		grid.build(arena_root, tile_layer, resolved_tileset, blueprint, get_biome_palette(int(blueprint.get("biome_id", BiomeId.FOREST))))
+	else:
+		_apply_blueprint_to_arena(arena_root, tile_layer, blueprint, resolved_tileset)
 
 	return {
 		"profile_id": profile_id,
@@ -286,9 +293,9 @@ static func generate_blueprint(profile_id: int, rng: RandomNumberGenerator, chal
 		MechanicProfile.SYNERGY_CLASSIC:
 			blueprint = _build_level_1_forest(use_cursed)
 		MechanicProfile.VERTICAL_ASCENT:
-			blueprint = _build_level_2_winter(use_cursed)
+			blueprint = build_module_level(MechanicProfile.VERTICAL_ASCENT, BiomeId.WINTER, use_cursed)
 		MechanicProfile.HORIZON_IMPULSE:
-			blueprint = _build_level_3_autumn(use_cursed)
+			blueprint = build_module_level(MechanicProfile.HORIZON_IMPULSE, BiomeId.AUTUMN, use_cursed)
 		_:
 			var fav_move: String = "double_jump"
 			var least_move: String = "wall_climb"
@@ -299,6 +306,20 @@ static func generate_blueprint(profile_id: int, rng: RandomNumberGenerator, chal
 			if not focus_list.is_empty():
 				least_move = String(focus_list[0])
 			blueprint = AILevelComposer.compose_chessboard_level(rng, fav_move, least_move, challenge_reqs, use_cursed)
+
+	if blueprint.has("grid"):
+		# Poziomy z modułów: klejnoty z zadań portalu dokładane w hubach, walidacja na siatce
+		var g: GridLevel = blueprint["grid"]
+		var need: int = int(challenge_reqs.get("min_jewels", 0)) - g.jewel_cells().size()
+		if need > 0:
+			g.add_bonus_jewels(need)
+			var refreshed: Dictionary = g.to_blueprint(profile_id, int(blueprint["biome_id"]))
+			blueprint["jewels"] = refreshed["jewels"]
+		blueprint["challenge_max_time_s"] = float(challenge_reqs.get("max_time_s", -1.0))
+		if not blueprint.has("validation"):
+			blueprint["validation"] = g.validate()
+		blueprint["logical_grid"] = g.logical_grid()
+		return blueprint
 
 	# Upewnienie się, że nawet dla poziomów 1–3 spełnione są wymogi liczby klejnotów z wyzwań portalu
 	var required_jewels: int = int(challenge_reqs.get("min_jewels", 0))
@@ -324,6 +345,29 @@ static func generate_blueprint(profile_id: int, rng: RandomNumberGenerator, chal
 	blueprint = AILevelComposer.validate_and_repair_blueprint(blueprint)
 	blueprint["logical_grid"] = _rasterize_blocks_to_logical_grid(blueprint["blocks"], blueprint["hazards"])
 	return blueprint
+
+## Poziomy 2 i 3: ręcznie ułożone sekwencje modułów z LevelModules (rozwidlenia, skrócone trasy,
+## platformy poza ekranem wymagające dasha, checkpointy, klejnoty mocy, sekretny klejnot).
+static func build_module_level(profile_id: int, biome_id: int, use_cursed: bool = false) -> Dictionary:
+	var cfg: Dictionary = LevelModulesLib.LEVELS[profile_id]
+	var sec: Array = cfg.get("secret", [])
+	var grid: GridLevel = GridLevelScript.from_sequence(cfg["sequence"],
+		{"module": String(sec[0]) if sec.size() > 0 else "", "id": String(sec[1]) if sec.size() > 1 else "SEC-LVL-%d" % profile_id,
+		"name": String(sec[2]) if sec.size() > 2 else "Klejnot Eteru"})
+	if use_cursed:
+		# Kontrakt "Niestabilne Klejnoty": co szósty zwykły klejnot blokuje główną mechanikę poziomu
+		var focus: String = "wall_climb" if profile_id == MechanicProfile.VERTICAL_ASCENT else "dash"
+		var i: int = 0
+		for cell in grid.jewel_cells():
+			if String(grid.cells[cell]) == "J":
+				i += 1
+				if i % 6 == 0:
+					grid.jewel_meta[cell] = {"cursed": focus}
+	var bp: Dictionary = grid.to_blueprint(profile_id, biome_id)
+	bp["first_half_mechanic"] = "wall_climb" if profile_id == MechanicProfile.VERTICAL_ASCENT else "dash"
+	bp["second_half_mechanic"] = "double_jump" if profile_id == MechanicProfile.VERTICAL_ASCENT else "double_jump"
+	bp["validation"] = grid.validate()
+	return bp
 
 # ==============================================================================
 # POZIOM 1: WIOSNA / LAS (SYNERGIA RUCHU)
@@ -666,236 +710,6 @@ static func _build_level_1_forest(use_cursed: bool) -> Dictionary:
 		"first_half_mechanic": "balanced",
 		"second_half_mechanic": "balanced"
 	}
-
-# ==============================================================================
-# POZIOM 2: ZIMA / LÓD (SEKTOR PIONOWY: ASCENT)
-# ==============================================================================
-
-static func _build_level_2_winter(use_cursed: bool) -> Dictionary:
-	var blocks: Array[Dictionary] = []
-	var hazards: Array[Dictionary] = []
-	var trampolines: Array[Dictionary] = []
-	var checkpoints: Array[Dictionary] = []
-	var enemies: Array[Dictionary] = []
-	var jewels: Array[Dictionary] = []
-	var decorations: Array[Dictionary] = []
-	var labels: Array[Dictionary] = []
-
-	blocks.append({"name": "WallLeft", "pos": Vector2(0, 160), "size": Vector2(32, 384), "type": TileType.WALL})
-
-	# Sekcja 1 (16..592): Lodowa Baza i Podwójny Komin
-	blocks.append({"name": "IceStartFloor", "pos": Vector2(304, 328), "size": Vector2(576, 48), "type": TileType.FLOOR})
-	blocks.append({"name": "GlacialShaftL", "pos": Vector2(168, 168), "size": Vector2(16, 160), "type": TileType.WALL})
-	blocks.append({"name": "GlacialShaftR", "pos": Vector2(248, 200), "size": Vector2(16, 208), "type": TileType.WALL})
-	blocks.append({"name": "GlacialTopLedge", "pos": Vector2(304, 112), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	jewels.append({"pos": Vector2(304, 76), "cursed_mechanic": "wall_climb" if use_cursed else "", "jewel_type": 0})
-	jewels.append({"pos": Vector2(400, 196), "cursed_mechanic": "", "jewel_type": 0})
-	enemies.append({"name": "WinterSlime1", "pos": Vector2(456, 294), "archetype": 0, "patrol_range": 64.0, "move_speed": 38.0, "detection_radius": 130.0})
-	labels.append({"pos": Vector2(96, 68), "text": "ZIMA ASCENT: Wspinaczka [W] -> Studnia Tricków [Ctrl]"})
-
-	_add_decor_tile(decorations, 3, 18, Vector2i(4, 3))
-	_add_decor_column(decorations, 7, 19, [Vector2i(7, 4), Vector2i(7, 5)])
-	_add_decor_column(decorations, 28, 19, [Vector2i(8, 4), Vector2i(8, 5), Vector2i(8, 6)])
-	_add_decor_tile(decorations, 33, 18, Vector2i(8, 7))
-
-	# Sekcja 2 (592..1136): Lodowate Wody, Trampolina 1 i Lodowe Wieże
-	hazards.append({"name": "FreezePool1", "pos": Vector2(656, 336), "size": Vector2(128, 32), "kind": "liquid"})
-	blocks.append({"name": "IceStepBridge1", "pos": Vector2(656, 288), "size": Vector2(64, 16), "type": TileType.BRIDGE})
-	enemies.append({"name": "WinterBat1", "pos": Vector2(656, 192), "archetype": 1, "patrol_range": 48.0, "move_speed": 40.0, "detection_radius": 135.0})
-
-	blocks.append({"name": "IceBankMid1", "pos": Vector2(928, 328), "size": Vector2(416, 48), "type": TileType.FLOOR})
-	trampolines.append({"name": "WinterTrampoline1", "pos": Vector2(784, 296), "bounce_velocity": -480.0})
-	blocks.append({"name": "TowerWallA", "pos": Vector2(872, 160), "size": Vector2(16, 176), "type": TileType.WALL})
-	blocks.append({"name": "TowerWallB", "pos": Vector2(952, 192), "size": Vector2(16, 224), "type": TileType.WALL})
-	blocks.append({"name": "TowerCrownPlat", "pos": Vector2(1016, 96), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	jewels.append({"pos": Vector2(1016, 60), "cursed_mechanic": "", "jewel_type": 2}) # SPEED_JEWEL
-	checkpoints.append({"name": "Checkpoint1", "id": "CP-1", "pos": Vector2(1096, 280)})
-	labels.append({"pos": Vector2(816, 56), "text": "Ładuj staminę Trickiem [Ctrl] podczas lotu!"})
-	_add_decor_tile(decorations, 65, 18, Vector2i(6, 8))
-
-	# Sekcja 3 (1136..1760): Kolce i Schodkowa Wspinaczka na Szczyt Lodowca
-	hazards.append({"name": "GlacierSpikes1", "pos": Vector2(1208, 324), "size": Vector2(144, 24), "kind": "spikes"})
-	blocks.append({"name": "GlacierWall1", "pos": Vector2(1160, 192), "size": Vector2(16, 144), "type": TileType.WALL})
-	blocks.append({"name": "GlacierPlat1", "pos": Vector2(1224, 240), "size": Vector2(64, 16), "type": TileType.PLATFORM})
-	blocks.append({"name": "GlacierWall2", "pos": Vector2(1272, 168), "size": Vector2(16, 144), "type": TileType.WALL})
-
-	blocks.append({"name": "GlacierBank2", "pos": Vector2(1520, 328), "size": Vector2(480, 48), "type": TileType.FLOOR})
-	blocks.append({"name": "GlacierPlatHigh", "pos": Vector2(1352, 128), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	jewels.append({"pos": Vector2(1352, 92), "cursed_mechanic": "wall_climb" if use_cursed else "", "jewel_type": 0})
-	enemies.append({"name": "WinterSpider1", "pos": Vector2(1488, 294), "archetype": 2, "patrol_range": 64.0, "move_speed": 42.0, "detection_radius": 140.0})
-	enemies.append({"name": "WinterBat2", "pos": Vector2(1632, 196), "archetype": 1, "patrol_range": 48.0, "move_speed": 42.0, "detection_radius": 135.0})
-	checkpoints.append({"name": "Checkpoint2", "id": "CP-2", "pos": Vector2(1728, 280)})
-	_add_decor_column(decorations, 86, 19, [Vector2i(7, 4), Vector2i(7, 5)])
-	_add_decor_tile(decorations, 102, 18, Vector2i(8, 8))
-
-	# Sekcja 4 (1760..2448): Lodowata Zatoka, Mosty Linowe i Centralny Filar
-	hazards.append({"name": "FreezeSea2", "pos": Vector2(1928, 336), "size": Vector2(336, 32), "kind": "liquid"})
-	blocks.append({"name": "IceBridgeA", "pos": Vector2(1824, 288), "size": Vector2(64, 16), "type": TileType.BRIDGE})
-	blocks.append({"name": "ClimbPillarMid", "pos": Vector2(1928, 176), "size": Vector2(16, 160), "type": TileType.WALL})
-	blocks.append({"name": "ClimbPillarTop", "pos": Vector2(1928, 96), "size": Vector2(48, 16), "type": TileType.PLATFORM})
-	jewels.append({"pos": Vector2(1928, 60), "cursed_mechanic": "", "jewel_type": 3}) # IMMUNITY_JEWEL
-	blocks.append({"name": "IceBridgeB", "pos": Vector2(2032, 272), "size": Vector2(64, 16), "type": TileType.BRIDGE})
-
-	blocks.append({"name": "IceBank3", "pos": Vector2(2272, 328), "size": Vector2(352, 48), "type": TileType.FLOOR})
-	enemies.append({"name": "WinterSlime2", "pos": Vector2(2256, 294), "archetype": 0, "patrol_range": 64.0, "move_speed": 40.0, "detection_radius": 135.0})
-	_add_decor_column(decorations, 134, 19, [Vector2i(8, 4), Vector2i(8, 5), Vector2i(8, 6)])
-
-	# Sekcja 5 (2448..3136): Lodowa Cytadela, Trampolina 2, Sekret i Wyjście
-	hazards.append({"name": "GlacierSpikes2", "pos": Vector2(2512, 324), "size": Vector2(128, 24), "kind": "spikes"})
-	blocks.append({"name": "CitadelStep", "pos": Vector2(2512, 240), "size": Vector2(64, 16), "type": TileType.PLATFORM})
-	jewels.append({"pos": Vector2(2512, 204), "cursed_mechanic": "double_jump" if use_cursed else "", "jewel_type": 0})
-
-	blocks.append({"name": "IceGoalFloor", "pos": Vector2(2856, 328), "size": Vector2(560, 48), "type": TileType.FLOOR})
-	trampolines.append({"name": "WinterTrampoline2", "pos": Vector2(2640, 296), "bounce_velocity": -480.0})
-	blocks.append({"name": "CitadelWall", "pos": Vector2(2728, 152), "size": Vector2(16, 160), "type": TileType.WALL})
-	blocks.append({"name": "SecretIceAlcove", "pos": Vector2(2808, 112), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	jewels.append({
-		"pos": Vector2(2808, 76),
-		"cursed_mechanic": "",
-		"jewel_type": 0,
-		"is_secret_special": true,
-		"special_id": "SEC-LVL-2",
-		"special_name": "Klejnot Eteru #2",
-		"special_rarity": "Legendarny"
-	})
-	enemies.append({"name": "WinterSpider2", "pos": Vector2(2848, 294), "archetype": 2, "patrol_range": 64.0, "move_speed": 45.0, "detection_radius": 145.0})
-	jewels.append({"pos": Vector2(2928, 268), "cursed_mechanic": "", "jewel_type": 1}) # JEW_JEWEL
-	_add_decor_column(decorations, 182, 19, [Vector2i(7, 4), Vector2i(7, 5)])
-
-	blocks.append({"name": "WallRight", "pos": Vector2(3152, 160), "size": Vector2(32, 384), "type": TileType.WALL})
-	hazards.append({"name": "AbyssZone", "pos": Vector2(1584, 432), "size": Vector2(3840, 48), "is_abyss": true})
-
-	return {
-		"profile_id": MechanicProfile.VERTICAL_ASCENT,
-		"biome_id": BiomeId.WINTER,
-		"respawn_pos": Vector2(72, 272),
-		"finish_pos": Vector2(3040, 276),
-		"level_width": 3184.0,
-		"blocks": blocks,
-		"hazards": hazards,
-		"trampolines": trampolines,
-		"checkpoints": checkpoints,
-		"enemies": enemies,
-		"jewels": jewels,
-		"decorations": decorations,
-		"labels": labels,
-		"first_half_mechanic": "wall_climb",
-		"second_half_mechanic": "wall_climb"
-	}
-
-# ==============================================================================
-# POZIOM 3: JESIEŃ / KANION Z LAWĄ (SEKTOR IMPULSU: MOMENTUM)
-# ==============================================================================
-
-static func _build_level_3_autumn(use_cursed: bool) -> Dictionary:
-	var blocks: Array[Dictionary] = []
-	var hazards: Array[Dictionary] = []
-	var trampolines: Array[Dictionary] = []
-	var checkpoints: Array[Dictionary] = []
-	var enemies: Array[Dictionary] = []
-	var jewels: Array[Dictionary] = []
-	var decorations: Array[Dictionary] = []
-	var labels: Array[Dictionary] = []
-
-	blocks.append({"name": "WallLeft", "pos": Vector2(0, 160), "size": Vector2(32, 384), "type": TileType.WALL})
-
-	# Sekcja 1 (16..512): Rozbieg Jesienny i Skok nad Lawą
-	blocks.append({"name": "AutumnStartFloor", "pos": Vector2(200, 328), "size": Vector2(368, 48), "type": TileType.FLOOR})
-	enemies.append({"name": "AutumnSlime1", "pos": Vector2(272, 294), "archetype": 0, "patrol_range": 48.0, "move_speed": 40.0, "detection_radius": 135.0})
-	hazards.append({"name": "LavaPit1", "pos": Vector2(448, 336), "size": Vector2(128, 32), "kind": "liquid"})
-	jewels.append({"pos": Vector2(448, 252), "cursed_mechanic": "dash" if use_cursed else "", "jewel_type": 0})
-	labels.append({"pos": Vector2(360, 200), "text": "MOMENTUM: Skok + Dash [Shift] nad lawą!"})
-
-	_add_decor_tile(decorations, 3, 18, Vector2i(4, 3))
-	_add_decor_column(decorations, 7, 19, [Vector2i(5, 3), Vector2i(5, 4), Vector2i(5, 5)])
-	_add_decor_tile(decorations, 12, 18, Vector2i(6, 6))
-	_add_decor_tile(decorations, 19, 18, Vector2i(5, 6))
-
-	# Sekcja 2 (512..944): Tunel Pędu 1 i Pościg Pająka
-	blocks.append({"name": "AutumnBank1", "pos": Vector2(728, 328), "size": Vector2(432, 48), "type": TileType.FLOOR})
-	blocks.append({"name": "SlideTunnel1", "pos": Vector2(656, 272), "size": Vector2(144, 16), "type": TileType.TUNNEL_CEILING})
-	jewels.append({"pos": Vector2(656, 288), "cursed_mechanic": "", "jewel_type": 2}) # SPEED_JEWEL
-	labels.append({"pos": Vector2(592, 232), "text": "Tunel Pędu: Wślizg [S] -> Wybicie"})
-	enemies.append({"name": "AutumnSpider1", "pos": Vector2(832, 294), "archetype": 2, "patrol_range": 56.0, "move_speed": 46.0, "detection_radius": 145.0})
-	checkpoints.append({"name": "Checkpoint1", "id": "CP-1", "pos": Vector2(912, 280)})
-	_add_decor_tile(decorations, 34, 18, Vector2i(9, 1))
-
-	# Sekcja 3 (944..1520): Szerokie Morze Lawy i Powietrzne Platformy Dasha
-	hazards.append({"name": "LavaSea", "pos": Vector2(1232, 336), "size": Vector2(576, 32), "kind": "liquid"})
-	blocks.append({"name": "SkyDashPad1", "pos": Vector2(1024, 240), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	blocks.append({"name": "SkyDashBridge", "pos": Vector2(1184, 192), "size": Vector2(96, 16), "type": TileType.BRIDGE})
-	jewels.append({"pos": Vector2(1184, 156), "cursed_mechanic": "double_jump" if use_cursed else "", "jewel_type": 0})
-	enemies.append({"name": "AutumnBat1", "pos": Vector2(1264, 136), "archetype": 1, "patrol_range": 64.0, "move_speed": 44.0, "detection_radius": 145.0})
-	blocks.append({"name": "SkyDashPad2", "pos": Vector2(1344, 176), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	jewels.append({"pos": Vector2(1344, 140), "cursed_mechanic": "", "jewel_type": 3}) # IMMUNITY_JEWEL
-	blocks.append({"name": "SkyDashPad3", "pos": Vector2(1472, 240), "size": Vector2(64, 16), "type": TileType.PLATFORM})
-	labels.append({"pos": Vector2(1120, 96), "text": "Double Jump + Trick [Ctrl] + Dash"})
-
-	# Sekcja 4 (1520..2576): Drugi Tunel Pędu, Trampolina nad Kolcami i Checkpoint 2
-	blocks.append({"name": "AutumnBank2", "pos": Vector2(1752, 328), "size": Vector2(464, 48), "type": TileType.FLOOR})
-	blocks.append({"name": "SlideTunnel2", "pos": Vector2(1648, 272), "size": Vector2(128, 16), "type": TileType.TUNNEL_CEILING})
-	jewels.append({"pos": Vector2(1648, 288), "cursed_mechanic": "", "jewel_type": 0})
-	enemies.append({"name": "AutumnSpider2", "pos": Vector2(1824, 294), "archetype": 2, "patrol_range": 64.0, "move_speed": 46.0, "detection_radius": 145.0})
-	trampolines.append({"name": "AutumnTrampoline1", "pos": Vector2(1928, 296), "bounce_velocity": -480.0})
-	_add_palm_decor(decorations, 98, 19)
-
-	hazards.append({"name": "SpikeGorge1", "pos": Vector2(2072, 324), "size": Vector2(176, 24), "kind": "spikes"})
-	blocks.append({"name": "VaultPlatform", "pos": Vector2(2072, 184), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	jewels.append({"pos": Vector2(2072, 148), "cursed_mechanic": "", "jewel_type": 0})
-
-	blocks.append({"name": "AutumnBank3", "pos": Vector2(2368, 328), "size": Vector2(416, 48), "type": TileType.FLOOR})
-	checkpoints.append({"name": "Checkpoint2", "id": "CP-2", "pos": Vector2(2240, 280)})
-	enemies.append({"name": "AutumnSlime2", "pos": Vector2(2416, 294), "archetype": 0, "patrol_range": 64.0, "move_speed": 42.0, "detection_radius": 135.0})
-	_add_decor_tile(decorations, 145, 18, Vector2i(6, 6))
-	_add_decor_tile(decorations, 157, 18, Vector2i(7, 8))
-
-	# Sekcja 5 (2576..3456): Finałowy Przelot nad Lawą, Trampolina 2, Sekret i Wyjście
-	hazards.append({"name": "LavaGauntlet", "pos": Vector2(2728, 336), "size": Vector2(304, 32), "kind": "liquid"})
-	blocks.append({"name": "GauntletBridge", "pos": Vector2(2656, 288), "size": Vector2(64, 16), "type": TileType.BRIDGE})
-	blocks.append({"name": "GauntletDashPad", "pos": Vector2(2800, 256), "size": Vector2(64, 16), "type": TileType.PLATFORM})
-	enemies.append({"name": "AutumnBat2", "pos": Vector2(2728, 196), "archetype": 1, "patrol_range": 56.0, "move_speed": 44.0, "detection_radius": 145.0})
-
-	blocks.append({"name": "AutumnGoalFloor", "pos": Vector2(3168, 328), "size": Vector2(576, 48), "type": TileType.FLOOR})
-	trampolines.append({"name": "AutumnTrampoline2", "pos": Vector2(2960, 296), "bounce_velocity": -480.0})
-	blocks.append({"name": "SecretSunsetPlat1", "pos": Vector2(3056, 176), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	blocks.append({"name": "SecretSunsetPlat2", "pos": Vector2(3168, 128), "size": Vector2(80, 16), "type": TileType.PLATFORM})
-	jewels.append({
-		"pos": Vector2(3168, 92),
-		"cursed_mechanic": "",
-		"jewel_type": 0,
-		"is_secret_special": true,
-		"special_id": "SEC-LVL-3",
-		"special_name": "Klejnot Eteru #3",
-		"special_rarity": "Legendarny"
-	})
-	jewels.append({"pos": Vector2(3088, 268), "cursed_mechanic": "", "jewel_type": 1}) # JEW_JEWEL
-	_add_decor_column(decorations, 202, 19, [Vector2i(5, 3), Vector2i(5, 4), Vector2i(5, 5)])
-	_add_decor_tile(decorations, 205, 18, Vector2i(7, 6))
-
-	blocks.append({"name": "WallRight", "pos": Vector2(3472, 160), "size": Vector2(32, 384), "type": TileType.WALL})
-	hazards.append({"name": "AbyssZone", "pos": Vector2(1744, 432), "size": Vector2(4096, 48), "is_abyss": true})
-
-	return {
-		"profile_id": MechanicProfile.HORIZON_IMPULSE,
-		"biome_id": BiomeId.AUTUMN,
-		"respawn_pos": Vector2(72, 272),
-		"finish_pos": Vector2(3344, 276),
-		"level_width": 3504.0,
-		"blocks": blocks,
-		"hazards": hazards,
-		"trampolines": trampolines,
-		"checkpoints": checkpoints,
-		"enemies": enemies,
-		"jewels": jewels,
-		"decorations": decorations,
-		"labels": labels,
-		"first_half_mechanic": "dash",
-		"second_half_mechanic": "double_jump"
-	}
-
-# ==============================================================================
-# POMOCNICZE FUNKCJE SIATKI, DEKORACJI I RENDEROWANIA TILEMAPLAYER
-# ==============================================================================
 
 static func _snap16(val: float) -> float:
 	return round(val / float(TILE_SIZE)) * float(TILE_SIZE)

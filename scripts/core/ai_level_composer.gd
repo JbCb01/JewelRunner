@@ -1,7 +1,7 @@
 extends RefCounted
 class_name AILevelComposer
 
-## Lokalny proceduralny kompozytor poziomów dla IV. Szachownicy AI (oparty o seed)
+## Kompozytor poziomu IV (Cyber Matrix / Szachownica AI) z modułów LevelModules sterowany profilem stylu gry
 ## oraz walidator przechodności / naprawiacz blueprintów dla wszystkich poziomów.
 ## Zasady:
 ## - Poziom 4 korzysta wyłącznie z jednego, spójnego biomu AETHER (bez podziału biomów w połowie).
@@ -44,7 +44,38 @@ const AETHER_PROPS: Array[Vector2i] = [
 ]
 const AETHER_SIGN: Vector2i = Vector2i(4, 3)
 
-static func compute_difficulty_tier(challenge_reqs: Dictionary = {}) -> int:
+const GridLevelScript = preload("res://scripts/core/grid_level.gd")
+
+## Pule modułów biblioteki LevelModules per mechanika: [id_modułu, poziom trudności]
+const MODULE_POOLS: Dictionary = {
+	"double_jump": [["dj_ledges", 1], ["trampoline_tower", 1], ["dj_islands", 2], ["dash_leap", 2]],
+	"dash": [["dash_corridor", 1], ["dash_leap_short", 1], ["dash_leap", 2]],
+	"wall_climb": [["climb_wall", 1], ["climb_wall_high", 2], ["chimney", 2]],
+	"wall_jump": [["chimney", 2]],
+	"slide": [["slide_crawl", 1]],
+	"trick": [["trick_well", 1]],
+	"trampoline": [["trampoline_tower", 1], ["trick_well", 1]]
+}
+## Rozwidlenia: mechaniki sprawdzane na obu trasach
+const FORKS: Dictionary = {
+	"fork_hill": {"tier": 2, "mech": ["wall_climb", "slide", "dash", "double_jump"]},
+	"fork_glacier": {"tier": 2, "mech": ["wall_climb", "slide", "dash", "double_jump", "trampoline"]},
+	"fork_furnace": {"tier": 2, "mech": ["wall_climb", "trampoline", "slide", "dash", "double_jump"]},
+	"fork_sky": {"tier": 3, "mech": ["wall_jump", "wall_climb", "slide", "dash", "double_jump"]},
+	"fork_canopy": {"tier": 3, "mech": ["trampoline", "slide", "dash", "double_jump", "wall_climb"]}
+}
+const MECH_LABELS: Dictionary = {
+	"double_jump": "PODWÓJNY SKOK", "dash": "DASH", "wall_climb": "WSPINACZKA", "wall_jump": "WALL JUMP",
+	"slide": "WŚLIZG", "trick": "TRICKI", "trampoline": "TRAMPOLINY"
+}
+
+## Profil stylu gry z PlayStyleProfiler (pusty słownik, gdy brak danych).
+static func get_player_profile() -> Dictionary:
+	if is_instance_valid(Events) and "playstyle_profiler" in Events and is_instance_valid(Events.playstyle_profiler):
+		return Events.playstyle_profiler.get_profile()
+	return {}
+
+static func compute_difficulty_tier(challenge_reqs: Dictionary = {}, profile: Dictionary = {}) -> int:
 	var tier: int = 1
 	if is_instance_valid(Events):
 		var done_cnt: int = Events.completed_levels.size()
@@ -60,10 +91,61 @@ static func compute_difficulty_tier(challenge_reqs: Dictionary = {}) -> int:
 				tier = maxi(tier, 2)
 			if hist_sum >= 110.0:
 				tier = 3
+	# Umiejętności z profilu: wysoka skuteczność podnosi, częste błędy obniżają poziom
+	if bool(profile.get("has_data", false)):
+		var skill: float = float(profile.get("skill", 0.5))
+		if skill >= 0.72:
+			tier += 1
+		elif skill <= 0.35:
+			tier -= 1
 	if int(challenge_reqs.get("min_jewels", 0)) >= 8 or (float(challenge_reqs.get("max_time_s", -1.0)) > 0.0 and float(challenge_reqs.get("max_time_s", -1.0)) <= 50.0):
 		tier = maxi(tier, 2)
 	return clampi(tier, 1, 3)
 
+static func _pick_module(rng: RandomNumberGenerator, mech: String, max_tier: int, avoid: Array) -> String:
+	var pool: Array = MODULE_POOLS.get(mech, MODULE_POOLS["double_jump"])
+	var cands: Array[String] = []
+	for entry in pool:
+		if int(entry[1]) <= max_tier and not avoid.has(String(entry[0])):
+			cands.append(String(entry[0]))
+	if cands.is_empty():
+		for entry in pool:
+			if int(entry[1]) <= max_tier:
+				cands.append(String(entry[0]))
+	if cands.is_empty():
+		cands.append(String(pool[0][0]))
+	return cands[rng.randi_range(0, cands.size() - 1)]
+
+static func _pick_fork(rng: RandomNumberGenerator, train: Array, max_tier: int, avoid: Array) -> String:
+	var best: Array[String] = []
+	var best_score: float = -1.0
+	var ids: Array = FORKS.keys()
+	ids.sort()
+	for fid in ids:
+		var f: Dictionary = FORKS[fid]
+		if int(f["tier"]) > max_tier or avoid.has(fid):
+			continue
+		var score: float = 0.0
+		for i in range(train.size()):
+			if (f["mech"] as Array).has(train[i]):
+				score += float(train.size() - i)
+		if score > best_score + 0.01:
+			best_score = score
+			best = [String(fid)]
+		elif absf(score - best_score) <= 0.01:
+			best.append(String(fid))
+	if best.is_empty():
+		return "fork_hill"
+	return best[rng.randi_range(0, best.size() - 1)]
+
+## IV. Cyber Matrix / Szachownica AI: poziom składany z tych samych modułów co poziomy 2–3,
+## dobranych na podstawie analizy stylu gry (PlayStyleProfiler + historia Reżysera AI):
+##  1. rozgrzewka na ULUBIONYM ruchu (1. połowa – first_half_mechanic),
+##  2. rozwidlenie dobrane pod mechaniki, które gracz zaniedbuje lub z którymi ma kłopot,
+##  3. blok treningowy UNIKANEGO ruchu z rosnącą trudnością (2. połowa – second_half_mechanic),
+##     poprzedzony tarczą w hubie, gdy profil pokazuje dużo błędów w tej mechanice,
+##  4. moduł na mechanikę z najwyższym wskaźnikiem błędów spoza trójki (wślizg, wall jump...),
+##  5. finał: drugie, trudniejsze rozwidlenie dla wprawnych graczy albo spokojniejsze domknięcie.
 static func compose_chessboard_level(
 	rng: RandomNumberGenerator,
 	fav_move: String,
@@ -72,424 +154,142 @@ static func compose_chessboard_level(
 	use_cursed: bool = false,
 	difficulty_tier: int = -1
 ) -> Dictionary:
-	var tier: int = difficulty_tier if difficulty_tier >= 1 else compute_difficulty_tier(challenge_reqs)
+	var profile: Dictionary = get_player_profile()
+	var has_profile: bool = bool(profile.get("has_data", false))
+	var tier: int = difficulty_tier if difficulty_tier >= 1 else compute_difficulty_tier(challenge_reqs, profile)
+	var reasons: Array[String] = []
+	var plan: Array[String] = ["start"]
+	var used: Array = []
 
-	var blocks: Array[Dictionary] = []
-	var hazards: Array[Dictionary] = []
-	var trampolines: Array[Dictionary] = []
-	var checkpoints: Array[Dictionary] = []
-	var enemies: Array[Dictionary] = []
-	var jewels: Array[Dictionary] = []
-	var decorations: Array[Dictionary] = []
-	var labels: Array[Dictionary] = []
+	# 1. Rozgrzewka – ulubiony ruch
+	var warm_count: int = 2 if tier >= 2 else 1
+	for _i in range(warm_count):
+		var m1: String = _pick_module(rng, fav_move, mini(tier, 2), used)
+		plan.append(m1)
+		used.append(m1)
+	reasons.append("Rozgrzewka: %s (Twój ulubiony ruch)" % MECH_LABELS.get(fav_move, fav_move))
+	plan.append("hub")
 
-	# Ściana lewa + bezpieczny podest startowy (wyrównane do siatki 16px)
-	blocks.append({"name": "WallLeft", "pos": Vector2(0, 160), "size": Vector2(32, 384), "type": T_WALL})
-	blocks.append({"name": "StartFloor", "pos": Vector2(160, 328), "size": Vector2(288, 48), "type": T_FLOOR})
-	decorations.append({"cell": Vector2i(3, 18), "atlas": AETHER_SIGN})
-	decorations.append({"cell": Vector2i(7, 18), "atlas": AETHER_MUSHROOMS[0]})
-	decorations.append({"cell": Vector2i(13, 18), "atlas": AETHER_PROPS[4]})
+	# 2. Rozwidlenie dobrane pod zaniedbane / problematyczne mechaniki
+	var train: Array = [least_move]
+	var weakest: String = String(profile.get("weakest", ""))
+	if not weakest.is_empty() and not train.has(weakest):
+		train.append(weakest)
+	var ranked: Array = profile.get("ranked_mechanics", [])
+	for i in range(ranked.size() - 1, -1, -1):
+		if not train.has(ranked[i]):
+			train.append(ranked[i])
+		if train.size() >= 4:
+			break
+	var fork1: String = _pick_fork(rng, train, mini(tier + 1, 3), [])
+	plan.append(fork1)
+	var risk: float = float(profile.get("risk_appetite", 0.5))
+	if has_profile and risk < 0.4:
+		reasons.append("Rozwidlenie: sekretny klejnot czeka na górnej trasie, którą zwykle omijasz")
+	elif has_profile and risk > 0.65:
+		reasons.append("Rozwidlenie: lubisz ryzykowne trasy - dolna też kryje nagrody")
+	else:
+		reasons.append("Rozwidlenie: obie trasy sprawdzają %s" % MECH_LABELS.get(least_move, least_move))
 
-	var respawn_pos := Vector2(72, 272)
-	var cursor_x: float = 304.0
+	# 3. Oddech + regeneracja staminy (tricki), jeśli gracz rzadko trickuje
+	var shares: Dictionary = profile.get("usage_shares", {})
+	if not has_profile or float(shares.get("trick", 0.0)) < 0.08:
+		plan.append("trick_well")
+		reasons.append("Studnia tricków: trzymaj [Ctrl] w locie, by odzyskać staminę")
+	else:
+		plan.append(_pick_module(rng, "trampoline", 1, used))
 
-	labels.append({
-		"pos": Vector2(64, 108),
-		"text": "SZACHOWNICA AI [Tier %d]: 1. połowa [%s] -> 2. połowa [%s]" % [tier, fav_move.to_upper(), least_move.to_upper()]
-	})
-
-	# Wybór 3 wariantowych modułów pod ulubiony ruch (1. połowa)
-	var first_half_chunks: Array[String] = _pick_chunk_sequence(rng, _pool_for_mechanic(fav_move), 3)
-	# Wybór modułu regeneracji w środku trasy (+ ewentualny tunel sprinterski pod wyzwanie czasowe)
-	var mid_pool: Array[String] = ["trampoline_trick_well", "high_dive_trick_well"]
-	var mid_chunk: String = mid_pool[rng.randi_range(0, mid_pool.size() - 1)]
-	var second_half_chunks: Array[String] = _pick_chunk_sequence(rng, _pool_for_mechanic(least_move), 3)
-
-	var sequence: Array[String] = []
-	sequence.append_array(first_half_chunks)
+	# Wyzwanie czasowe z portalu: dodatkowy sprinterski tunel
 	var max_time_req: float = float(challenge_reqs.get("max_time_s", -1.0))
 	if max_time_req > 0.0 and max_time_req <= 65.0:
-		sequence.append("slide_tunnel_sprint")
-	sequence.append(mid_chunk)
-	sequence.append_array(second_half_chunks)
+		plan.append("slide_crawl")
 
-	var ctx: Dictionary = {
-		"blocks": blocks,
-		"hazards": hazards,
-		"trampolines": trampolines,
-		"checkpoints": checkpoints,
-		"enemies": enemies,
-		"jewels": jewels,
-		"decorations": decorations,
-		"labels": labels,
-		"tier": tier,
-		"use_cursed": use_cursed
-	}
+	# 4. Blok treningowy unikanego ruchu (2. połowa)
+	var struggle: Dictionary = profile.get("struggle", {})
+	var struggle_least: float = float(struggle.get(least_move, 0.0))
+	plan.append("hub")
+	var shield_hub_index: int = -1
+	if has_profile and struggle_least >= 0.5:
+		shield_hub_index = plan.size() - 1
+		reasons.append("Trening %s z tarczą - tu popełniasz najwięcej błędów" % MECH_LABELS.get(least_move, least_move))
+	else:
+		reasons.append("Trening: %s (ruch, którego używasz najrzadziej)" % MECH_LABELS.get(least_move, least_move))
+	var train_count: int = 2 if tier <= 1 else 3
+	var train_used: Array = []
+	for i in range(train_count):
+		var cap: int = 1 if i == 0 or struggle_least >= 0.5 else mini(tier, 2)
+		var m2: String = _pick_module(rng, least_move, cap, train_used)
+		plan.append(m2)
+		train_used.append(m2)
+	var training_last_index: int = plan.size() - 1
 
-	var first_half_end_idx: int = first_half_chunks.size()
-	var mid_end_idx: int = first_half_end_idx + (2 if (max_time_req > 0.0 and max_time_req <= 65.0) else 1)
+	# 5. Mechanika z największą liczbą błędów spoza trójki (wślizg, wall jump, trampoliny...)
+	if not weakest.is_empty() and weakest != least_move and MODULE_POOLS.has(weakest):
+		plan.append(_pick_module(rng, weakest, mini(tier, 2), []))
+		reasons.append("Dodatkowo: %s (najwięcej błędów w Twoim profilu)" % MECH_LABELS.get(weakest, weakest))
+	elif has_profile and not ranked.is_empty():
+		var rarest: String = String(ranked[ranked.size() - 1])
+		if rarest != least_move and MODULE_POOLS.has(rarest):
+			plan.append(_pick_module(rng, rarest, 1, []))
+			reasons.append("Dodatkowo: %s (prawie go nie używasz)" % MECH_LABELS.get(rarest, rarest))
 
-	for i in range(sequence.size()):
-		var chunk_id: String = sequence[i]
-		var seg_num: int = i + 1
-		var curse_target: String = ""
-		if use_cursed:
-			if i == 1:
-				curse_target = fav_move
-			elif i == sequence.size() - 2:
-				curse_target = least_move
+	# 6. Finał
+	plan.append("hub")
+	if tier >= 3:
+		plan.append(_pick_fork(rng, train, 3, [fork1]))
+	else:
+		plan.append("enemy_run")
+	plan.append("finish")
 
-		cursor_x = _append_chunk(ctx, rng, chunk_id, seg_num, cursor_x, curse_target)
-
-		if seg_num == first_half_end_idx:
-			checkpoints.append({"name": "Checkpoint1", "id": "CP-1", "pos": Vector2(cursor_x - 32.0, 280.0)})
-		elif seg_num == mid_end_idx + 1:
-			checkpoints.append({"name": "Checkpoint2", "id": "CP-2", "pos": Vector2(cursor_x - 32.0, 280.0)})
-
-	# Końcowy sektor z sekretnym klejnotem Eteru i wyjściem
-	var goal_floor_w: float = 288.0
-	blocks.append({
-		"name": "ProcGoalFloor",
-		"pos": Vector2(cursor_x + goal_floor_w * 0.5, 328.0),
-		"size": Vector2(goal_floor_w, 48.0),
-		"type": T_FLOOR
-	})
-	# Osiągalna półka bonusowa na sekretny klejnot Eteru
-	blocks.append({
-		"name": "ProcSecretStep",
-		"pos": Vector2(cursor_x + 56.0, 232.0),
-		"size": Vector2(64.0, 16.0),
-		"type": T_PLATFORM
-	})
-	blocks.append({
-		"name": "ProcSecretAlcove",
-		"pos": Vector2(cursor_x + 128.0, 152.0),
-		"size": Vector2(80.0, 16.0),
-		"type": T_PLATFORM
-	})
-	jewels.append({
-		"pos": Vector2(cursor_x + 128.0, 116.0),
-		"cursed_mechanic": "",
-		"jewel_type": 0,
-		"is_secret_special": true,
-		"special_id": "SEC-LVL-4",
-		"special_name": "Klejnot Eteru #4",
-		"special_rarity": "Legendarny"
-	})
-
-	_stamp_aether_decor(decorations, cursor_x + 48.0, 18, rng)
-	_stamp_aether_decor(decorations, cursor_x + 176.0, 18, rng)
-
-	var finish_pos := Vector2(cursor_x + 216.0, 276.0)
-	var wall_right_x: float = cursor_x + goal_floor_w + 16.0
-	blocks.append({"name": "WallRight", "pos": Vector2(wall_right_x, 160.0), "size": Vector2(32.0, 384.0), "type": T_WALL})
-
-	# Zadania ze strony internetowej: dokładanie brakujących klejnotów na osiągalnych półkach
+	# --- składanie siatki z modułów
+	var grid: GridLevel = GridLevelScript.from_sequence(plan, {"module": fork1, "id": "SEC-LVL-4", "name": "Klejnot Eteru #4"})
+	if shield_hub_index >= 0:
+		var hub_m: Dictionary = grid.layout[shield_hub_index]
+		for cell in grid.jewel_cells():
+			if cell.x >= int(hub_m["c0"]) and cell.x < int(hub_m["c0"]) + int(hub_m["w"]):
+				grid.cells[cell] = "3"
+				break
+	if has_profile and float(profile.get("explorer", 0.5)) >= 0.7:
+		grid.add_bonus_jewels(4)
+		reasons.append("Zbierasz prawie wszystko - w hubach czeka więcej klejnotów")
+	if use_cursed:
+		for idx in [1, training_last_index]:
+			var mm: Dictionary = grid.layout[idx]
+			var target: String = fav_move if idx == 1 else least_move
+			if not ["double_jump", "wall_climb", "dash"].has(target):
+				target = "dash"
+			for cell in grid.jewel_cells():
+				if cell.x >= int(mm["c0"]) and cell.x < int(mm["c0"]) + int(mm["w"]) and String(grid.cells[cell]) == "J":
+					grid.jewel_meta[cell] = {"cursed": target}
+					break
 	var required_jewels: int = int(challenge_reqs.get("min_jewels", 0))
-	var extra_idx: int = 0
-	while jewels.size() < required_jewels:
-		extra_idx += 1
-		var jx: float = _snap16(240.0 + float(extra_idx) * 192.0)
-		if jx > finish_pos.x - 96.0:
-			jx = _snap16(180.0 + float((extra_idx * 96) % int(max(192.0, finish_pos.x - 280.0))))
-		var jy: float = 208.0 if extra_idx % 2 == 1 else 176.0
-		blocks.append({
-			"name": "ChallengeBonusPad_%d" % extra_idx,
-			"pos": Vector2(jx, jy + 32.0),
-			"size": Vector2(64.0, 16.0),
-			"type": T_PLATFORM
-		})
-		jewels.append({"pos": Vector2(jx, jy), "cursed_mechanic": "", "jewel_type": 0})
+	var have: int = grid.jewel_cells().size()
+	if have < required_jewels:
+		grid.add_bonus_jewels(required_jewels - have)
 
-	var level_width: float = wall_right_x + 32.0
-	hazards.append({
-		"name": "AbyssZone",
-		"pos": Vector2(level_width * 0.5, 432.0),
-		"size": Vector2(level_width + 640.0, 48.0),
-		"is_abyss": true
-	})
+	# Tablica z analizą na starcie poziomu
+	var title: String = "CYBER MATRIX AI  [poziom trudności %d]" % tier
+	if has_profile:
+		title += "  |  profil z %d prób" % int(profile.get("runs", 0))
+	grid.labels.append({"text": title, "pos": Vector2(40, 100)})
+	for i in range(reasons.size()):
+		grid.labels.append({"text": "- " + reasons[i], "pos": Vector2(40, 120 + i * 16)})
 
-	var blueprint: Dictionary = {
-		"profile_id": 4,
-		"biome_id": BIOME_AETHER,
-		"respawn_pos": respawn_pos,
-		"finish_pos": finish_pos,
-		"level_width": level_width,
-		"blocks": blocks,
-		"hazards": hazards,
-		"trampolines": trampolines,
-		"checkpoints": checkpoints,
-		"enemies": enemies,
-		"jewels": jewels,
-		"decorations": decorations,
-		"labels": labels,
-		"first_half_mechanic": fav_move,
-		"second_half_mechanic": least_move,
-		"challenge_max_time_s": max_time_req,
-		"difficulty_tier": tier,
-		"chunk_sequence": sequence
-	}
-
-	return validate_and_repair_blueprint(blueprint)
-
-static func _pool_for_mechanic(mech: String) -> Array[String]:
-	match mech:
-		"wall_climb":
-			return ["climb_twin_shaft", "climb_staggered_steps", "climb_trampoline_tower"]
-		"dash":
-			return ["dash_lava_canyon", "dash_slide_combo", "dash_bridge_gauntlet"]
-		_:
-			return ["dj_ascending_cascade", "dj_split_route", "dj_trampoline_vault"]
-
-static func _pick_chunk_sequence(rng: RandomNumberGenerator, pool: Array[String], count: int) -> Array[String]:
-	var result: Array[String] = []
-	if pool.is_empty():
-		return result
-	var prev: String = ""
-	for _i in range(count):
-		var candidates: Array[String] = []
-		for item in pool:
-			if item != prev or pool.size() == 1:
-				candidates.append(item)
-		var chosen: String = candidates[rng.randi_range(0, candidates.size() - 1)]
-		result.append(chosen)
-		prev = chosen
-	return result
+	var blueprint: Dictionary = grid.to_blueprint(4, BIOME_AETHER)
+	blueprint["first_half_mechanic"] = fav_move
+	blueprint["second_half_mechanic"] = least_move
+	blueprint["challenge_max_time_s"] = max_time_req
+	blueprint["difficulty_tier"] = tier
+	blueprint["chunk_sequence"] = plan
+	blueprint["playstyle_report"] = {"reasons": reasons, "profile": profile, "tier": tier}
+	var validation: Dictionary = grid.validate()
+	validation["chunk_sequence"] = plan
+	validation["difficulty_tier"] = tier
+	blueprint["validation"] = validation
+	return blueprint
 
 static func _snap16(val: float) -> float:
 	return round(val / TILE_PX) * TILE_PX
-
-static func _stamp_aether_decor(decorations: Array[Dictionary], world_x: float, row_y: int, rng: RandomNumberGenerator) -> void:
-	var gx: int = int(round(world_x / TILE_PX))
-	var pool: Array[Vector2i] = []
-	pool.append_array(AETHER_MUSHROOMS)
-	pool.append_array(AETHER_PROPS)
-	var chosen: Vector2i = pool[rng.randi_range(0, pool.size() - 1)]
-	decorations.append({"cell": Vector2i(gx, row_y), "atlas": chosen})
-
-static func _append_chunk(
-	ctx: Dictionary,
-	rng: RandomNumberGenerator,
-	chunk_id: String,
-	seg_num: int,
-	x0: float,
-	curse_mech: String
-) -> float:
-	var blocks: Array[Dictionary] = ctx["blocks"]
-	var hazards: Array[Dictionary] = ctx["hazards"]
-	var trampolines: Array[Dictionary] = ctx["trampolines"]
-	var enemies: Array[Dictionary] = ctx["enemies"]
-	var jewels: Array[Dictionary] = ctx["jewels"]
-	var decorations: Array[Dictionary] = ctx["decorations"]
-	var tier: int = int(ctx["tier"])
-
-	var pwr_type: int = 0
-	if seg_num == 3:
-		pwr_type = 2 # SPEED_JEWEL
-	elif seg_num == 5 and rng.randf() < 0.65:
-		pwr_type = 3 # IMMUNITY_JEWEL
-
-	match chunk_id:
-		"climb_twin_shaft":
-			var w: float = 304.0
-			blocks.append({"name": "Floor_%d" % seg_num, "pos": Vector2(x0 + w * 0.5, 328.0), "size": Vector2(w, 48.0), "type": T_FLOOR})
-			blocks.append({"name": "ShaftL_%d" % seg_num, "pos": Vector2(x0 + 72.0, 168.0), "size": Vector2(16.0, 160.0), "type": T_WALL})
-			blocks.append({"name": "ShaftR_%d" % seg_num, "pos": Vector2(x0 + 152.0, 208.0), "size": Vector2(16.0, 192.0), "type": T_WALL})
-			var top_y: float = 120.0 if rng.randi_range(0, 1) == 0 else 136.0
-			blocks.append({"name": "ShaftTop_%d" % seg_num, "pos": Vector2(x0 + 216.0, top_y), "size": Vector2(80.0, 16.0), "type": T_PLATFORM})
-			jewels.append({"pos": Vector2(x0 + 216.0, top_y - 32.0), "cursed_mechanic": curse_mech, "jewel_type": pwr_type})
-			enemies.append({
-				"name": "Enemy_%d" % seg_num,
-				"pos": Vector2(x0 + 224.0, 294.0),
-				"archetype": 0 if tier == 1 else 2,
-				"patrol_range": 48.0,
-				"move_speed": 36.0 + tier * 6.0,
-				"detection_radius": 120.0 + tier * 12.0
-			})
-			_stamp_aether_decor(decorations, x0 + 32.0, 18, rng)
-			return x0 + w
-
-		"climb_staggered_steps":
-			var gap_w: float = 80.0 if tier == 1 else 96.0
-			var b1_w: float = 112.0
-			var b2_w: float = 144.0
-			blocks.append({"name": "StepBankA_%d" % seg_num, "pos": Vector2(x0 + b1_w * 0.5, 328.0), "size": Vector2(b1_w, 48.0), "type": T_FLOOR})
-			hazards.append({"name": "LiqPit_%d" % seg_num, "pos": Vector2(x0 + b1_w + gap_w * 0.5, 336.0), "size": Vector2(gap_w, 32.0), "kind": "liquid"})
-			var b2_x0: float = x0 + b1_w + gap_w
-			blocks.append({"name": "StepBankB_%d" % seg_num, "pos": Vector2(b2_x0 + b2_w * 0.5, 328.0), "size": Vector2(b2_w, 48.0), "type": T_FLOOR})
-			blocks.append({"name": "MidStep_%d" % seg_num, "pos": Vector2(x0 + b1_w + gap_w * 0.5, 240.0), "size": Vector2(48.0, 16.0), "type": T_PLATFORM})
-			blocks.append({"name": "TallWall_%d" % seg_num, "pos": Vector2(b2_x0 + 40.0, 184.0), "size": Vector2(16.0, 128.0), "type": T_WALL})
-			blocks.append({"name": "WallCap_%d" % seg_num, "pos": Vector2(b2_x0 + 72.0, 128.0), "size": Vector2(64.0, 16.0), "type": T_PLATFORM})
-			jewels.append({"pos": Vector2(b2_x0 + 72.0, 92.0), "cursed_mechanic": curse_mech, "jewel_type": pwr_type})
-			if tier >= 2:
-				enemies.append({
-					"name": "EnemyBat_%d" % seg_num,
-					"pos": Vector2(x0 + b1_w + gap_w * 0.5, 168.0),
-					"archetype": 1,
-					"patrol_range": 40.0,
-					"move_speed": 38.0 + tier * 5.0,
-					"detection_radius": 135.0
-				})
-			_stamp_aether_decor(decorations, x0 + 32.0, 18, rng)
-			return b2_x0 + b2_w
-
-		"climb_trampoline_tower":
-			var w: float = 288.0
-			blocks.append({"name": "TowerFloor_%d" % seg_num, "pos": Vector2(x0 + w * 0.5, 328.0), "size": Vector2(w, 48.0), "type": T_FLOOR})
-			trampolines.append({"name": "Trampoline_%d" % seg_num, "pos": Vector2(x0 + 64.0, 296.0), "bounce_velocity": -475.0})
-			blocks.append({"name": "TowerWall_%d" % seg_num, "pos": Vector2(x0 + 136.0, 144.0), "size": Vector2(16.0, 160.0), "type": T_WALL})
-			blocks.append({"name": "TowerLedge_%d" % seg_num, "pos": Vector2(x0 + 208.0, 104.0), "size": Vector2(80.0, 16.0), "type": T_PLATFORM})
-			jewels.append({"pos": Vector2(x0 + 208.0, 68.0), "cursed_mechanic": curse_mech, "jewel_type": pwr_type})
-			enemies.append({
-				"name": "Enemy_%d" % seg_num,
-				"pos": Vector2(x0 + 208.0, 294.0),
-				"archetype": 0,
-				"patrol_range": 48.0,
-				"move_speed": 35.0 + tier * 5.0,
-				"detection_radius": 120.0
-			})
-			_stamp_aether_decor(decorations, x0 + 256.0, 18, rng)
-			return x0 + w
-
-		"dash_lava_canyon":
-			var bank1_w: float = 96.0
-			var pit_w: float = float(rng.randi_range(6, 8)) * 16.0 # 96..128 px
-			var bank2_w: float = 112.0
-			blocks.append({"name": "DashBankA_%d" % seg_num, "pos": Vector2(x0 + bank1_w * 0.5, 328.0), "size": Vector2(bank1_w, 48.0), "type": T_FLOOR})
-			hazards.append({"name": "DashLava_%d" % seg_num, "pos": Vector2(x0 + bank1_w + pit_w * 0.5, 336.0), "size": Vector2(pit_w, 32.0), "kind": "liquid"})
-			var b2_x0: float = x0 + bank1_w + pit_w
-			blocks.append({"name": "DashBankB_%d" % seg_num, "pos": Vector2(b2_x0 + bank2_w * 0.5, 328.0), "size": Vector2(bank2_w, 48.0), "type": T_FLOOR})
-			jewels.append({"pos": Vector2(x0 + bank1_w + pit_w * 0.5, 252.0), "cursed_mechanic": curse_mech, "jewel_type": pwr_type})
-			enemies.append({
-				"name": "Enemy_%d" % seg_num,
-				"pos": Vector2(b2_x0 + 56.0, 294.0),
-				"archetype": 2 if tier >= 2 else 0,
-				"patrol_range": 32.0,
-				"move_speed": 38.0 + tier * 6.0,
-				"detection_radius": 130.0
-			})
-			_stamp_aether_decor(decorations, x0 + 32.0, 18, rng)
-			return b2_x0 + bank2_w
-
-		"dash_slide_combo":
-			var tun_w: float = 208.0
-			var pit_w: float = 96.0 if tier == 1 else 112.0
-			var land_w: float = 96.0
-			blocks.append({"name": "TunFloor_%d" % seg_num, "pos": Vector2(x0 + tun_w * 0.5, 328.0), "size": Vector2(tun_w, 48.0), "type": T_FLOOR})
-			blocks.append({"name": "TunCeil_%d" % seg_num, "pos": Vector2(x0 + 96.0, 272.0), "size": Vector2(112.0, 16.0), "type": T_TUNNEL_CEILING})
-			jewels.append({"pos": Vector2(x0 + 96.0, 288.0), "cursed_mechanic": "", "jewel_type": 0})
-			hazards.append({"name": "SlideSpikes_%d" % seg_num, "pos": Vector2(x0 + tun_w + pit_w * 0.5, 324.0), "size": Vector2(pit_w, 24.0), "kind": "spikes"})
-			var land_x0: float = x0 + tun_w + pit_w
-			blocks.append({"name": "SlideLand_%d" % seg_num, "pos": Vector2(land_x0 + land_w * 0.5, 328.0), "size": Vector2(land_w, 48.0), "type": T_FLOOR})
-			jewels.append({"pos": Vector2(x0 + tun_w + pit_w * 0.5, 252.0), "cursed_mechanic": curse_mech, "jewel_type": pwr_type})
-			_stamp_aether_decor(decorations, land_x0 + 48.0, 18, rng)
-			return land_x0 + land_w
-
-		"dash_bridge_gauntlet":
-			var bank_w: float = 80.0
-			var sea_w: float = 240.0
-			blocks.append({"name": "BridgeBankA_%d" % seg_num, "pos": Vector2(x0 + bank_w * 0.5, 328.0), "size": Vector2(bank_w, 48.0), "type": T_FLOOR})
-			var sea_x0: float = x0 + bank_w
-			hazards.append({"name": "BridgeSea_%d" % seg_num, "pos": Vector2(sea_x0 + sea_w * 0.5, 336.0), "size": Vector2(sea_w, 32.0), "kind": "liquid"})
-			blocks.append({"name": "Bridge1_%d" % seg_num, "pos": Vector2(sea_x0 + 56.0, 296.0), "size": Vector2(64.0, 16.0), "type": T_BRIDGE})
-			var b2_y: float = 280.0 if rng.randi_range(0, 1) == 0 else 296.0
-			blocks.append({"name": "Bridge2_%d" % seg_num, "pos": Vector2(sea_x0 + 184.0, b2_y), "size": Vector2(64.0, 16.0), "type": T_BRIDGE})
-			jewels.append({"pos": Vector2(sea_x0 + 120.0, 244.0), "cursed_mechanic": curse_mech, "jewel_type": pwr_type})
-			enemies.append({
-				"name": "EnemyBat_%d" % seg_num,
-				"pos": Vector2(sea_x0 + 120.0, 200.0),
-				"archetype": 1,
-				"patrol_range": 48.0,
-				"move_speed": 40.0 + tier * 5.0,
-				"detection_radius": 140.0
-			})
-			var bank2_x0: float = sea_x0 + sea_w
-			blocks.append({"name": "BridgeBankB_%d" % seg_num, "pos": Vector2(bank2_x0 + bank_w * 0.5, 328.0), "size": Vector2(bank_w, 48.0), "type": T_FLOOR})
-			return bank2_x0 + bank_w
-
-		"dj_ascending_cascade":
-			var bank1_w: float = 112.0
-			var pit_w: float = 96.0
-			var bank2_w: float = 128.0
-			blocks.append({"name": "CascadeA_%d" % seg_num, "pos": Vector2(x0 + bank1_w * 0.5, 328.0), "size": Vector2(bank1_w, 48.0), "type": T_FLOOR})
-			hazards.append({"name": "CascadeSpikes_%d" % seg_num, "pos": Vector2(x0 + bank1_w + pit_w * 0.5, 324.0), "size": Vector2(pit_w, 24.0), "kind": "spikes"})
-			var b2_x0: float = x0 + bank1_w + pit_w
-			blocks.append({"name": "CascadeB_%d" % seg_num, "pos": Vector2(b2_x0 + bank2_w * 0.5, 328.0), "size": Vector2(bank2_w, 48.0), "type": T_FLOOR})
-			blocks.append({"name": "Step1_%d" % seg_num, "pos": Vector2(x0 + 144.0, 248.0), "size": Vector2(64.0, 16.0), "type": T_PLATFORM})
-			blocks.append({"name": "Step2_%d" % seg_num, "pos": Vector2(b2_x0 + 32.0, 168.0), "size": Vector2(80.0, 16.0), "type": T_PLATFORM})
-			jewels.append({"pos": Vector2(b2_x0 + 32.0, 132.0), "cursed_mechanic": curse_mech, "jewel_type": pwr_type})
-			enemies.append({
-				"name": "Enemy_%d" % seg_num,
-				"pos": Vector2(b2_x0 + 64.0, 294.0),
-				"archetype": 0,
-				"patrol_range": 40.0,
-				"move_speed": 36.0 + tier * 5.0,
-				"detection_radius": 120.0
-			})
-			_stamp_aether_decor(decorations, x0 + 48.0, 18, rng)
-			return b2_x0 + bank2_w
-
-		"dj_split_route":
-			var w: float = 304.0
-			blocks.append({"name": "SplitFloor_%d" % seg_num, "pos": Vector2(x0 + w * 0.5, 328.0), "size": Vector2(w, 48.0), "type": T_FLOOR})
-			blocks.append({"name": "SplitLowPlat_%d" % seg_num, "pos": Vector2(x0 + 88.0, 232.0), "size": Vector2(64.0, 16.0), "type": T_PLATFORM})
-			blocks.append({"name": "SplitHighPlat_%d" % seg_num, "pos": Vector2(x0 + 200.0, 152.0), "size": Vector2(80.0, 16.0), "type": T_PLATFORM})
-			jewels.append({"pos": Vector2(x0 + 200.0, 116.0), "cursed_mechanic": curse_mech, "jewel_type": pwr_type})
-			enemies.append({
-				"name": "EnemyGround_%d" % seg_num,
-				"pos": Vector2(x0 + 160.0, 294.0),
-				"archetype": 2,
-				"patrol_range": 64.0,
-				"move_speed": 40.0 + tier * 6.0,
-				"detection_radius": 140.0
-			})
-			_stamp_aether_decor(decorations, x0 + 32.0, 18, rng)
-			_stamp_aether_decor(decorations, x0 + 256.0, 18, rng)
-			return x0 + w
-
-		"dj_trampoline_vault":
-			var bank1_w: float = 112.0
-			var pit_w: float = 112.0
-			var bank2_w: float = 112.0
-			blocks.append({"name": "VaultA_%d" % seg_num, "pos": Vector2(x0 + bank1_w * 0.5, 328.0), "size": Vector2(bank1_w, 48.0), "type": T_FLOOR})
-			trampolines.append({"name": "Trampoline_%d" % seg_num, "pos": Vector2(x0 + 88.0, 296.0), "bounce_velocity": -475.0})
-			hazards.append({"name": "VaultLava_%d" % seg_num, "pos": Vector2(x0 + bank1_w + pit_w * 0.5, 336.0), "size": Vector2(pit_w, 32.0), "kind": "liquid"})
-			blocks.append({"name": "VaultSky_%d" % seg_num, "pos": Vector2(x0 + bank1_w + pit_w * 0.5, 168.0), "size": Vector2(80.0, 16.0), "type": T_PLATFORM})
-			jewels.append({"pos": Vector2(x0 + bank1_w + pit_w * 0.5, 132.0), "cursed_mechanic": curse_mech, "jewel_type": pwr_type})
-			var b2_x0: float = x0 + bank1_w + pit_w
-			blocks.append({"name": "VaultB_%d" % seg_num, "pos": Vector2(b2_x0 + bank2_w * 0.5, 328.0), "size": Vector2(bank2_w, 48.0), "type": T_FLOOR})
-			return b2_x0 + bank2_w
-
-		"trampoline_trick_well":
-			var w: float = 288.0
-			blocks.append({"name": "WellFloor_%d" % seg_num, "pos": Vector2(x0 + w * 0.5, 328.0), "size": Vector2(w, 48.0), "type": T_FLOOR})
-			trampolines.append({"name": "WellTramp_%d" % seg_num, "pos": Vector2(x0 + 56.0, 296.0), "bounce_velocity": -480.0})
-			blocks.append({"name": "WellHigh_%d" % seg_num, "pos": Vector2(x0 + 136.0, 168.0), "size": Vector2(64.0, 16.0), "type": T_PLATFORM})
-			jewels.append({"pos": Vector2(x0 + 216.0, 196.0), "cursed_mechanic": "", "jewel_type": 0})
-			_stamp_aether_decor(decorations, x0 + 240.0, 18, rng)
-			return x0 + w
-
-		"high_dive_trick_well":
-			var w: float = 288.0
-			blocks.append({"name": "DiveFloor_%d" % seg_num, "pos": Vector2(x0 + w * 0.5, 328.0), "size": Vector2(w, 48.0), "type": T_FLOOR})
-			blocks.append({"name": "DiveStep_%d" % seg_num, "pos": Vector2(x0 + 56.0, 232.0), "size": Vector2(64.0, 16.0), "type": T_PLATFORM})
-			blocks.append({"name": "DivePlat_%d" % seg_num, "pos": Vector2(x0 + 144.0, 152.0), "size": Vector2(80.0, 16.0), "type": T_PLATFORM})
-			jewels.append({"pos": Vector2(x0 + 224.0, 200.0), "cursed_mechanic": "", "jewel_type": 0})
-			_stamp_aether_decor(decorations, x0 + 160.0, 18, rng)
-			return x0 + w
-
-		_:
-			# "slide_tunnel_sprint"
-			var w: float = 256.0
-			blocks.append({"name": "SprintFloor_%d" % seg_num, "pos": Vector2(x0 + w * 0.5, 328.0), "size": Vector2(w, 48.0), "type": T_FLOOR})
-			blocks.append({"name": "SprintCeil_%d" % seg_num, "pos": Vector2(x0 + 128.0, 272.0), "size": Vector2(112.0, 16.0), "type": T_TUNNEL_CEILING})
-			jewels.append({"pos": Vector2(x0 + 128.0, 288.0), "cursed_mechanic": "", "jewel_type": 2})
-			_stamp_aether_decor(decorations, x0 + 32.0, 18, rng)
-			return x0 + w
-
-# ==============================================================================
-# WALIDATOR PRZECHODNOŚCI I NAPRAWIACZ BLUEPRINTÓW
-# ==============================================================================
 
 static func validate_and_repair_blueprint(blueprint: Dictionary) -> Dictionary:
 	var blocks: Array[Dictionary] = blueprint.get("blocks", [])

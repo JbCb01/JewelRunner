@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://mmsaov7alcpr"
+path="res://.godot/imported/hud_font_big.fnt-c1fb986e9e572a3ff5ce6033ab446cb7.fontdata"
+
+[deps]
+
+source_file="res://assets/ui/hud/hud_font_big.fnt"
+dest_files=["res://.godot/imported/hud_font_big.fnt-c1fb986e9e572a3ff5ce6033ab446cb7.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2

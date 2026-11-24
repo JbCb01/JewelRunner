@@ -7,6 +7,7 @@ const AIDirectorScript = preload("res://scripts/core/ai_director.gd")
 const PortalSyncScript = preload("res://scripts/core/portal_sync.gd")
 const WalletSyncScript = preload("res://scripts/core/wallet_sync.gd")
 const KeybindManagerScript = preload("res://scripts/core/keybind_manager.gd")
+const PlayStyleProfilerScript = preload("res://scripts/core/playstyle_profiler.gd")
 
 # --- Zdarzenia Gracza (Player Events) ---
 signal player_spawned(player: Node2D)
@@ -86,6 +87,9 @@ var wallet_sync: Node = null
 
 ## Menedżer skrótów klawiszowych (zmiana w ustawieniach oraz zapis lokalny)
 var keybind_manager: KeybindManagerScript = null
+
+## Trwały profil stylu gry (analiza dla generatora poziomu AI)
+var playstyle_profiler: PlayStyleProfilerScript = null
 
 ## Trwała kolekcja specjalnych (sekretnych) klejnotów
 const SPECIAL_JEWELS_SAVE_PATH: String = "user://special_jewels.json"
@@ -197,6 +201,10 @@ func _ensure_services() -> void:
 		keybind_manager.name = "KeybindManager"
 		add_child(keybind_manager)
 		keybind_manager.load_keybinds()
+	if not is_instance_valid(playstyle_profiler):
+		playstyle_profiler = PlayStyleProfilerScript.new()
+		playstyle_profiler.name = "PlayStyleProfiler"
+		add_child(playstyle_profiler)
 
 ## Bezpieczna automatyczna rejestracja akcji w InputMap, aby zapobiec błędom
 ## jeśli akcje nie zostały jeszcze ręcznie dodane w Project Settings.

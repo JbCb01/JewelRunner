@@ -958,7 +958,7 @@ func _preview_mechanic_profile(profile_id: int) -> void:
 				subtitle = "Dominance: Slide -> Air Dash over Lava Canyons"
 				desc = "Autumn speed tunnels, sky bridges over lava canyons, and high-velocity aerial dashes."
 			_:
-				title = "IV. CYBER MATRIX (AI CHESSBOARD)"
+				title = "IV. CYBER SHUFFLE (AI CHESSBOARD)"
 				subtitle = "Seed-Based Local AI Generator (Aether Biome)"
 				desc = "Deterministic seed-driven AI course countering your favorite move, rewarding your least-used move, and adapting to portal challenges."
 

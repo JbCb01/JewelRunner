@@ -45,4 +45,5 @@
 [PASS] IT-21: Wskaźnik HP (gwiazdki) nad graczem, widoczny na start i przy hicie; kolce estetycznie powiększone
 [PASS] IT-22: Knowledge Check: pula 15 pytań ABCD, losowanie na start, blokada wyjścia, obsługa strzałek i wymóg poprawnej odpowiedzi do wygranej
 [PASS] IT-23: Ustawienia Sterowania w Menu i Pauzie umożliwiają interaktywną zmianę klawiszy oraz przywrócenie domyślnych
-PODSUMOWANIE: ZALICZONE: 46 | BŁĘDY: 0 | ŁĄCZNIE: 46
+[PASS] IT-24: Level IV Cyber Shuffle (Szachownica AI) losuje muzykę z folderu Szachownica shuffle przy każdym włączeniu poziomu
+PODSUMOWANIE: ZALICZONE: 47 | BŁĘDY: 0 | ŁĄCZNIE: 47

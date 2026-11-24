@@ -75,6 +75,7 @@ var stamina_regen_rate: float = 0.10
 var selected_level_profile: int = 1
 var selected_level_seed: int = 0
 var return_to_level_select: bool = false
+var last_szachownica_music_path: String = ""
 
 ## Instancja Adaptacyjnego Reżysera AI (zarządza mnożnikami staminy, kontraktami AI, blokadami i analizą poziomu)
 var ai_director: AdaptiveAIDirector = null

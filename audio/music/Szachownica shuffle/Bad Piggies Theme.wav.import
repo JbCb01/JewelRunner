@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://ch70srbe838eb"
+path="res://.godot/imported/Bad Piggies Theme.wav-8522476dda4c7a31abc5d65c4adecd2d.sample"
+
+[deps]
+
+source_file="res://audio/music/Szachownica shuffle/Bad Piggies Theme.wav"
+dest_files=["res://.godot/imported/Bad Piggies Theme.wav-8522476dda4c7a31abc5d65c4adecd2d.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

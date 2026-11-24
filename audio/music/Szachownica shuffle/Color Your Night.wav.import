@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://djt4som62i4d7"
+path="res://.godot/imported/Color Your Night.wav-ef9c87472970692cf482d230bde758ff.sample"
+
+[deps]
+
+source_file="res://audio/music/Szachownica shuffle/Color Your Night.wav"
+dest_files=["res://.godot/imported/Color Your Night.wav-ef9c87472970692cf482d230bde758ff.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

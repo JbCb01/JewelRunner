@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://cupulqfjd8lki"
+path="res://.godot/imported/Sonic Riders Zero Gravity Main Menu Theme.wav-6e4d3808a93b70e6441ddd71a642f76a.sample"
+
+[deps]
+
+source_file="res://audio/music/Szachownica shuffle/Sonic Riders Zero Gravity Main Menu Theme.wav"
+dest_files=["res://.godot/imported/Sonic Riders Zero Gravity Main Menu Theme.wav-6e4d3808a93b70e6441ddd71a642f76a.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

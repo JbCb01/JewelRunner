@@ -51,14 +51,81 @@ const LEVEL_MUSIC_TRACKS: Dictionary = {
 	3: preload("res://audio/music/onsumbull.wav"),
 }
 
+const SZACHOWNICA_SHUFFLE_FOLDER := "res://audio/music/Szachownica shuffle"
+
+const DEFAULT_SZACHOWNICA_SHUFFLE_TRACKS: Array[String] = [
+	"res://audio/music/Szachownica shuffle/Bad Piggies Theme.wav",
+	"res://audio/music/Szachownica shuffle/Color Your Night.wav",
+	"res://audio/music/Szachownica shuffle/Feel The Heat - SEGA Bass Fishing Music (HD).wav",
+	"res://audio/music/Szachownica shuffle/SENTINO - BLACKBERRY ALE TO HYMN DOŻYNEK.wav",
+	"res://audio/music/Szachownica shuffle/Sneakman.wav",
+	"res://audio/music/Szachownica shuffle/Sonic Riders Zero Gravity Main Menu Theme.wav",
+	"res://audio/music/Szachownica shuffle/Sonic Speed Riders - Sonic Riders [OST].wav",
+	"res://audio/music/Szachownica shuffle/Tropical Resort (Act 1) - Sonic Colors [OST].wav",
+	"res://audio/music/Szachownica shuffle/Vs. Metal Sonic (Stardust Speedway Bad Future JP) - Sonic Generations [OST].wav",
+	"res://audio/music/Szachownica shuffle/Work It Out (Instrumental) - Sonic R [OST].wav"
+]
+
+## Zwraca listę wszystkich dostępnych ścieżek audio z folderu 'Szachownica shuffle'.
+static func get_szachownica_shuffle_tracks() -> Array[String]:
+	var tracks: Array[String] = []
+	var dir = DirAccess.open(SZACHOWNICA_SHUFFLE_FOLDER)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if not dir.current_is_dir() and not file_name.ends_with(".import"):
+				var lower = file_name.to_lower()
+				if lower.ends_with(".wav") or lower.ends_with(".ogg") or lower.ends_with(".mp3"):
+					tracks.append(SZACHOWNICA_SHUFFLE_FOLDER + "/" + file_name)
+			file_name = dir.get_next()
+	if tracks.is_empty():
+		tracks = DEFAULT_SZACHOWNICA_SHUFFLE_TRACKS.duplicate()
+	else:
+		tracks.sort()
+	return tracks
+
+## Wybiera losową ścieżkę z folderu 'Szachownica shuffle', unikając powtórzenia ostatniego utworu.
+static func get_random_szachownica_shuffle_path() -> String:
+	var tracks: Array[String] = get_szachownica_shuffle_tracks()
+	if tracks.is_empty():
+		return "res://audio/music/onsumbull.wav"
+	if tracks.size() == 1:
+		return tracks[0]
+	
+	var last_path: String = ""
+	if is_instance_valid(Events):
+		last_path = Events.last_szachownica_music_path
+	
+	var candidates: Array[String] = []
+	for p in tracks:
+		if p != last_path:
+			candidates.append(p)
+	if candidates.is_empty():
+		candidates = tracks.duplicate()
+	
+	var chosen: String = candidates[randi() % candidates.size()]
+	if is_instance_valid(Events):
+		Events.last_szachownica_music_path = chosen
+	return chosen
+
+## Zwraca losowy AudioStream z puli 'Szachownica shuffle'.
+static func get_random_szachownica_shuffle_stream() -> AudioStream:
+	var path: String = get_random_szachownica_shuffle_path()
+	var stream: AudioStream = load(path) as AudioStream
+	if stream:
+		return stream
+	return LEVEL_MUSIC_TRACKS.get(3, null)
+
 ## Zwraca ścieżkę dźwiękową AudioStream dla wybranego poziomu/profilu.
 ## Poziom 1: yessirski.wav
 ## Poziomy 2 i 3: nowe ścieżki dźwiękowe dodane przez merkoo (onmymommaimthegoat.wav, onsumbull.wav)
+## Poziom 4 (Cyber Shuffle / Szachownica AI): losowa muzyka z folderu 'Szachownica shuffle'
 static func get_level_music_stream(profile_id: int) -> AudioStream:
+	if profile_id == 4:
+		return get_random_szachownica_shuffle_stream()
 	if LEVEL_MUSIC_TRACKS.has(profile_id):
 		return LEVEL_MUSIC_TRACKS[profile_id]
-	if profile_id == 4:
-		return LEVEL_MUSIC_TRACKS[3]
 	return LEVEL_MUSIC_TRACKS.get(1, null)
 
 ## Konfiguruje i uruchamia odtwarzanie muzyki dla wskazanego poziomu.
@@ -67,14 +134,30 @@ func _setup_level_music(profile_id: int) -> void:
 		return
 	var stream: AudioStream = get_level_music_stream(profile_id)
 	if stream:
-		if music_level.playing and music_level.stream != stream:
+		if music_level.stream != stream:
 			music_level.stop()
-		music_level.stream = stream
+			music_level.stream = stream
 	if music_level.stream is AudioStreamWAV:
 		(music_level.stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_DISABLED
-	if not music_level.finished.is_connected(music_level.play):
-		music_level.finished.connect(music_level.play)
+	if not music_level.finished.is_connected(_on_music_level_finished):
+		if music_level.finished.is_connected(music_level.play):
+			music_level.finished.disconnect(music_level.play)
+		music_level.finished.connect(_on_music_level_finished)
 	if music_level.is_inside_tree() and not music_level.playing:
+		music_level.play()
+
+func _on_music_level_finished() -> void:
+	if not music_level:
+		return
+	var current_profile: int = Events.selected_level_profile if is_instance_valid(Events) else 1
+	if current_profile == 4:
+		var stream: AudioStream = get_random_szachownica_shuffle_stream()
+		if stream:
+			music_level.stream = stream
+			if music_level.stream is AudioStreamWAV:
+				(music_level.stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_DISABLED
+			music_level.play()
+	else:
 		music_level.play()
 
 @onready var finish_goal: Area2D = get_node_or_null("FinishGoal")

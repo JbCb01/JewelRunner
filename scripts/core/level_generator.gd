@@ -216,17 +216,75 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 			if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
 				fav = Events.ai_director.get_favorite_move()
 				least = Events.ai_director.get_least_used_move()
+			var rand_track: String = get_random_szachownica_shuffle_path()
+			var track_name: String = rand_track.get_file().get_basename()
 			return {
 				"id": 4,
 				"biome_id": BiomeId.AETHER,
-				"title": "IV. CYBER MATRIX (SZACHOWNICA AI)",
+				"title": "IV. CYBER SHUFFLE (SZACHOWNICA AI)",
 				"subtitle": "1. połowa: %s -> 2. połowa: %s" % [fav.to_upper(), least.to_upper()],
 				"dominant": least,
 				"dna": {"wall_climb": 35, "dash": 30, "double_jump": 35},
 				"description": "AI składa poziom z modułów poziomów 1-3 według Twojego profilu stylu gry: rozgrzewka na ulubionym ruchu, trening unikanego, tarcze tam, gdzie najczęściej obrywasz, sekret na trasie, którą omijasz.",
-				"music_path": "res://audio/music/onsumbull.wav",
-				"music_title": "On Sum Bull"
+				"music_path": rand_track,
+				"music_title": track_name
 			}
+
+const SZACHOWNICA_SHUFFLE_FOLDER := "res://audio/music/Szachownica shuffle"
+
+const DEFAULT_SZACHOWNICA_SHUFFLE_TRACKS: Array[String] = [
+	"res://audio/music/Szachownica shuffle/Bad Piggies Theme.wav",
+	"res://audio/music/Szachownica shuffle/Color Your Night.wav",
+	"res://audio/music/Szachownica shuffle/Feel The Heat - SEGA Bass Fishing Music (HD).wav",
+	"res://audio/music/Szachownica shuffle/SENTINO - BLACKBERRY ALE TO HYMN DOŻYNEK.wav",
+	"res://audio/music/Szachownica shuffle/Sneakman.wav",
+	"res://audio/music/Szachownica shuffle/Sonic Riders Zero Gravity Main Menu Theme.wav",
+	"res://audio/music/Szachownica shuffle/Sonic Speed Riders - Sonic Riders [OST].wav",
+	"res://audio/music/Szachownica shuffle/Tropical Resort (Act 1) - Sonic Colors [OST].wav",
+	"res://audio/music/Szachownica shuffle/Vs. Metal Sonic (Stardust Speedway Bad Future JP) - Sonic Generations [OST].wav",
+	"res://audio/music/Szachownica shuffle/Work It Out (Instrumental) - Sonic R [OST].wav"
+]
+
+static func get_szachownica_shuffle_tracks() -> Array[String]:
+	var tracks: Array[String] = []
+	var dir = DirAccess.open(SZACHOWNICA_SHUFFLE_FOLDER)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if not dir.current_is_dir() and not file_name.ends_with(".import"):
+				var lower = file_name.to_lower()
+				if lower.ends_with(".wav") or lower.ends_with(".ogg") or lower.ends_with(".mp3"):
+					tracks.append(SZACHOWNICA_SHUFFLE_FOLDER + "/" + file_name)
+			file_name = dir.get_next()
+	if tracks.is_empty():
+		tracks = DEFAULT_SZACHOWNICA_SHUFFLE_TRACKS.duplicate()
+	else:
+		tracks.sort()
+	return tracks
+
+static func get_random_szachownica_shuffle_path() -> String:
+	var tracks: Array[String] = get_szachownica_shuffle_tracks()
+	if tracks.is_empty():
+		return "res://audio/music/onsumbull.wav"
+	if tracks.size() == 1:
+		return tracks[0]
+	
+	var last_path: String = ""
+	if is_instance_valid(Events):
+		last_path = Events.last_szachownica_music_path
+	
+	var candidates: Array[String] = []
+	for p in tracks:
+		if p != last_path:
+			candidates.append(p)
+	if candidates.is_empty():
+		candidates = tracks.duplicate()
+	
+	var chosen: String = candidates[randi() % candidates.size()]
+	if is_instance_valid(Events):
+		Events.last_szachownica_music_path = chosen
+	return chosen
 
 static func get_level_music_path(profile_id: int) -> String:
 	match profile_id:
@@ -237,7 +295,7 @@ static func get_level_music_path(profile_id: int) -> String:
 		MechanicProfile.HORIZON_IMPULSE:
 			return "res://audio/music/onsumbull.wav"
 		_:
-			return "res://audio/music/onsumbull.wav"
+			return get_random_szachownica_shuffle_path()
 
 ## Buduje poziom dla wybranego profilu wewnątrz węzła areny, uwzględniając aktywne zadania ze strony internetowej.
 static func build_level_for_arena(

@@ -77,6 +77,7 @@ func _run_all_tests() -> void:
 	itStarHpIndicatorAndSpikeSprite()
 	itKnowledgeCheckCyberQuizFunctionality()
 	itControlsRebindUiInMenuAndPauseSettings()
+	itCyberShuffleRandomLevelMusic()
 	
 	print("\n==================================================")
 	var summary = "PODSUMOWANIE: ZALICZONE: %d | BŁĘDY: %d | ŁĄCZNIE: %d" % [passCnt, failCnt, passCnt + failCnt]
@@ -1420,6 +1421,62 @@ func itControlsRebindUiInMenuAndPauseSettings() -> void:
 	km.reset_to_defaults()
 	km.keybinds_save_path = orig_path
 	assertCond(menuUiOk and gridHiddenOk and initTextOk and listenOk and reboundMenuOk and arenaUiOk and arenaSyncedOk and resetUiOk, "IT-23", "Ustawienia Sterowania w Menu i Pauzie umożliwiają interaktywną zmianę klawiszy oraz przywrócenie domyślnych")
+
+func itCyberShuffleRandomLevelMusic() -> void:
+	# 1. Sprawdzenie czy folder 'Szachownica shuffle' zawiera utwory i czy są one poprawnie wykrywane
+	var tracks: Array[String] = ArenaScript.get_szachownica_shuffle_tracks()
+	var tracksCountOk: bool = tracks.size() >= 10
+	
+	# 2. Sprawdzenie czy każdy wykryty utwór ładuje się jako poprawny AudioStream
+	var allTracksLoadable: bool = true
+	for t_path in tracks:
+		var st = load(t_path)
+		if st == null or not (st is AudioStream):
+			allTracksLoadable = false
+			break
+	
+	# 3. Pobranie losowego streamu dla poziomu 4 (Cyber Shuffle / Szachownica AI)
+	var stream_lvl4: AudioStream = ArenaScript.get_level_music_stream(4)
+	var streamLvl4Ok: bool = (stream_lvl4 != null) and (stream_lvl4.resource_path in tracks)
+	
+	# 4. Losowość przy wielokrotnym wywołaniu (brak powtórzeń bezpośrednio sąsiednich utworów oraz różnorodność)
+	var picked_paths: Array[String] = []
+	var noImmediateRepeat: bool = true
+	for i in range(12):
+		var p: String = ArenaScript.get_random_szachownica_shuffle_path()
+		if not picked_paths.is_empty() and p == picked_paths.back():
+			noImmediateRepeat = false
+		picked_paths.append(p)
+	var uniquePicks: Array[String] = []
+	for p in picked_paths:
+		if not uniquePicks.has(p):
+			uniquePicks.append(p)
+	var randomDistributionOk: bool = uniquePicks.size() >= 3
+	
+	# 5. Inicjalizacja muzyki poziomu w instancji Areny dla profilu 4
+	var arenaScene = load("res://scenes/test_arena.tscn")
+	var arena = arenaScene.instantiate()
+	add_child(arena)
+	arena._setup_level_music(4)
+	
+	var arenaPlaysShuffleOk: bool = (arena.music_level != null) and (arena.music_level.stream != null) and (arena.music_level.stream.resource_path in tracks) and arena.music_level.playing
+	var first_track_path: String = arena.music_level.stream.resource_path
+	
+	# 6. Obsługa zakończenia utworu na profilu 4 (przełączenie na kolejny utwór shuffle)
+	Events.selected_level_profile = 4
+	arena._on_music_level_finished()
+	var nextStreamOk: bool = (arena.music_level.stream != null) and (arena.music_level.stream.resource_path in tracks) and arena.music_level.playing
+	var next_track_path: String = arena.music_level.stream.resource_path
+	var songSwitchedOk: bool = (first_track_path != next_track_path)
+	
+	arena.free()
+	
+	# 7. Metadata poziomu w LevelGenerator zawiera losową ścieżkę z folderu Szachownica shuffle
+	var meta: Dictionary = LevelGeneratorScript.get_profile_metadata(4)
+	var metaMusicOk: bool = String(meta.get("music_path", "")).begins_with(ArenaScript.SZACHOWNICA_SHUFFLE_FOLDER)
+	
+	var allShuffleOk: bool = tracksCountOk and allTracksLoadable and streamLvl4Ok and noImmediateRepeat and randomDistributionOk and arenaPlaysShuffleOk and nextStreamOk and songSwitchedOk and metaMusicOk
+	assertCond(allShuffleOk, "IT-24", "Level IV Cyber Shuffle (Szachownica AI) losuje muzykę z folderu Szachownica shuffle przy każdym włączeniu poziomu")
 
 # ==============================================================================
 # FUNKCJE POMOCNICZE (Tworzenie struktur węzłów w pamięci dla testów)

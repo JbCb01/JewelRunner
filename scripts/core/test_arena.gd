@@ -163,7 +163,7 @@ func _ready() -> void:
 	# Budowa poziomu wg wybranego w Level Select profilu mechaniki (oraz przygotowanie warstwy TileMapLayer)
 	var profile_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
 	var seed_val: int = Events.selected_level_seed if is_instance_valid(Events) else 0
-	if has_node("Geometry") or profile_id != 1:
+	if profile_id != 1:
 		var gen_res: Dictionary = LevelGenerator.build_level_for_arena(self, profile_id, seed_val, custom_tileset)
 		challenge_time_limit_s = float(gen_res.get("challenge_max_time_s", -1.0))
 		
@@ -1592,7 +1592,12 @@ func _restart_game() -> void:
 	if audio_game_over and audio_game_over.playing:
 		audio_game_over.stop()
 	get_tree().paused = false
-	get_tree().reload_current_scene()
+	var profile_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
+	var loading_screen = get_node_or_null("/root/LoadingScreen")
+	if loading_screen and loading_screen.has_method("play_transition"):
+		loading_screen.play_transition(profile_id, "res://scenes/test_arena.tscn")
+	else:
+		get_tree().reload_current_scene()
 
 func _quit_or_menu() -> void:
 	if audio_game_over and audio_game_over.playing:

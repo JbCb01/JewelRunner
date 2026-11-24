@@ -175,7 +175,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 			return {
 				"id": 1,
 				"biome_id": BiomeId.FOREST,
-				"title": "I. SYNERGIA RUCHU (LAS)",
+				"title": "I. MOSSY CIRCUIT (LAS)",
 				"subtitle": "Balans: Climb + Dash + Double Jump + Trampoliny",
 				"dominant": "balanced",
 				"dna": {"wall_climb": 33, "dash": 33, "double_jump": 34},
@@ -187,7 +187,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 			return {
 				"id": 2,
 				"biome_id": BiomeId.WINTER,
-				"title": "II. SEKTOR PIONOWY (ZIMA / LÓD)",
+				"title": "II. ICEFLOW RIDGE (ZIMA / LÓD)",
 				"subtitle": "Żywioł: Wall Climb, Trampoliny & Studnie Tricków",
 				"dominant": "wall_climb",
 				"dna": {"wall_climb": 54, "dash": 18, "double_jump": 28},
@@ -199,7 +199,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 			return {
 				"id": 3,
 				"biome_id": BiomeId.AUTUMN,
-				"title": "III. SEKTOR IMPULSU (JESIEŃ / LAWA)",
+				"title": "III. BLAZING TRENCH (JESIEŃ / LAWA)",
 				"subtitle": "Żywioł: Slide -> Air Dash nad kanionami lawy",
 				"dominant": "dash",
 				"dna": {"wall_climb": 14, "dash": 52, "double_jump": 34},
@@ -216,7 +216,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 			return {
 				"id": 4,
 				"biome_id": BiomeId.AETHER,
-				"title": "IV. AETHER: SZACHOWNICA AI",
+				"title": "IV. CYBER MATRIX (SZACHOWNICA AI)",
 				"subtitle": "1. połowa: %s -> 2. połowa: %s" % [fav.to_upper(), least.to_upper()],
 				"dominant": least,
 				"dna": {"wall_climb": 35, "dash": 30, "double_jump": 35},

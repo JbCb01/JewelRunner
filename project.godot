@@ -18,6 +18,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 Events="*res://scripts/core/events.gd"
+LoadingScreen="*res://scripts/core/loading_screen.gd"
 
 [display]
 

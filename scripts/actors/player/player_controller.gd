@@ -222,6 +222,30 @@ func _ready() -> void:
 	Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
 	Events.player_health_changed.emit(current_health, max_health)
 	
+	var loading_screen = get_node_or_null("/root/LoadingScreen")
+	if loading_screen:
+		if loading_screen.is_transitioning:
+			is_appearing = true
+			visible = false
+			if not loading_screen.transition_completed.is_connected(_on_loading_screen_completed):
+				loading_screen.transition_completed.connect(_on_loading_screen_completed, CONNECT_ONE_SHOT)
+			return
+		elif not loading_screen.has_shown_for_scene:
+			is_appearing = true
+			visible = false
+			loading_screen.has_shown_for_scene = true
+			if not loading_screen.transition_completed.is_connected(_on_loading_screen_completed):
+				loading_screen.transition_completed.connect(_on_loading_screen_completed, CONNECT_ONE_SHOT)
+			var prof_id = Events.selected_level_profile if is_instance_valid(Events) else 1
+			loading_screen.play_transition_direct(prof_id)
+			return
+	_start_appear_sequence()
+
+func _on_loading_screen_completed() -> void:
+	visible = true
+	_start_appear_sequence()
+
+func _start_appear_sequence() -> void:
 	if anim_sprite and anim_sprite.sprite_frames and anim_sprite.sprite_frames.has_animation("appear"):
 		if not anim_sprite.animation_finished.is_connected(_on_animation_finished):
 			anim_sprite.animation_finished.connect(_on_animation_finished)

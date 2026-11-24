@@ -37,6 +37,7 @@ signal player_fell_in_abyss(respawn_position: Vector2)
 signal special_jewel_collected(special_id: String, jewel_name: String, rarity: String, already_owned: bool)
 
 # --- Zdarzenia Poziomu i Pętli Gry (Game Loop Events) ---
+signal loading_screen_finished()
 signal player_appear_finished()
 signal level_started()
 signal level_completed()

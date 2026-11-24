@@ -944,19 +944,19 @@ func _preview_mechanic_profile(profile_id: int) -> void:
 	if current_language == "en":
 		match profile_id:
 			1:
-				title = "I. MOVEMENT SYNERGY (FOREST)"
+				title = "I. MOSSY CIRCUIT (FOREST)"
 				subtitle = "Balance: Climb + Dash + Double Jump + Trampolines"
 				desc = "A lush forest course combining climbing shafts, slide tunnels, rope bridges over acid, and [!] trampolines."
 			2:
-				title = "II. VERTICAL ASCENT (WINTER / ICE)"
+				title = "II. ICEFLOW RIDGE (WINTER / ICE)"
 				subtitle = "Dominance: Wall Climb, Trampolines & Trick Wells"
 				desc = "Glacial shafts, icy towers, and freezing chasms. Recharge stamina with mid-air Tricks [%s] while descending." % (Events.get_action_key_label("trick", "en") if is_instance_valid(Events) else "Ctrl")
 			3:
-				title = "III. HORIZON IMPULSE (AUTUMN / LAVA)"
+				title = "III. BLAZING TRENCH (AUTUMN / LAVA)"
 				subtitle = "Dominance: Slide -> Air Dash over Lava Canyons"
 				desc = "Autumn speed tunnels, sky bridges over lava canyons, and high-velocity aerial dashes."
 			_:
-				title = "IV. AETHER: AI CHESSBOARD"
+				title = "IV. CYBER MATRIX (AI CHESSBOARD)"
 				subtitle = "Seed-Based Local AI Generator (Aether Biome)"
 				desc = "Deterministic seed-driven AI course countering your favorite move, rewarding your least-used move, and adapting to portal challenges."
 
@@ -1803,7 +1803,12 @@ func _startGame() -> void:
 		return
 		
 	Events.level_started.emit()
-	get_tree().change_scene_to_file(arenaScenePath)
+	var profile_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
+	var loading_screen = get_node_or_null("/root/LoadingScreen")
+	if loading_screen and loading_screen.has_method("play_transition"):
+		loading_screen.play_transition(profile_id, arenaScenePath)
+	else:
+		get_tree().change_scene_to_file(arenaScenePath)
 
 func _toggleMusic() -> void:
 	isMusicMuted = not isMusicMuted

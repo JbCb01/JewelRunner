@@ -23,7 +23,7 @@ import {
   validatePassword,
 } from "../lib/format";
 import { useApi } from "../lib/useApi";
-import jewel from "../assets/jewel.png";
+import { skinFilterClass, skinSprite, SPRITES } from "../lib/sprites";
 
 type Message = { kind: "success" | "error"; text: string } | null;
 
@@ -71,7 +71,7 @@ function ProfileOverview() {
       <div className="overview-block">
         <h2>Portfel</h2>
         <p className="overview-gems" data-testid="profile-gems">
-          <img src={jewel} alt="" width={24} height={24} />
+          <img className="pixel" src={SPRITES.jewel} alt="" width={24} height={24} />
           <strong>{gems ?? "–"} klejnotów</strong>
         </p>
         <Link to="/sklep">Przejdź do sklepu</Link>
@@ -82,21 +82,14 @@ function ProfileOverview() {
         {appearance.loading && !current && <Loading />}
         {current ? (
           <div className="appearance-inline">
-            <span
-              className="color-dot lg"
-              style={{ backgroundColor: current.color.hex }}
-              title={current.color.name}
-              aria-hidden="true"
+            <img
+              className={`pixel profile-skin ${skinFilterClass(current.skin.name)}`}
+              src={skinSprite(current.skin.name)}
+              alt=""
             />
             <div>
               <p>
-                <strong>Skórka:</strong> {current.skin.name} · <strong>Kolor:</strong> {current.color.name}
-              </p>
-              <p className="muted-text small-note">
-                Akcesoria:{" "}
-                {current.accessories.length > 0
-                  ? current.accessories.map((acc) => `${acc.accessory.name} (${acc.slot})`).join(", ")
-                  : "Brak"}
+                <strong>Skórka:</strong> {current.skin.name}
               </p>
             </div>
           </div>

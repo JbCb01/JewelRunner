@@ -49,11 +49,10 @@ test.describe("4.6, 5.1-5.8, 8.3, 8.4 Statystyki, historia, kolekcja i odłącze
     await page.getByRole("button", { name: "Odłącz grę" }).click();
     await expect(page.getByTestId("game-link-status")).toHaveText("Niepołączone");
 
-    // Kolekcja: zakładki Skórki, Kolory, Akcesoria, oznaczenie „Nowe”, wybór i zapis wyglądu.
+    // Kolekcja: tylko skórki (bez kolorów i akcesoriów), oznaczenie „Nowe”, wybór i zapis wyglądu.
     await page.goto("/kolekcja");
-    await expect(page.getByRole("tab", { name: /Skórki/ })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /Kolory/ })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /Akcesoria/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Kolekcja skórek" })).toBeVisible();
+    await expect(page.getByRole("tab")).toHaveCount(0);
 
     const noirCard = page.locator(".collection-card").filter({ hasText: "Noir Stelly" });
     await expect(noirCard).toBeVisible();

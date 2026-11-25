@@ -46,4 +46,5 @@
 [PASS] IT-22: Knowledge Check: pula 15 pytań ABCD, losowanie na start, blokada wyjścia, obsługa strzałek i wymóg poprawnej odpowiedzi do wygranej
 [PASS] IT-23: Ustawienia Sterowania w Menu i Pauzie umożliwiają interaktywną zmianę klawiszy oraz przywrócenie domyślnych
 [PASS] IT-24: Level IV Cyber Shuffle (Szachownica AI) losuje muzykę z folderu Szachownica shuffle przy każdym włączeniu poziomu
-PODSUMOWANIE: ZALICZONE: 47 | BŁĘDY: 0 | ŁĄCZNIE: 47
+[PASS] IT-25: Możliwość wyłączenia i włączenia HUD pod ciężkim skrótem klawiszowym (Ctrl+Shift+H / F9) bez dodawania do bindów
+PODSUMOWANIE: ZALICZONE: 48 | BŁĘDY: 0 | ŁĄCZNIE: 48

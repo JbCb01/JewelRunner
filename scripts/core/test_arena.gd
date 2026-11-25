@@ -35,6 +35,7 @@ var _stamina_overflow_bar: ProgressBar = null
 var _stamina_overflow_amount: float = 0.0
 var combos_finished_count: int = 0
 var best_combo_count: int = 0
+var is_hud_visible: bool = true
 @onready var pause_menu: Control = get_node_or_null("HUD/PauseMenu")
 @onready var settings_view: Control = get_node_or_null("HUD/SettingsView")
 @onready var game_over_menu: Control = get_node_or_null("HUD/GameOverMenu")
@@ -771,7 +772,7 @@ func _show_combo(chain: String, value: String, color: Color, hold: float) -> voi
 	_combo_chain_label.text = chain
 	_combo_value_label.text = value
 	_combo_value_label.add_theme_color_override("font_color", color)
-	_combo_panel.visible = true
+	_combo_panel.visible = is_hud_visible
 	_combo_panel.modulate.a = 1.0
 	_combo_hold_t = hold
 	_combo_pop_t = 0.18
@@ -1000,7 +1001,7 @@ func _show_hud_toast(msg: String, color: Color, duration: float = 2.6) -> void:
 	hud_status_toast.text = msg
 	hud_status_toast.add_theme_color_override("font_color", color)
 	hud_status_toast.modulate.a = 1.0
-	hud_status_toast.visible = true
+	hud_status_toast.visible = is_hud_visible
 	status_toast_timer = duration
 	# Baner wyśrodkowany u góry ekranu, szerokość dopasowana do tekstu
 	hud_status_toast.size = Vector2.ZERO
@@ -1279,7 +1280,58 @@ func _level_complete() -> void:
 	if audio_win:
 		audio_win.play()
 
+func _toggle_hud_visibility() -> void:
+	is_hud_visible = not is_hud_visible
+	_update_hud_elements_visibility()
+
+func _update_hud_elements_visibility() -> void:
+	var hud_node: CanvasLayer = get_node_or_null("HUD") as CanvasLayer
+	if hud_node:
+		var system_nodes = [
+			"PauseMenu", "GameOverMenu", "WinScreen",
+			"SettingsView", "KnowledgeCheckPopup"
+		]
+		for child in hud_node.get_children():
+			if child is AudioStreamPlayer:
+				continue
+			if child.name in system_nodes:
+				continue
+			if child is CanvasItem:
+				child.visible = is_hud_visible
+
+	if _combo_panel and is_instance_valid(_combo_panel):
+		_combo_panel.visible = is_hud_visible and (_combo_hold_t > 0.0)
+
+	if hud_status_toast and is_instance_valid(hud_status_toast):
+		hud_status_toast.visible = is_hud_visible and (status_toast_timer > 0.0)
+
+	# Podpowiedzi na mapie (Labels oraz etykiety podpowiedzi w świecie gry)
+	var labels_root: CanvasItem = get_node_or_null("Labels") as CanvasItem
+	if labels_root and is_instance_valid(labels_root):
+		labels_root.visible = is_hud_visible
+
+	var goal_lbl: CanvasItem = get_node_or_null("FinishGoal/LabelGoal") as CanvasItem
+	if goal_lbl and is_instance_valid(goal_lbl):
+		goal_lbl.visible = is_hud_visible
+
+	var player = get_node_or_null("Player")
+	if player and is_instance_valid(player):
+		var hp_container: CanvasItem = player.get_node_or_null("HpSquares") as CanvasItem
+		if hp_container:
+			if not is_hud_visible:
+				hp_container.visible = false
+			elif player.get("hp_display_timer") != null and player.hp_display_timer > 0.0:
+				hp_container.visible = true
+
 func _unhandled_input(event: InputEvent) -> void:
+	# Ciężki skrót klawiszowy do przełączania widoczności HUD (np. Ctrl + Shift + H lub F9)
+	# Celowo brak w menu ustawień/keybindach, aby uniknąć przypadkowego włączenia w trakcie gry
+	if event is InputEventKey and event.pressed and not event.echo:
+		if (event.keycode == KEY_H and event.ctrl_pressed and event.shift_pressed) or (event.keycode == KEY_F9 and not event.ctrl_pressed and not event.alt_pressed):
+			_toggle_hud_visibility()
+			get_viewport().set_input_as_handled()
+			return
+
 	# 0. Obsługa Knowledge Check (Cyber Quiz) - nie można wyjść z okna, dopóki nie zaznaczy się odpowiedzi!
 	if is_knowledge_check_active and knowledge_check_popup and knowledge_check_popup.visible:
 		# Blokada wyjścia z okna (klawisz ESC ani ui_cancel nie może zamknąć okna dopóki nie ma odpowiedzi!)
@@ -2011,8 +2063,12 @@ const GAME_OVER_SFX_START_OFFSET: float = 0.0
 func _ensure_game_over_audio() -> void:
 	if not audio_game_over:
 		audio_game_over = get_node_or_null("HUD/AudioGameOver") as AudioStreamPlayer
-	if not audio_game_over and ResourceLoader.exists("res://audio/sfx/Fahh.mp3"):
-		var stream_res = load("res://audio/sfx/Fahh.mp3") as AudioStream
+	if not audio_game_over:
+		var stream_res: AudioStream = null
+		if ResourceLoader.exists("res://audio/sfx/Fahh.wav"):
+			stream_res = load("res://audio/sfx/Fahh.wav") as AudioStream
+		elif ResourceLoader.exists("res://audio/sfx/Fahh.mp3"):
+			stream_res = load("res://audio/sfx/Fahh.mp3") as AudioStream
 		if stream_res:
 			audio_game_over = AudioStreamPlayer.new()
 			audio_game_over.name = "AudioGameOver"

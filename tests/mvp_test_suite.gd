@@ -78,6 +78,7 @@ func _run_all_tests() -> void:
 	itKnowledgeCheckCyberQuizFunctionality()
 	itControlsRebindUiInMenuAndPauseSettings()
 	itCyberShuffleRandomLevelMusic()
+	itHudToggleHeavyShortcut()
 	
 	print("\n==================================================")
 	var summary = "PODSUMOWANIE: ZALICZONE: %d | BŁĘDY: %d | ŁĄCZNIE: %d" % [passCnt, failCnt, passCnt + failCnt]
@@ -1535,6 +1536,77 @@ func itCyberShuffleRandomLevelMusic() -> void:
 	
 	var allShuffleOk: bool = tracksCountOk and allTracksLoadable and streamLvl4Ok and noImmediateRepeat and randomDistributionOk and arenaPlaysShuffleOk and nextStreamOk and songSwitchedOk and metaMusicOk
 	assertCond(allShuffleOk, "IT-24", "Level IV Cyber Shuffle (Szachownica AI) losuje muzykę z folderu Szachownica shuffle przy każdym włączeniu poziomu")
+
+func itHudToggleHeavyShortcut() -> void:
+	var arenaScene = load("res://scenes/test_arena.tscn")
+	var arena = arenaScene.instantiate()
+	add_child(arena)
+	
+	# 1. Stan początkowy: HUD jest widoczny
+	var initialVisible: bool = arena.is_hud_visible
+	var scorePanel = arena.get_node_or_null("HUD/ScorePanel")
+	var staminaPanel = arena.get_node_or_null("HUD/StaminaPanel")
+	var timePanel = arena.get_node_or_null("HUD/TimePanel")
+	var labelsNode = arena.get_node_or_null("Labels")
+	var panelsInitiallyVisible: bool = (scorePanel != null and scorePanel.visible) and (staminaPanel != null and staminaPanel.visible) and (timePanel != null and timePanel.visible) and (labelsNode != null and labelsNode.visible)
+	
+	# 2. Wywołanie _toggle_hud_visibility() ukrywa elementy gameplay HUD oraz podpowiedzi na mapie
+	arena._toggle_hud_visibility()
+	var toggledOff: bool = (not arena.is_hud_visible) and (not scorePanel.visible) and (not staminaPanel.visible) and (not timePanel.visible) and (not labelsNode.visible)
+	
+	# 3. Sprawdzenie, że menu systemowe (pauza, game over, win screen) nie są zaburzone
+	var pauseMenu = arena.get_node_or_null("HUD/PauseMenu")
+	var gameOverMenu = arena.get_node_or_null("HUD/GameOverMenu")
+	var menusSafe: bool = (pauseMenu != null) and (gameOverMenu != null)
+	
+	# 4. Ponowne wywołanie _toggle_hud_visibility() przywraca HUD i podpowiedzi na mapie
+	arena._toggle_hud_visibility()
+	var toggledOn: bool = arena.is_hud_visible and scorePanel.visible and staminaPanel.visible and timePanel.visible and labelsNode.visible
+	
+	# 5. Sprawdzenie ciężkiego skrótu klawiszowego Ctrl + Shift + H
+	var keyEvt = InputEventKey.new()
+	keyEvt.pressed = true
+	keyEvt.echo = false
+	keyEvt.keycode = KEY_H
+	keyEvt.ctrl_pressed = true
+	keyEvt.shift_pressed = true
+	arena._unhandled_input(keyEvt)
+	var shortcutToggleOffOk: bool = (not arena.is_hud_visible) and (not scorePanel.visible) and (not labelsNode.visible)
+	
+	# 6. Sprawdzenie alternatywnego ciężkiego klawisza F9
+	var f9Evt = InputEventKey.new()
+	f9Evt.pressed = true
+	f9Evt.echo = false
+	f9Evt.keycode = KEY_F9
+	arena._unhandled_input(f9Evt)
+	var f9ToggleOnOk: bool = arena.is_hud_visible and scorePanel.visible and labelsNode.visible
+	
+	# 7. Zabezpieczenie: pojedyncze naciśnięcie H, Ctrl+H lub Shift+H NIE może wyłączyć HUD (zapobiega przypadkowemu wyłączeniu w trakcie dynamicznej gry)
+	var accidentalH = InputEventKey.new()
+	accidentalH.pressed = true
+	accidentalH.echo = false
+	accidentalH.keycode = KEY_H
+	arena._unhandled_input(accidentalH)
+	var accHSafe: bool = arena.is_hud_visible and scorePanel.visible
+	
+	var accidentalCtrlH = InputEventKey.new()
+	accidentalCtrlH.pressed = true
+	accidentalCtrlH.echo = false
+	accidentalCtrlH.keycode = KEY_H
+	accidentalCtrlH.ctrl_pressed = true
+	accidentalCtrlH.shift_pressed = false
+	arena._unhandled_input(accidentalCtrlH)
+	var accCtrlHSafe: bool = arena.is_hud_visible and scorePanel.visible
+	
+	# 8. Upewnienie się, że skrót nie trafił do bindowalnych akcji ani UI ustawień sterowania
+	var notInBinds: bool = true
+	if is_instance_valid(Events) and is_instance_valid(Events.keybind_manager):
+		notInBinds = not Events.keybind_manager.REBINDABLE_ORDER.has("toggle_hud") and not Events.keybind_manager.DEFAULT_BINDINGS.has("toggle_hud")
+	
+	arena.free()
+	
+	var allHudToggleOk: bool = initialVisible and panelsInitiallyVisible and toggledOff and menusSafe and toggledOn and shortcutToggleOffOk and f9ToggleOnOk and accHSafe and accCtrlHSafe and notInBinds
+	assertCond(allHudToggleOk, "IT-25", "Możliwość wyłączenia i włączenia HUD pod ciężkim skrótem klawiszowym (Ctrl+Shift+H / F9) bez dodawania do bindów")
 
 # ==============================================================================
 # FUNKCJE POMOCNICZE (Tworzenie struktur węzłów w pamięci dla testów)

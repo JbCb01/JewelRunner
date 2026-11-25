@@ -8,6 +8,7 @@ import type {
 } from "../api/types";
 import { ErrorBox, Loading } from "../components/Status";
 import { formatUnlockCondition } from "../lib/format";
+import { skinFilterClass, skinSprite } from "../lib/sprites";
 import { useApi } from "../lib/useApi";
 
 const TABS: { type: AppearanceType; label: string }[] = [
@@ -163,11 +164,18 @@ export function Collection() {
         {data && (
           <>
             <div className="appearance-preview" data-testid="appearance-preview">
-              <div
-                className="appearance-swatch-lg"
-                style={{ backgroundColor: selectedColor?.color_hex ?? "#6A3FB5" }}
-                aria-hidden="true"
-              />
+              <div className="sprite-stage large" aria-hidden="true">
+                <img
+                  className={`pixel ${skinFilterClass(selectedSkin?.name ?? data.current?.skin.name)}`}
+                  src={skinSprite(selectedSkin?.name ?? data.current?.skin.name)}
+                  alt=""
+                />
+                <span
+                  className="appearance-swatch-lg"
+                  style={{ backgroundColor: selectedColor?.color_hex ?? "#6A3FB5" }}
+                  title="Kolor postaci"
+                />
+              </div>
               <div className="appearance-summary">
                 <p>
                   <strong>Skórka:</strong> {selectedSkin?.name ?? data.current?.skin.name ?? "–"}
@@ -237,6 +245,11 @@ export function Collection() {
                       </div>
                     </div>
 
+                    {item.type === "skórka" && (
+                      <div className="sprite-stage" aria-hidden="true">
+                        <img className={`pixel ${skinFilterClass(item.name)}`} src={skinSprite(item.name)} alt="" />
+                      </div>
+                    )}
                     {item.color_hex && (
                       <div className="color-row">
                         <span className="color-dot" style={{ backgroundColor: item.color_hex }} aria-hidden="true" />

@@ -1,7 +1,13 @@
 import type { ReactNode } from "react";
+import { SPRITES } from "../lib/sprites";
 
 export function Loading() {
-  return <p role="status">Ładowanie…</p>;
+  return (
+    <p role="status" className="loading">
+      <img className="pixel loading-gem" src={SPRITES.jewel} alt="" />
+      Ładowanie…
+    </p>
+  );
 }
 
 export function ErrorBox({ message, onRetry, children }: { message: string; onRetry?: () => void; children?: ReactNode }) {

@@ -4,7 +4,7 @@ import type { ShopItem, ShopPurchaseResponse, ShopState } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorBox, Loading } from "../components/Status";
 import { formatBoosterName } from "../lib/format";
-import jewel from "../assets/jewel.png";
+import { boosterSprite, SPRITES } from "../lib/sprites";
 
 type Message = { kind: "success" | "error"; text: string } | null;
 
@@ -133,7 +133,7 @@ export function Shop() {
         <h1>Sklep</h1>
         {data && (
           <div className="shop-balance" data-testid="shop-balance">
-            <img src={jewel} alt="" width={22} height={22} />
+            <img className="pixel" src={SPRITES.jewel} alt="" width={22} height={22} />
             <span>Saldo: {data.balance} klejnotów</span>
           </div>
         )}
@@ -161,7 +161,10 @@ export function Shop() {
             return (
               <article key={item.booster_id} className="card shop-card" data-testid={`shop-item-${item.type}`}>
                 <div className="card-title">
-                  <h2>{formatBoosterName(item.type)}</h2>
+                  <h2 className="with-icon">
+                    <img className="pixel booster-icon" src={boosterSprite(item.type)} alt="" />
+                    {formatBoosterName(item.type)}
+                  </h2>
                   <span className="badge" data-testid={`shop-owned-${item.type}`}>
                     Masz: {item.owned}
                   </span>

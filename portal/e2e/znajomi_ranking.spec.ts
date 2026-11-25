@@ -47,25 +47,25 @@ test.describe("2.3, 2.7 Filtry rankingu i znajomi", () => {
     await expect(page.getByText("Nie masz jeszcze żadnych znajomych.")).toBeVisible();
 
     const searchForm = page.getByRole("form", { name: "Wyszukaj gracza" });
-    await searchForm.getByRole("searchbox").fill("gracz001");
+    await searchForm.getByRole("searchbox").fill("Maku");
     await searchForm.getByRole("button", { name: "Szukaj" }).click();
 
     const results = page.getByTestId("friend-search-results");
-    await expect(results).toContainText("gracz001");
+    await expect(results).toContainText("Maku");
     await results.getByRole("button", { name: "Dodaj do znajomych" }).click();
-    await expect(page.getByRole("status")).toContainText("Dodano gracza gracz001");
-    await expect(page.getByTestId("friends-table")).toContainText("gracz001");
+    await expect(page.getByRole("status")).toContainText("Dodano gracza Maku");
+    await expect(page.getByTestId("friends-table")).toContainText("Maku");
 
     // Ranking znajomych pokazuje dodanego znajomego.
     await page.goto("/rankingi");
     await page.getByRole("button", { name: "Znajomi" }).click();
     await expect(page.locator("tbody tr")).toHaveCount(1);
-    await expect(page.locator("tbody tr").first()).toContainText("gracz001");
+    await expect(page.locator("tbody tr").first()).toContainText("Maku");
 
     // Usunięcie znajomego.
     await page.goto("/znajomi");
     await page.getByTestId("friends-table").getByRole("button", { name: "Usuń" }).click();
-    await expect(page.getByRole("status")).toContainText("Usunięto gracza gracz001");
+    await expect(page.getByRole("status")).toContainText("Usunięto gracza Maku");
     await expect(page.getByText("Nie masz jeszcze żadnych znajomych.")).toBeVisible();
   });
 });

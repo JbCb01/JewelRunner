@@ -87,21 +87,9 @@ function ProfileOverview() {
               src={skinSprite(current.skin.name)}
               alt=""
             />
-            <span
-              className="color-dot lg"
-              style={{ backgroundColor: current.color.hex }}
-              title={current.color.name}
-              aria-hidden="true"
-            />
             <div>
               <p>
-                <strong>Skórka:</strong> {current.skin.name} · <strong>Kolor:</strong> {current.color.name}
-              </p>
-              <p className="muted-text small-note">
-                Akcesoria:{" "}
-                {current.accessories.length > 0
-                  ? current.accessories.map((acc) => `${acc.accessory.name} (${acc.slot})`).join(", ")
-                  : "Brak"}
+                <strong>Skórka:</strong> {current.skin.name}
               </p>
             </div>
           </div>

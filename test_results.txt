@@ -8,7 +8,7 @@
 [PASS] UT-07: Drenaż staminy podczas wspinaczki oraz blokada spadku poniżej 0.0
 [PASS] UT-08: Dekrementacja timerów coyote_time oraz dash_cooldown w każdej klatce
 [PASS] UT-09: Wszystkie ruchy specjalne (Double Jump, Dash, Climb) wymagają i zużywają staminę
-[PASS] UT-10: Tricki w powietrzu regenerują staminę, ale nie pozwalają na jej mnożenie z ruchów specjalnych
+[PASS] UT-10: Combo tricków: 3 kierunkowe tricki, mnożnik za długość combo, Finał kończy combo z bonusem, wpadka traci pulę, overflow staminy ponad maksimum
 [PASS] UT-11: System mnożników podnosi koszt używanego ruchu, obniża pozostałe i zachowuje stałą sumę z wagami
 [PASS] UT-12: AI Director blokuje przeciążony ruch i odblokowuje go po wykonaniu Tricków w powietrzu
 [PASS] UT-13: Generator poziomów tworzy geometrię, siatkę kafelków TileMapLayer oraz profil dla Analizatora AI
@@ -19,10 +19,10 @@
 [PASS] UT-18: Synchronizacja ze stroną pobiera profil, skórkę, kolor, czapkę oraz wzmocnienia (HP, Tarcza, Magnes)
 [PASS] UT-19: Generator map dostosowuje liczbę Jeweli, limit czasu i mechanikę do aktywnych zadań ze strony
 [PASS] UT-20: SkinManager poprawnie ładuje wszystkie 6 skórek z podfolderów assets/sprites i aplikuje SpriteFrames do postaci
-[PASS] UT-21: Domyślny klawisz tricku to Ctrl, a KeybindManager obsługuje rebind, konflikt/swap, zapis JSON i reset
+[PASS] UT-21: Domyślne klawisze tricków to Z/X/C, a KeybindManager obsługuje rebind, konflikt/swap, zapis JSON i reset
 [PASS] UT-22: Dawnosaur movement, nerf same-wall jump, snappy dash, slide speed/friction, bufor kamery i animacja run_start/run
 [PASS] IT-01: Zebranie klejnotu aktualizuje licznik JEWELS (X/Y) na HUDzie
-[PASS] IT-02: Regeneracja staminy poprzez Trick w powietrzu aktualizuje pasek staminy na HUDzie
+[PASS] IT-02: Combo tricków aktualizuje HUD: panel combo, wypłata na pasku staminy i złoty overflow
 [PASS] IT-03: Zmiana staminy w PlayerController aktualizuje pasek ProgressBar w HUDzie
 [PASS] IT-04: Kolizja z Hazardem przy 1 HP wywołuje śmierć i otwiera ekran Game Over w UI
 [PASS] IT-05: FinishGoal blokuje wyjście bez wszystkich Jeweli, a po ich zebraniu zlicza czas i odblokowuje odznakę

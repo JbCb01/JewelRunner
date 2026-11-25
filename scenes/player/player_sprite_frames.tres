@@ -59,6 +59,29 @@
 [ext_resource type="Texture2D" uid="uid://d6onvjdrotqb" path="res://assets/Stellyrunaccel-sheet.png" id="86_runaccel"]
 [ext_resource type="Texture2D" uid="uid://dund1h825sx0s" path="res://assets/Stellyidle_sheet.png" id="87_idlesheet"]
 [ext_resource type="Texture2D" uid="uid://c4xkhseu2m0ww" path="res://assets/Stellyappear_star_sheet.png" id="88_appearstar"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_flip1.png" id="cmb_trick_flip_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_flip2.png" id="cmb_trick_flip_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_flip3.png" id="cmb_trick_flip_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_flip4.png" id="cmb_trick_flip_4"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_flip5.png" id="cmb_trick_flip_5"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_flip6.png" id="cmb_trick_flip_6"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_flip7.png" id="cmb_trick_flip_7"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_flip8.png" id="cmb_trick_flip_8"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_star1.png" id="cmb_trick_star_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_star2.png" id="cmb_trick_star_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_star3.png" id="cmb_trick_star_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_star4.png" id="cmb_trick_star_4"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_star5.png" id="cmb_trick_star_5"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_star6.png" id="cmb_trick_star_6"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_star7.png" id="cmb_trick_star_7"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_star8.png" id="cmb_trick_star_8"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_star9.png" id="cmb_trick_star_9"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_finish1.png" id="cmb_trick_finish_1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_finish2.png" id="cmb_trick_finish_2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_finish3.png" id="cmb_trick_finish_3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_finish4.png" id="cmb_trick_finish_4"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_finish5.png" id="cmb_trick_finish_5"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/combo/Stelly_trick_finish6.png" id="cmb_trick_finish_6"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_appear_1"]
 atlas = ExtResource("88_appearstar")
@@ -780,4 +803,88 @@ animations = [{
 "loop": 1,
 "name": &"wall_slide",
 "speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_flip_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_flip_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_flip_3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_flip_4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_flip_5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_flip_6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_flip_7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_flip_8")
+}],
+"loop": false,
+"name": &"trick_flip",
+"speed": 26.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_star_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_star_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_star_3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_star_4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_star_5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_star_6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_star_7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_star_8")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_star_9")
+}],
+"loop": false,
+"name": &"trick_star",
+"speed": 32.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_finish_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_finish_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_finish_3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_finish_4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_finish_5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cmb_trick_finish_6")
+}],
+"loop": false,
+"name": &"trick_finish",
+"speed": 20.0
 }]

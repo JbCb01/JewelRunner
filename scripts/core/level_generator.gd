@@ -186,7 +186,8 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"music_title": "Yessirski"
 			}
 		MechanicProfile.VERTICAL_ASCENT:
-			var trick_key := Events.get_action_key_label("trick", "pl") if is_instance_valid(Events) else "Ctrl"
+			var trick_key := Events.get_action_key_label("trick_flip", "pl") if is_instance_valid(Events) else "Z"
+			var finish_key := Events.get_action_key_label("trick_finish", "pl") if is_instance_valid(Events) else "C"
 			return {
 				"id": 2,
 				"biome_id": BiomeId.WINTER,
@@ -194,7 +195,7 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 				"subtitle": "Żywioł: Wall Climb, Trampoliny & Studnie Tricków",
 				"dominant": "wall_climb",
 				"dna": {"wall_climb": 54, "dash": 18, "double_jump": 28},
-				"description": "Lodowe wieże, komin do wall jumpów, zamarznięte sadzawki i Lodowa Korona z sekretną półką nad ekranem. Ładuj staminę Trickiem [%s] podczas spadków." % trick_key,
+				"description": "Lodowe wieże, komin do wall jumpów, zamarznięte sadzawki i Lodowa Korona z sekretną półką nad ekranem. Ładuj staminę combo tricków (od [%s]), zakończ Finałem [%s]." % [trick_key, finish_key],
 				"music_path": "res://audio/music/onmymommaimthegoat.wav",
 				"music_title": "On My Momma I'm The Goat"
 			}

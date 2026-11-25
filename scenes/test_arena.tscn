@@ -2154,7 +2154,7 @@ offset_left = 4372.0
 offset_top = 60.0
 offset_right = 4712.0
 offset_bottom = 83.0
-text = "Hold [{trick}] while falling to recharge stamina"
+text = "Tricks in air: [{trick_flip}] [{trick_star}], [{trick_finish}] = FINALE"
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=582845555]
 
@@ -2958,7 +2958,7 @@ text = "W / ↑"
 [node name="Action6" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
-text = "Trick (w locie - ładuje staminę):"
+text = "Combo tricków (w locie - ładuje staminę):"
 
 [node name="Key6" type="Label" parent="HUD/SettingsView/Panels/ControlsPanel/Grid"]
 layout_mode = 2

@@ -130,7 +130,7 @@ func utDefaultInputMapSetup() -> void:
 	Events._setup_default_inputs()
 	var hasJump: bool = InputMap.has_action("jump")
 	var hasDash: bool = InputMap.has_action("dash")
-	var hasTrick: bool = InputMap.has_action("trick")
+	var hasTrick: bool = InputMap.has_action("trick_flip") and InputMap.has_action("trick_star") and InputMap.has_action("trick_finish")
 	assertCond(hasJump and hasDash and hasTrick, "UT-03", "Automatyczna rejestracja akcji w InputMap działa poprawnie")
 
 func utArenaTimeFormatting() -> void:
@@ -216,30 +216,69 @@ func utSpecialMovesConsumeStamina() -> void:
 func utTrickRegenCannotMultiplyStamina() -> void:
 	Events.ai_director.reset_session_state(true)
 	var plr = _createMockPlayer()
-	
-	var djMaxRegen: float = plr.get_max_possible_trick_regen_for_move("double_jump")
-	var djMinCost: float = plr.double_jump_base_stamina_cost * Events.ai_director.min_multiplier
-	var wcMaxRegen: float = plr.get_max_possible_trick_regen_for_move("wall_climb")
-	var wcMinCost: float = plr.wall_climb_base_stamina_cost * Events.ai_director.min_multiplier
-	var dashMaxRegen: float = plr.get_max_possible_trick_regen_for_move("dash")
-	var dashMinCost: float = plr.dash_base_stamina_cost * Events.ai_director.min_multiplier
-	
-	var physicsBalanced: bool = (djMaxRegen < djMinCost) and (wcMaxRegen < wcMinCost) and (dashMaxRegen < dashMinCost)
-	
-	plr.wall_stamina = 1.5
-	plr.airborne_origin_y = 200.0
-	plr.global_position = Vector2(100.0, 160.0)
-	plr.can_double_jump = true
-	plr._execute_double_jump()
-	plr.regenerate_stamina_from_trick(0.60)
-	var netNoGain: bool = plr.wall_stamina < 1.5
-	
-	plr.wall_stamina = 0.8
+	var m: float = plr.trick_regen_multiplier
+	var flipDur: float = plr.trick_flip_duration + 0.01
+	var starDur: float = plr.trick_star_duration + 0.01
+
+	# 1. Combo 3 tricków: Salto -> Gwiazda -> Wielki Finał (wypłata z mnożnikiem i bonusem Finału)
+	plr.wall_stamina = 0.5
 	plr._execute_jump()
-	var gained: float = plr.regenerate_stamina_from_trick(0.5)
-	var normalRegenWorks: bool = (gained > 0.15) and (plr.wall_stamina > 0.95)
-	
-	assertCond(physicsBalanced and netNoGain and normalRegenWorks, "UT-10", "Tricki w powietrzu regenerują staminę, ale nie pozwalają na jej mnożenie z ruchów specjalnych")
+	var flipOk: bool = plr.request_trick("flip") and plr.current_trick == "flip"
+	var pending1: float = plr.get_combo_payout()
+	plr._update_trick(flipDur)
+	var starOk: bool = plr.request_trick("star") and plr.current_trick == "star"
+	plr._update_trick(starDur)
+	var pending2: float = plr.get_combo_payout()
+	var mult2Ok: bool = is_equal_approx(pending2, (plr.trick_flip_stamina + plr.trick_star_stamina) * m * (1.0 + plr.combo_multiplier_step))
+	var finOk: bool = plr.request_trick("finish") and plr.combo_finished and plr.combo_banked
+	var expected3: float = (plr.trick_flip_stamina + plr.trick_star_stamina + plr.trick_finish_stamina) * m * (1.0 + 2.0 * plr.combo_multiplier_step) * plr.combo_finisher_bonus
+	var bankOk: bool = absf(plr.wall_stamina - (0.5 + expected3)) < 0.001
+	var superlinear: bool = expected3 > 3.0 * pending1
+	# Po Finale nie można wykonać kolejnych tricków aż do lądowania
+	var lockedAfterFinish: bool = not plr.request_trick("flip")
+	plr._resolve_combo("land")
+	var resetOk: bool = plr.combo_tricks.is_empty() and not plr.is_tricking and absf(plr.wall_stamina - (0.5 + expected3)) < 0.001
+
+	# 2. Wpadka: lądowanie w trakcie tricku = pula przepada
+	plr.wall_stamina = 1.0
+	plr._execute_jump()
+	plr.request_trick("flip")
+	plr._update_trick(flipDur)
+	plr.request_trick("star")
+	plr._resolve_combo("land")
+	var bailOk: bool = is_equal_approx(plr.wall_stamina, 1.0) and plr.combo_tricks.is_empty()
+
+	# 3. Czyste lądowanie bez Finału wypłaca pulę (bez bonusu)
+	plr._execute_jump()
+	plr.request_trick("flip")
+	plr._update_trick(flipDur)
+	plr._resolve_combo("land")
+	var cleanLandOk: bool = is_equal_approx(plr.wall_stamina, 1.0 + plr.trick_flip_stamina * m)
+
+	# 4. Powtórzenie tego samego tricku jest mniej warte, Finał bez combo = Salto
+	plr._execute_jump()
+	var finishAsFlip: bool = plr.request_trick("finish") and plr.current_trick == "flip" and not plr.combo_finished
+	plr._update_trick(flipDur)
+	plr.request_trick("flip")
+	var repeatOk: bool = is_equal_approx(plr.combo_pending, plr.trick_flip_stamina * m * (1.0 + plr.combo_repeat_penalty))
+	plr._resolve_combo("lost")
+
+	# 5. Overflow: duże combo przekracza maksimum staminy (do limitu overflow)
+	plr.wall_stamina = plr.wall_climb_max_stamina - 0.1
+	plr._execute_jump()
+	for k in ["flip", "star", "flip", "star", "flip", "star"]:
+		plr.request_trick(k)
+		plr._update_trick(0.4)
+	plr.request_trick("finish")
+	var overflowOk: bool = plr.wall_stamina > plr.wall_climb_max_stamina + 0.5 and plr.wall_stamina <= plr.get_stamina_overflow_cap() + 0.0001
+	# Bierna regeneracja nie ścina overflow
+	var before: float = plr.wall_stamina
+	plr._resolve_combo("land")
+	var keptOverflow: bool = is_equal_approx(plr.wall_stamina, before)
+	# Overflow pozwala wykonać więcej ruchów specjalnych niż bazowy pasek
+	var canDash: bool = plr.can_use_special_move("dash")
+
+	assertCond(flipOk and starOk and mult2Ok and finOk and bankOk and superlinear and lockedAfterFinish and resetOk and bailOk and cleanLandOk and finishAsFlip and repeatOk and overflowOk and keptOverflow and canDash, "UT-10", "Combo tricków: 3 kierunkowe tricki, mnożnik za długość combo, Finał kończy combo z bonusem, wpadka traci pulę, overflow staminy ponad maksimum")
 	plr.free()
 
 func utAdaptiveMultipliersConstantSumAndWeights() -> void:
@@ -460,31 +499,31 @@ func utTrickDefaultIsCtrlAndKeybindManagerWorks() -> void:
 	km.keybinds_save_path = test_path
 	km.reset_to_defaults()
 
-	var trick_default_ctrl: bool = (km.get_primary_keycode("trick") == KEY_CTRL)
+	var trick_default_ctrl: bool = (km.get_primary_keycode("trick_flip") == KEY_Z) and (km.get_primary_keycode("trick_star") == KEY_X) and (km.get_primary_keycode("trick_finish") == KEY_C)
 	var crouch_has_ctrl: bool = false
 	for ev in InputMap.action_get_events("crouch_slide"):
 		if ev is InputEventKey and (ev as InputEventKey).physical_keycode == KEY_CTRL:
 			crouch_has_ctrl = true
 
-	var rebind_ok: bool = km.rebind_action("trick", KEY_F) and (km.get_primary_keycode("trick") == KEY_F)
-	var esc_rejected: bool = not km.rebind_action("trick", KEY_ESCAPE)
+	var rebind_ok: bool = km.rebind_action("trick_flip", KEY_F) and (km.get_primary_keycode("trick_flip") == KEY_F)
+	var esc_rejected: bool = not km.rebind_action("trick_flip", KEY_ESCAPE)
 
 	# Persistence check with a second KeybindManager instance
 	var km2 := KeybindManagerScript.new()
 	km2.keybinds_save_path = test_path
 	km2.load_keybinds()
-	var persist_ok: bool = (km2.get_primary_keycode("trick") == KEY_F)
+	var persist_ok: bool = (km2.get_primary_keycode("trick_flip") == KEY_F)
 	km2.free()
 
 	# Conflict swap: binding trick to KEY_SHIFT (owned by dash) swaps dash to KEY_F
-	var swap_ok: bool = km.rebind_action("trick", KEY_SHIFT) and (km.get_primary_keycode("trick") == KEY_SHIFT) and (km.get_primary_keycode("dash") == KEY_F)
+	var swap_ok: bool = km.rebind_action("trick_flip", KEY_SHIFT) and (km.get_primary_keycode("trick_flip") == KEY_SHIFT) and (km.get_primary_keycode("dash") == KEY_F)
 
 	# Reset restores defaults and cleans up file
 	km.reset_to_defaults()
-	var reset_ok: bool = (km.get_primary_keycode("trick") == KEY_CTRL) and (km.get_primary_keycode("dash") == KEY_SHIFT) and (not FileAccess.file_exists(test_path))
+	var reset_ok: bool = (km.get_primary_keycode("trick_flip") == KEY_Z) and (km.get_primary_keycode("dash") == KEY_SHIFT) and (not FileAccess.file_exists(test_path))
 
 	km.keybinds_save_path = orig_path
-	assertCond(trick_default_ctrl and (not crouch_has_ctrl) and rebind_ok and esc_rejected and persist_ok and swap_ok and reset_ok, "UT-21", "Domyślny klawisz tricku to Ctrl, a KeybindManager obsługuje rebind, konflikt/swap, zapis JSON i reset")
+	assertCond(trick_default_ctrl and (not crouch_has_ctrl) and rebind_ok and esc_rejected and persist_ok and swap_ok and reset_ok, "UT-21", "Domyślne klawisze tricków to Z/X/C, a KeybindManager obsługuje rebind, konflikt/swap, zapis JSON i reset")
 
 func utPlayerResponsivenessAndFeelMechanics() -> void:
 	var plr = _createMockPlayer()
@@ -533,7 +572,15 @@ func utPlayerResponsivenessAndFeelMechanics() -> void:
 	plr.current_state = PlayerScript.State.RUN
 	plr.velocity.x = plr.speed
 	plr._start_slide()
-	var slideOk: bool = (plr.slide_max_speed > plr.speed) and (plr.slide_friction >= 550.0) and (absf(plr.velocity.x) >= plr.slide_initial_speed - 0.1)
+	var launchSpd: float = absf(plr.velocity.x)
+	for _i in range(6):
+		plr._state_slide(1.0 / 60.0)
+	var afterBurst: float = absf(plr.velocity.x)
+	for _i in range(18):
+		plr._state_slide(1.0 / 60.0)
+	var afterHalf: float = absf(plr.velocity.x)
+	# Szybki start (> 2x bieg), krótko utrzymany zryw, potem stopniowa utrata pędu
+	var slideOk: bool = (launchSpd >= plr.slide_burst_speed - 0.1) and (launchSpd > plr.speed * 2.0) and (afterBurst > launchSpd * 0.9) and (afterHalf < afterBurst * 0.75) and (afterHalf > plr.slide_min_speed)
 
 	# 5. Kamera: bufor deadzone bez szarpania lewo/prawo przy A/D
 	plr.facing_direction = 1.0
@@ -573,13 +620,24 @@ func itJewelPickupUpdatesHudProgress() -> void:
 
 func itPlayerTrickRegensStaminaOnHud() -> void:
 	var arena = _createMockArena(1)
+	arena._setup_combo_hud()
 	var plr = _createMockPlayer()
-	plr.wall_stamina = 1.0
+	plr.wall_stamina = 0.4
 	plr._execute_jump()
-	plr.regenerate_stamina_from_trick(0.5)
-	
-	var hudSynced: bool = (arena.hud_stamina_bar.value > 1.1) and is_equal_approx(arena.hud_stamina_bar.value, plr.wall_stamina)
-	assertCond(hudSynced, "IT-02", "Regeneracja staminy poprzez Trick w powietrzu aktualizuje pasek staminy na HUDzie")
+	plr.request_trick("flip")
+	var panelShown: bool = arena._combo_panel != null and arena._combo_panel.visible and arena._combo_value_label.text.begins_with("x1")
+	plr._update_trick(plr.trick_flip_duration + 0.01)
+	plr.request_trick("star")
+	plr._update_trick(plr.trick_star_duration + 0.01)
+	var chainOk: bool = arena._combo_chain_label.text.contains(">")
+	plr.request_trick("finish")
+	var hudSynced: bool = (arena.hud_stamina_bar.value > 1.5) and absf(arena.hud_stamina_bar.value - plr.wall_stamina) < 0.011
+	var finaleShown: bool = arena._combo_chain_label.text.contains("x3")
+	# Overflow ponad maksimum: złota warstwa na pasku staminy
+	plr.wall_stamina = plr.wall_climb_max_stamina + 0.6
+	Events.player_stamina_changed.emit(plr.wall_stamina, plr.wall_climb_max_stamina)
+	var overflowShown: bool = arena._stamina_overflow_bar != null and arena._stamina_overflow_bar.visible and is_equal_approx(arena._stamina_overflow_bar.value, 0.6)
+	assertCond(hudSynced and panelShown and chainOk and finaleShown and overflowShown, "IT-02", "Combo tricków aktualizuje HUD: panel combo, wypłata na pasku staminy i złoty overflow")
 	plr.free()
 	arena.free()
 
@@ -1380,8 +1438,8 @@ func itControlsRebindUiInMenuAndPauseSettings() -> void:
 	var menuUiOk: bool = (menu.controls_rebind_ui != null)
 	var legacyGrid = menu._find_in_settings("ControlsPanel/Grid") as Control
 	var gridHiddenOk: bool = (legacyGrid != null and not legacyGrid.visible)
-	var trickBtn: Button = menu.controls_rebind_ui.action_buttons.get("trick") as Button
-	var initTextOk: bool = (trickBtn != null and trickBtn.text == "Ctrl")
+	var trickBtn: Button = menu.controls_rebind_ui.action_buttons.get("trick_flip") as Button
+	var initTextOk: bool = (trickBtn != null and trickBtn.text == "Z")
 
 	# Rozpoczęcie nasłuchiwania i zmiana tricku na klawisz E (nie może przełączyć zakładki!)
 	var listenOk: bool = false
@@ -1394,7 +1452,7 @@ func itControlsRebindUiInMenuAndPauseSettings() -> void:
 		ev.physical_keycode = KEY_E
 		ev.keycode = KEY_E
 		menu.controls_rebind_ui._input(ev)
-		reboundMenuOk = (not menu.controls_rebind_ui.is_listening()) and (km.get_primary_keycode("trick") == KEY_E) and (trickBtn.text == "E") and (menu.currentSettingsTab == 2)
+		reboundMenuOk = (not menu.controls_rebind_ui.is_listening()) and (km.get_primary_keycode("trick_flip") == KEY_E) and (trickBtn.text == "E") and (menu.currentSettingsTab == 2)
 
 	menu.free()
 
@@ -1407,13 +1465,13 @@ func itControlsRebindUiInMenuAndPauseSettings() -> void:
 	arena._switch_settings_tab(2)
 
 	var arenaUiOk: bool = (arena.controls_rebind_ui != null)
-	var arenaTrickBtn: Button = arena.controls_rebind_ui.action_buttons.get("trick") as Button
+	var arenaTrickBtn: Button = arena.controls_rebind_ui.action_buttons.get("trick_flip") as Button
 	var arenaSyncedOk: bool = (arenaTrickBtn != null and arenaTrickBtn.text == "E")
 
 	var resetBtn: Button = arena.controls_rebind_ui.reset_btn
 	if resetBtn:
 		resetBtn.pressed.emit()
-	var resetUiOk: bool = (km.get_primary_keycode("trick") == KEY_CTRL) and (arenaTrickBtn != null and arenaTrickBtn.text == "Ctrl")
+	var resetUiOk: bool = (km.get_primary_keycode("trick_flip") == KEY_Z) and (arenaTrickBtn != null and arenaTrickBtn.text == "Z")
 
 	get_tree().paused = false
 	arena.free()

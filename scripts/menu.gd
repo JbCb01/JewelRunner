@@ -952,7 +952,7 @@ func _preview_mechanic_profile(profile_id: int) -> void:
 			2:
 				title = "II. ICEFLOW RIDGE (WINTER / ICE)"
 				subtitle = "Dominance: Wall Climb, Trampolines & Trick Wells"
-				desc = "Glacial shafts, icy towers, and freezing chasms. Recharge stamina with mid-air Tricks [%s] while descending." % (Events.get_action_key_label("trick", "en") if is_instance_valid(Events) else "Ctrl")
+				desc = "Glacial shafts, icy towers, and freezing chasms. Chain mid-air trick combos ([%s]) and land the Finale for overflow stamina." % (Events.get_trick_keys_label("en") if is_instance_valid(Events) else "Z/X/C")
 			3:
 				title = "III. BLAZING TRENCH (AUTUMN / LAVA)"
 				subtitle = "Dominance: Slide -> Air Dash over Lava Canyons"

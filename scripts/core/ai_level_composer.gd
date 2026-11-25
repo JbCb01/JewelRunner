@@ -195,7 +195,7 @@ static func compose_chessboard_level(
 	var shares: Dictionary = profile.get("usage_shares", {})
 	if not has_profile or float(shares.get("trick", 0.0)) < 0.08:
 		plan.append("trick_well")
-		var trick_txt: String = Events.format_keybind_text("Studnia tricków: trzymaj [{trick}] w locie, by odzyskać staminę", "pl") if is_instance_valid(Events) else "Studnia tricków: trzymaj [Ctrl] w locie, by odzyskać staminę"
+		var trick_txt: String = Events.format_keybind_text("Studnia tricków: combo [{trick_flip}] Salto / [{trick_star}] Gwiazda w locie, [{trick_finish}] = Finał (overflow staminy)", "pl") if is_instance_valid(Events) else "Studnia tricków: combo [Z] Salto / [X] Gwiazda w locie, [C] = Finał (overflow staminy)"
 		reasons.append(trick_txt)
 	else:
 		plan.append(_pick_module(rng, "trampoline", 1, used))

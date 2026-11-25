@@ -12,7 +12,9 @@ const DEFAULT_BINDINGS: Dictionary = {
 	"jump": [KEY_SPACE],
 	"dash": [KEY_SHIFT],
 	"crouch_slide": [KEY_S, KEY_DOWN],
-	"trick": [KEY_CTRL],
+	"trick_flip": [KEY_Z],
+	"trick_star": [KEY_X],
+	"trick_finish": [KEY_C],
 }
 
 const REBINDABLE_ORDER: Array[String] = [
@@ -22,7 +24,9 @@ const REBINDABLE_ORDER: Array[String] = [
 	"jump",
 	"dash",
 	"crouch_slide",
-	"trick",
+	"trick_flip",
+	"trick_star",
+	"trick_finish",
 ]
 
 const ACTION_LABELS: Dictionary = {
@@ -32,7 +36,9 @@ const ACTION_LABELS: Dictionary = {
 	"jump": {"pl": "Skok / Podwójny skok:", "en": "Jump / Double Jump:"},
 	"dash": {"pl": "Zryw (Dash):", "en": "Dash:"},
 	"crouch_slide": {"pl": "Kucanie / Wślizg:", "en": "Crouch / Slide:"},
-	"trick": {"pl": "Trick (w locie):", "en": "Mid-air Trick:"},
+	"trick_flip": {"pl": "Trick: Salto (w locie):", "en": "Trick: Flip (mid-air):"},
+	"trick_star": {"pl": "Trick: Gwiazda (w locie):", "en": "Trick: Star (mid-air):"},
+	"trick_finish": {"pl": "Trick: Wielki Finał (kończy combo):", "en": "Trick: Grand Finale (ends combo):"},
 }
 
 var keybinds_save_path: String = "user://keybinds.json"

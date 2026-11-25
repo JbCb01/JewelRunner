@@ -25,6 +25,16 @@ var _hud_exit_was_open: bool = false
 var _hud_low_stamina: bool = false
 var _hud_blink_t: float = 0.0
 var _powerup_chips: Dictionary = {}
+# --- Combo tricków (HUD) ---
+var _combo_panel: PanelContainer = null
+var _combo_chain_label: Label = null
+var _combo_value_label: Label = null
+var _combo_hold_t: float = 0.0
+var _combo_pop_t: float = 0.0
+var _stamina_overflow_bar: ProgressBar = null
+var _stamina_overflow_amount: float = 0.0
+var combos_finished_count: int = 0
+var best_combo_count: int = 0
 @onready var pause_menu: Control = get_node_or_null("HUD/PauseMenu")
 @onready var settings_view: Control = get_node_or_null("HUD/SettingsView")
 @onready var game_over_menu: Control = get_node_or_null("HUD/GameOverMenu")
@@ -174,6 +184,11 @@ const HUD_CHIP_PATH := "res://assets/ui/hud/hud_chip.png"
 const HUD_ICON_INDEX: Dictionary = {"shield": 8, "speed": 9, "star": 10}
 const STAMINA_COLORS: Array[Color] = [Color8(107, 201, 108), Color8(252, 239, 141), Color8(234, 98, 98)]
 const GOAL_COLOR_LOCKED := Color8(212, 110, 179)
+const COMBO_COLOR := Color8(252, 239, 141)
+const COMBO_FINISH_COLOR := Color8(255, 170, 222)
+const COMBO_BAIL_COLOR := Color8(234, 98, 98)
+const OVERFLOW_COLOR := Color8(255, 196, 72)
+const TRICK_LABELS: Dictionary = {"flip": ["SALTO", "FLIP"], "star": ["GWIAZDA", "STAR"], "finish": ["FINAŁ", "FINALE"]}
 const GOAL_COLOR_OPEN := Color8(171, 221, 100)
 const MULT_HOLD_DURATION: float = 0.45
 const MULT_FADE_SPEED: float = 0.55
@@ -290,6 +305,7 @@ func _ready() -> void:
 		_apply_language(saved_lang)
 	
 	_setup_hud_fonts()
+	_setup_combo_hud()
 	_apply_pixel_font_to_level_labels()
 	_refresh_dynamic_control_labels()
 	_ensure_ai_hud_panel()
@@ -313,6 +329,8 @@ func _ready() -> void:
 	Events.mechanic_lockout_changed.connect(_on_mechanic_lockout_changed)
 	Events.stamina_action_rejected.connect(_on_stamina_action_rejected)
 	Events.trick_performed.connect(_on_trick_performed)
+	Events.trick_combo_updated.connect(_on_trick_combo_updated)
+	Events.trick_combo_ended.connect(_on_trick_combo_ended)
 	Events.enemy_defeated.connect(_on_enemy_defeated)
 	Events.cursed_jewel_triggered.connect(_on_cursed_jewel_triggered)
 	Events.portal_profile_synced.connect(_on_arena_portal_profile_synced)
@@ -456,6 +474,12 @@ func _on_player_stamina_changed(current: float, max_stamina: float) -> void:
 				fill_sb.bg_color = col
 				fill_sb.border_color = col.lightened(0.35)
 				_hud_low_stamina = ratio <= 0.25
+	# Overflow staminy z combo: złota warstwa nad pełnym paskiem
+	_stamina_overflow_amount = maxf(0.0, current - max_stamina)
+	if _stamina_overflow_bar:
+		_stamina_overflow_bar.max_value = max_stamina
+		_stamina_overflow_bar.value = minf(_stamina_overflow_amount, max_stamina)
+		_stamina_overflow_bar.visible = _stamina_overflow_amount > 0.001
 
 func _report_active_life_booster() -> void:
 	if DisplayServer.get_name() == "headless" or not is_inside_tree():
@@ -661,7 +685,145 @@ func _update_hud_effects(delta: float) -> void:
 			hud_stamina_bar.modulate = Color(1, 1, 1, a)
 		else:
 			hud_stamina_bar.modulate = Color.WHITE
+	if _stamina_overflow_bar and _stamina_overflow_bar.visible:
+		_stamina_overflow_bar.modulate = Color(1, 1, 1, 0.78 + 0.22 * sin(_hud_blink_t * 5.0))
+	_update_combo_hud(delta)
 	_update_powerup_tray()
+
+## Tworzy panel combo (góra-środek) i złotą warstwę overflow na pasku staminy.
+func _setup_combo_hud() -> void:
+	var hud: Node = get_node_or_null("HUD")
+	if not hud:
+		return
+	if hud_stamina_bar and not _stamina_overflow_bar:
+		_stamina_overflow_bar = ProgressBar.new()
+		_stamina_overflow_bar.name = "OverflowBar"
+		_stamina_overflow_bar.show_percentage = false
+		_stamina_overflow_bar.step = 0.0
+		_stamina_overflow_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_stamina_overflow_bar.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_stamina_overflow_bar.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_stamina_overflow_bar.add_theme_stylebox_override("background", StyleBoxEmpty.new())
+		var fill := StyleBoxFlat.new()
+		fill.bg_color = OVERFLOW_COLOR
+		fill.border_color = OVERFLOW_COLOR.lightened(0.45)
+		fill.border_width_top = 1
+		_stamina_overflow_bar.add_theme_stylebox_override("fill", fill)
+		_stamina_overflow_bar.visible = false
+		hud_stamina_bar.add_child(_stamina_overflow_bar)
+		var ticks: Node = hud_stamina_bar.get_node_or_null("Ticks")
+		if ticks:
+			hud_stamina_bar.move_child(ticks, -1)
+	if _combo_panel:
+		return
+	_combo_panel = PanelContainer.new()
+	_combo_panel.name = "ComboPanel"
+	_combo_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_combo_panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var sb := StyleBoxTexture.new()
+	if ResourceLoader.exists(HUD_CHIP_PATH):
+		sb.texture = load(HUD_CHIP_PATH)
+	sb.set_texture_margin_all(3.0)
+	sb.content_margin_left = 7.0
+	sb.content_margin_right = 7.0
+	sb.content_margin_top = 3.0
+	sb.content_margin_bottom = 3.0
+	_combo_panel.add_theme_stylebox_override("panel", sb)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 0)
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	_combo_panel.add_child(vb)
+	_combo_chain_label = Label.new()
+	_combo_chain_label.name = "ComboChain"
+	_combo_chain_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_combo_value_label = Label.new()
+	_combo_value_label.name = "ComboValue"
+	_combo_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if ResourceLoader.exists(HUD_FONT_PATHS[0]):
+		_combo_chain_label.add_theme_font_override("font", load(HUD_FONT_PATHS[0]))
+	if ResourceLoader.exists(HUD_FONT_PATHS[1]):
+		_combo_value_label.add_theme_font_override("font", load(HUD_FONT_PATHS[1]))
+	_combo_chain_label.add_theme_color_override("font_color", Color(0.86, 0.82, 0.92, 1.0))
+	vb.add_child(_combo_chain_label)
+	vb.add_child(_combo_value_label)
+	_combo_panel.visible = false
+	hud.add_child(_combo_panel)
+	# Pod menu (pauza / game over / wygrana / ustawienia): zaraz za paskiem komunikatów
+	var first_menu: int = hud.get_child_count() - 1
+	for m in [pause_menu, settings_view, game_over_menu, win_screen]:
+		if m and m.get_parent() == hud:
+			first_menu = mini(first_menu, m.get_index())
+	hud.move_child(_combo_panel, first_menu)
+
+## Natychmiast chowa panel combo (game over, pauza, ukończenie poziomu).
+func _hide_combo_hud() -> void:
+	if _combo_panel:
+		_combo_panel.visible = false
+		_combo_hold_t = 0.0
+
+func _trick_label(kind: String) -> String:
+	var pair: Array = TRICK_LABELS.get(kind, [kind.to_upper(), kind.to_upper()])
+	return String(pair[1] if current_language == "en" else pair[0])
+
+func _show_combo(chain: String, value: String, color: Color, hold: float) -> void:
+	if not _combo_panel:
+		return
+	_combo_chain_label.text = chain
+	_combo_value_label.text = value
+	_combo_value_label.add_theme_color_override("font_color", color)
+	_combo_panel.visible = true
+	_combo_panel.modulate.a = 1.0
+	_combo_hold_t = hold
+	_combo_pop_t = 0.18
+	_combo_panel.size = Vector2.ZERO
+	_combo_panel.reset_size()
+	_update_combo_hud(0.0)
+
+func _on_trick_combo_updated(tricks: Array, payout: float, finished: bool) -> void:
+	if finished:
+		return  # wypłatę pokazuje _on_trick_combo_ended
+	var names: PackedStringArray = []
+	for t in tricks:
+		names.append(_trick_label(String(t)))
+	var hint: String = ""
+	if tricks.size() >= 2:
+		var fk: String = Events.get_action_key_label("trick_finish", current_language) if is_instance_valid(Events) else "C"
+		hint = ("  [%s] FINALE!" if current_language == "en" else "  [%s] FINAŁ!") % fk
+	_show_combo(" > ".join(names), "x%d  +%.2f%s" % [tricks.size(), payout, hint], COMBO_COLOR, 99.0)
+
+func _on_trick_combo_ended(count: int, stamina_gained: float, finished: bool, bailed: bool) -> void:
+	if bailed:
+		_show_combo("COMBO x%d" % count, "BAILED!" if current_language == "en" else "WPADKA!", COMBO_BAIL_COLOR, 1.1)
+		return
+	best_combo_count = maxi(best_combo_count, count)
+	if finished:
+		combos_finished_count += 1
+		var title: String = "GRAND FINALE" if current_language == "en" else "WIELKI FINAŁ"
+		var over: String = "  OVERFLOW!" if _stamina_overflow_amount > 0.001 else ""
+		_show_combo("%s  x%d" % [title, count], "+%.2f STAMINA%s" % [stamina_gained, over], COMBO_FINISH_COLOR, 1.6)
+	else:
+		_show_combo("COMBO x%d" % count, "+%.2f STAMINA" % stamina_gained, COMBO_COLOR, 1.2)
+
+func _update_combo_hud(delta: float) -> void:
+	if not _combo_panel or not _combo_panel.visible:
+		return
+	var vp_w: float = 640.0
+	if is_inside_tree():
+		vp_w = get_viewport().get_visible_rect().size.x
+	_combo_pop_t = maxf(0.0, _combo_pop_t - delta)
+	var pop: float = 1.0 + 0.6 * _combo_pop_t
+	_combo_panel.pivot_offset = _combo_panel.size * 0.5
+	_combo_panel.scale = Vector2(pop, pop)
+	# Pod górnymi panelami HUD; gdy długi komunikat zajmuje pasek y=90, panel combo schodzi niżej
+	var combo_y: float = 92.0
+	if hud_status_toast and hud_status_toast.visible and hud_status_toast.position.y >= 80.0:
+		combo_y = 92.0 + hud_status_toast.size.y + 4.0
+	_combo_panel.position = Vector2(roundf((vp_w - _combo_panel.size.x) * 0.5), combo_y)
+	_combo_hold_t -= delta
+	if _combo_hold_t <= 0.0:
+		_combo_panel.modulate.a = maxf(0.0, _combo_panel.modulate.a - delta * 2.5)
+		if _combo_panel.modulate.a <= 0.0:
+			_combo_panel.visible = false
 
 func _hud_icon(index: int) -> AtlasTexture:
 	var at := AtlasTexture.new()
@@ -956,7 +1118,7 @@ func _on_mechanic_lockout_changed(_move_name: String, _is_locked: bool, _duratio
 	_update_ai_hud()
 
 func _on_stamina_action_rejected(move_name: String, _req: float, _cur: float) -> void:
-	var trick_key := Events.get_action_key_label("trick", current_language) if is_instance_valid(Events) else "Ctrl"
+	var trick_key := Events.get_trick_keys_label(current_language) if is_instance_valid(Events) else "Z/X/C"
 	if is_instance_valid(Events) and is_instance_valid(Events.ai_director) and Events.ai_director.is_move_locked(move_name):
 		_show_hud_toast("[!] %s zablokowany! Użyj innego ruchu lub Tricku [%s]" % [move_name.to_upper(), trick_key], Color(1.0, 0.42, 0.42, 1.0), 2.2)
 	else:
@@ -1108,6 +1270,7 @@ func _level_complete() -> void:
 	if win_session_label:
 		win_session_label.text = "SESSION: %s" % session_id
 		
+	_hide_combo_hud()
 	if win_screen:
 		win_screen.visible = true
 		win_focus_idx = 0
@@ -1282,6 +1445,7 @@ func _close_settings() -> void:
 		controls_rebind_ui.cancel_listening()
 	if settings_view:
 		settings_view.visible = false
+	_hide_combo_hud()
 	if pause_menu:
 		pause_menu.visible = true
 		_set_button_focus(pause_buttons, pause_focus_idx)
@@ -1874,6 +2038,7 @@ func _on_player_died() -> void:
 	var lvl_id: int = Events.selected_level_profile if is_instance_valid(Events) else 1
 	if is_instance_valid(Events) and is_instance_valid(Events.portal_sync):
 		Events.portal_sync.submit_game_run(session_id, lvl_id, false, total_score, elapsed_time, collected_jewels, enemies_defeated_count)
+	_hide_combo_hud()
 	get_tree().paused = true
 	if game_over_menu:
 		game_over_menu.visible = true

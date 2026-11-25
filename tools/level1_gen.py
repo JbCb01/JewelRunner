@@ -172,7 +172,7 @@ LBL('LabelGap', 'Jump + Dash [{dash}]', 640, 262, 150)
 LBL('LabelLeap', 'Leap: Double Jump + Dash >>', 760, 100, 220)
 LBL('LabelChimney', 'Wall Jump ^', 1660, 120, 100)
 LBL('LabelTrampoline', 'Trampoline ^', 2950, 40, 100)
-LBL('LabelAirTrick', 'Hold [{trick}] while falling to recharge stamina', 4372, 60, 340)
+LBL('LabelAirTrick', 'Tricks in air: [{trick_flip}] [{trick_star}], [{trick_finish}] = FINALE', 4372, 60, 340)
 
 
 # ------------------------------------------------------------------ skill zones (PlayStyleProfiler sensors)

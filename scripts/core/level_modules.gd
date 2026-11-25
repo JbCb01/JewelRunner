@@ -706,7 +706,7 @@ const MODULES: Dictionary = {
 		"w": 28, "tier": 1, "tags": ["trick", "trampoline"],
 		"desc": "Launch onto a high perch, then a long trick fall",
 		"bounce": [-700.0],
-		"labels": [{"text": "Hold [{trick}] while falling to recharge stamina", "x": 200, "y": 40}],
+		"labels": [{"text": "Tricks in air: [{trick_flip}] [{trick_star}], [{trick_finish}] = FINALE", "x": 200, "y": 40}],
 		"zones": [{"tag": "trick", "rect": [16, 3, 24, 18]}],
 		"checks": [{"type": "trampoline", "start": [-3, 19], "pad_c": 2, "target": [10, 3, 15, 3]}],
 		"map": [

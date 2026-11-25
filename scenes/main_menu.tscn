@@ -604,7 +604,7 @@ text = "W / ↑"
 [node name="Action6" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=1988805600]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
-text = "Trick (w locie - ładuje staminę):"
+text = "Combo tricków (w locie - ładuje staminę):"
 
 [node name="Key6" type="Label" parent="SettingsView/Panels/ControlsPanel/Grid" unique_id=855862060]
 layout_mode = 2

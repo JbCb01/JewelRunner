@@ -29,6 +29,10 @@ signal cursed_jewel_triggered(mechanic_name: String, duration: float)
 signal score_added(amount: int)
 signal score_updated(total_score: int)
 signal trick_performed(points: int)
+## Combo tricków zmieniło się: lista tricków, aktualna wypłata staminy, czy zakończone Finałem.
+signal trick_combo_updated(tricks: Array, payout: float, finished: bool)
+## Combo zakończone: liczba tricków, faktycznie dodana stamina, Finał?, wpadka (bail)?
+signal trick_combo_ended(count: int, stamina_gained: float, finished: bool, bailed: bool)
 signal multiplier_changed(multiplier: float)
 signal enemy_defeated()
 signal powerup_collected(powerup_type: String, duration: float, value: float)
@@ -217,7 +221,9 @@ func _setup_default_inputs() -> void:
 	_ensure_action("jump", [KEY_SPACE])
 	_ensure_action("dash", [KEY_SHIFT])
 	_ensure_action("crouch_slide", [KEY_S, KEY_DOWN])
-	_ensure_action("trick", [KEY_CTRL])
+	_ensure_action("trick_flip", [KEY_Z])
+	_ensure_action("trick_star", [KEY_X])
+	_ensure_action("trick_finish", [KEY_C])
 
 func get_action_key_label(action_name: String, lang: String = "pl") -> String:
 	if is_instance_valid(keybind_manager):
@@ -232,6 +238,7 @@ func normalize_legacy_keybind_template(text: String) -> String:
 	out = out.replace("[D]", "[{move_right}]")
 	out = out.replace("[Shift]", "[{dash}]")
 	out = out.replace("[Ctrl]", "[{trick}]")
+	# {trick} = wszystkie trzy klawisze tricków (np. "Z/X/C")
 	out = out.replace("[Space]", "[{jump}]")
 	out = out.replace("[Spacja]", "[{jump}]")
 	return out
@@ -246,13 +253,21 @@ func format_keybind_text(text: String, lang: String = "pl") -> String:
 		"jump",
 		"dash",
 		"crouch_slide",
-		"trick"
+		"trick_flip",
+		"trick_star",
+		"trick_finish"
 	]
 	for action_name in actions:
 		var token := "{%s}" % action_name
 		if out.contains(token):
 			out = out.replace(token, get_action_key_label(action_name, lang))
+	if out.contains("{trick}"):
+		out = out.replace("{trick}", get_trick_keys_label(lang))
 	return out
+
+## Etykieta trzech klawiszy tricków, np. "Z/X/C".
+func get_trick_keys_label(lang: String = "pl") -> String:
+	return "%s/%s/%s" % [get_action_key_label("trick_flip", lang), get_action_key_label("trick_star", lang), get_action_key_label("trick_finish", lang)]
 
 func update_controls_grid_labels(ctrl_grid: Node, lang: String = "pl") -> void:
 	if not ctrl_grid:
@@ -283,11 +298,13 @@ func update_controls_grid_labels(ctrl_grid: Node, lang: String = "pl") -> void:
 	var k5 := ctrl_grid.get_node_or_null("Key5") as Label
 	if k5: k5.text = km.get_action_key_label("move_up", lang) if km else "W / ↑"
 	var a6 := ctrl_grid.get_node_or_null("Action6") as Label
-	if a6: a6.text = "Mid-air Trick (Charges stamina):" if is_en else "Trick (w locie - ładuje staminę):"
+	if a6: a6.text = "Trick Combo (mid-air, charges stamina):" if is_en else "Combo tricków (w locie - ładuje staminę):"
 	var k6 := ctrl_grid.get_node_or_null("Key6") as Label
 	if k6:
-		var trick_lbl := km.get_action_key_label("trick", lang) if km else "Ctrl"
-		k6.text = ("%s (Hold in mid-air)" if is_en else "%s (przytrzymaj w locie)") % trick_lbl
+		var keys: Array[String] = []
+		for a in ["trick_flip", "trick_star", "trick_finish"]:
+			keys.append(km.get_action_key_label(a, lang) if km else a)
+		k6.text = ("%s Flip  %s Star  %s Finale" if is_en else "%s Salto  %s Gwiazda  %s Finał") % keys
 	var a7 := ctrl_grid.get_node_or_null("Action7") as Label
 	if a7: a7.text = "Pause:" if is_en else "Pauza:"
 

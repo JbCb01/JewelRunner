@@ -9,6 +9,9 @@
 
 - `hud_assets.py` – pixel HUD assets (font, panels, icons) in `assets/ui/hud/`:
   `py -3 tools/hud_assets.py .`
+- `trick_anim.py` – combo trick animations (trick_flip / trick_star / trick_finish) for all skins,
+  built from parts of the original sprite with RotSprite, recoloured per skin, and added to the
+  skin SpriteFrames (.tres): `py -3 tools/trick_anim.py . [preview_dir]`
 
 Design rules the level tools follow (measured with the current player controller):
 plain gap <= 6 tiles, double-jump-or-dash gap 11, double jump + dash leap 18 (same height),

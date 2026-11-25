@@ -8,7 +8,7 @@ const SkinManager = preload("res://scripts/core/skin_manager.gd")
 ## poziomy dash, kucanie, wślizg (slide) z ochroną sufitu, wspinaczkę po ścianie i wall jump.
 ## Wszystkie ruchy specjalne (double_jump, wall_climb, dash) zużywają wspólną staminę z dynamicznymi
 ## mnożnikami (zarządzanymi przez AI Director przy stałej sumie mnożników), a regeneracja staminy
-## odbywa się poprzez wykonywanie Tricków w powietrzu [Ctrl].
+## odbywa się poprzez combo Tricków w powietrzu [Z] Salto / [X] Gwiazda (Finał [C] wypłaca combo z bonusem).
 
 # --- Stany Gracza ---
 enum State {
@@ -93,14 +93,22 @@ var current_state: State = State.IDLE
 @export_group("Kucanie i Wślizg")
 ## Maksymalna prędkość poruszania się podczas zwykłego kucania (px/s).
 @export var crouch_speed: float = 70.0
-## Maksymalna prędkość startowa wślizgu dla normalnego biegu (px/s; szybszy rozpęd zachowuje wyższy pęd).
-@export var slide_max_speed: float = 250.0
-## Minimalna początkowa prędkość po rozpoczęciu wślizgu (px/s).
-@export var slide_initial_speed: float = 250.0
-## Siła tarcia wyhamowująca postać podczas wślizgu (px/s²).
-@export var slide_friction: float = 620.0
+## Prędkość wybicia wślizgu (px/s) – mocny zryw na starcie; szybszy rozpęd (np. power-up) daje jeszcze więcej.
+@export var slide_burst_speed: float = 400.0
+## Mnożnik aktualnej prędkości przy starcie wślizgu, gdy postać biegnie już szybciej niż slide_burst_speed.
+@export var slide_burst_carry: float = 1.08
+## Czas fazy zrywu (s), w której wślizg prawie nie traci prędkości.
+@export var slide_burst_time: float = 0.10
+## Lekkie tarcie w fazie zrywu (px/s²).
+@export var slide_burst_friction: float = 150.0
+## Opór proporcjonalny do prędkości (1/s) po zrywie: im szybciej, tym mocniej hamuje -> płynna utrata pędu.
+@export var slide_drag: float = 2.2
+## Stałe tarcie po zrywie (px/s²) – domyka wyhamowanie przy niskich prędkościach.
+@export var slide_friction: float = 90.0
 ## Mnożnik hamowania wślizgu przy wciśnięciu przeciwnego kierunku ruchu.
-@export var slide_brake_multiplier: float = 1.6
+@export var slide_brake_multiplier: float = 2.2
+## Maksymalna prędkość pozioma przenoszona do skoku z wślizgu (px/s) – chroni zasięg skoków w projektach poziomów.
+@export var slide_jump_max_speed: float = 250.0
 ## Próg prędkości (px/s), poniżej którego wślizg przechodzi w kucanie lub stanie.
 @export var slide_min_speed: float = 80.0
 ## Czas odnowienia (cooldown) pomiędzy kolejnymi wślizgami (s).
@@ -151,18 +159,33 @@ var current_state: State = State.IDLE
 @export var dash_base_stamina_cost: float = 0.50
 ## Bazowy koszt staminy na sekundę Wspinaczki (modyfikowany przez mnożnik wall_climb).
 @export var wall_climb_base_stamina_cost: float = 1.00
-## Bazowa regeneracja staminy na sekundę wykonywania Tricku w powietrzu [Ctrl].
-## Wybalansowana tak, by wysokość/czas lotu z ruchów specjalnych nigdy nie zwróciły ich kosztu.
-@export var trick_stamina_regen_per_sec: float = 0.36
-## Indywidualny mnożnik regeneracji staminy z tricków.
+## Indywidualny mnożnik staminy z combo tricków (ustawiany przez AI Director).
 @export var trick_regen_multiplier: float = 1.00
 ## Powolna, bierna regeneracja staminy na sekundę (gdy postać nie wspina się ani nie wykonuje tricku).
 ## Konfigurowalna za pomocą suwaka w Inspektorze Godot.
 @export_range(0.0, 1.0, 0.01, "or_greater") var passive_stamina_regen_per_sec: float = 0.10
 
-@export_group("Tricki w Powietrzu")
-## Liczba punktów przyznawana za każdą sekundę wykonywania tricku w powietrzu.
-@export var trick_points_per_second: float = 120.0
+@export_group("Combo Tricków")
+## Czas trwania Salta [Z] (s) – zgodny z animacją trick_flip (8 kl. @ 26 fps).
+@export var trick_flip_duration: float = 0.30
+## Czas trwania Gwiazdy [X] (s) – animacja trick_star (9 kl. @ 32 fps).
+@export var trick_star_duration: float = 0.28
+## Czas wejścia w pozę Wielkiego Finału [C] (s) – animacja trick_finish (6 kl. @ 20 fps).
+@export var trick_finish_duration: float = 0.30
+## Bazowa stamina dokładana do puli combo przez każdy trick.
+@export var trick_flip_stamina: float = 0.14
+@export var trick_star_stamina: float = 0.16
+@export var trick_finish_stamina: float = 0.22
+## Przyrost mnożnika puli za każdy kolejny trick w combo (x1.0, x1.35, x1.7, ...).
+@export var combo_multiplier_step: float = 0.35
+## Bonus za zakończenie combo Wielkim Finałem.
+@export var combo_finisher_bonus: float = 1.5
+## Mnożnik wartości tricku powtórzonego bezpośrednio po tym samym tricku.
+@export var combo_repeat_penalty: float = 0.5
+## Ułamek czasu tricku, który może jeszcze zostać przy lądowaniu, by liczyło się ono jako czyste.
+@export_range(0.0, 1.0, 0.05) var trick_landing_grace: float = 0.35
+## Overflow: combo może naładować staminę do (max * ten mnożnik).
+@export var stamina_overflow_mult: float = 2.0
 
 @export_group("Punkty Życia (HP) i Odporność")
 ## Maksymalna liczba punktów życia (gwiazdek HP) postaci.
@@ -210,7 +233,16 @@ var wall_jump_lock_timer: float = 0.0
 var idle_trick_timer: float = 0.0
 
 var is_tricking: bool = false
-var trick_point_buffer: float = 0.0
+var combo_tricks: Array[String] = []
+var combo_pending: float = 0.0
+var combo_finished: bool = false
+var combo_banked: bool = false
+var current_trick: String = ""
+var queued_trick: String = ""
+var trick_time_left: float = 0.0
+var trick_buffer_timer: float = 0.0
+var trick_buffer_kind: String = ""
+var last_combo_payout: float = 0.0
 
 var _was_on_floor: bool = false
 var _prev_velocity_y: float = 0.0
@@ -370,6 +402,12 @@ func _physics_process(delta: float) -> void:
 		jump_buffer_timer = jump_buffer_time
 	if _is_dash_just_pressed():
 		dash_buffer_timer = dash_buffer_time
+	var pressed_trick: String = _trick_just_pressed_kind()
+	if pressed_trick != "":
+		trick_buffer_timer = 0.12
+		trick_buffer_kind = pressed_trick
+	elif trick_buffer_timer > 0.0:
+		trick_buffer_timer -= delta
 	
 	# Maszyna stanów
 	match current_state:
@@ -484,49 +522,180 @@ func consume_special_move_stamina(move_name: String) -> bool:
 	_update_stamina_bar()
 	return true
 
-## Regeneruje staminę podczas wykonywania tricku w powietrzu [Ctrl].
-## Zwraca faktycznie zregenerowaną ilość staminy w tej klatce.
-func regenerate_stamina_from_trick(delta: float) -> float:
-	if delta <= 0.0:
-		return 0.0
-	var raw_regen: float = trick_stamina_regen_per_sec * trick_regen_multiplier * delta
-	var prev_stamina: float = wall_stamina
-	var max_allowed: float = wall_climb_max_stamina
-	
-	# Jeśli w obecnym skoku użyto ruchu specjalnego i gracz jest wciąż powyżej wysokości startowej,
-	# ograniczamy pułap regeneracji, by zdobyta wysokość ze specjalnego ruchu NIGDY nie zwróciła całego kosztu.
-	if used_special_in_current_air and global_position.y <= airborne_origin_y + 8.0:
-		max_allowed = min(wall_climb_max_stamina, airborne_stamina_ceiling)
-		
-	if wall_stamina < max_allowed:
-		wall_stamina = min(max_allowed, wall_stamina + raw_regen)
-		
-	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-		Events.ai_director.record_air_trick(delta)
-		
-	if not is_equal_approx(prev_stamina, wall_stamina):
-		Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
-		_update_stamina_bar()
-	return wall_stamina - prev_stamina
+# --- System Combo Tricków ---
+# Tricki wykonuje się w locie osobnymi klawiszami (domyślnie):
+#   [Z] -> SALTO        (akcja trick_flip,   animacja trick_flip)
+#   [X] -> GWIAZDA      (akcja trick_star,   animacja trick_star)
+#   [C] -> WIELKI FINAŁ (akcja trick_finish, animacja trick_finish) – kończy combo (wymaga min. 1 tricku)
+# Każdy trick dokłada staminę do puli combo; pula rośnie z mnożnikiem za długość combo
+# i wypłaca się po Finale (z bonusem) albo po czystym lądowaniu. Lądowanie w trakcie tricku = WPADKA
+# (pula przepada). Wypłata może przekroczyć maksymalną staminę (overflow) aż do stamina_overflow_mult * max.
 
-## Weryfikuje matematyczny warunek balansu: żaden ruch specjalny nie daje wystarczającej wysokości/czasu lotu,
-## aby zregenerować więcej staminy niż wynosi jego koszt.
-func get_max_possible_trick_regen_for_move(move_name: String) -> float:
-	var eff_regen_rate: float = trick_stamina_regen_per_sec * trick_regen_multiplier
-	match move_name:
-		"double_jump":
-			# Czas wznoszenia + spadania ze zdobytej wysokości h = v^2 / (2g) -> t_total = 2 * |v| / g
-			var extra_airtime: float = (2.0 * abs(double_jump_velocity)) / max(1.0, gravity)
-			return extra_airtime * eff_regen_rate
-		"wall_climb":
-			# 1 sekunda wspinaczki podnosi gracza o wall_climb_speed pikseli -> czas spadku t = sqrt(2*h/g)
-			var fall_time_per_sec_climbed: float = sqrt((2.0 * wall_climb_speed) / max(1.0, gravity))
-			return fall_time_per_sec_climbed * eff_regen_rate
-		"dash":
-			# Dash jest poziomy (nie daje wysokości, podczas samego dasha nie można robić tricku)
-			return 0.15 * eff_regen_rate
-		_:
-			return 0.0
+## Zwraca definicję tricku (nazwa animacji, czas trwania, stamina bazowa, punkty, etykieta).
+func get_trick_def(kind: String) -> Dictionary:
+	match kind:
+		"flip":
+			return {"anim": "trick_flip", "duration": trick_flip_duration, "stamina": trick_flip_stamina, "points": 100, "label": "SALTO", "label_en": "FLIP"}
+		"star":
+			return {"anim": "trick_star", "duration": trick_star_duration, "stamina": trick_star_stamina, "points": 120, "label": "GWIAZDA", "label_en": "STAR"}
+		"finish":
+			return {"anim": "trick_finish", "duration": trick_finish_duration, "stamina": trick_finish_stamina, "points": 250, "label": "WIELKI FINAŁ", "label_en": "GRAND FINALE"}
+	return {}
+
+## Maksymalna stamina, którą można zgromadzić dzięki combo (overflow ponad bazowe maksimum).
+func get_stamina_overflow_cap() -> float:
+	return wall_climb_max_stamina * maxf(1.0, stamina_overflow_mult)
+
+## Mnożnik puli staminy za długość combo (1 trick = x1.0, każdy kolejny +combo_multiplier_step).
+func get_combo_multiplier(count: int = -1) -> float:
+	var n: int = combo_tricks.size() if count < 0 else count
+	return 1.0 + combo_multiplier_step * float(maxi(0, n - 1))
+
+## Aktualna wartość puli combo (ile staminy zostanie wypłacone przy wypłacie teraz).
+func get_combo_payout() -> float:
+	var total: float = combo_pending * get_combo_multiplier()
+	if combo_finished:
+		total *= combo_finisher_bonus
+	return total
+
+func is_combo_active() -> bool:
+	return not combo_tricks.is_empty() and not combo_banked
+
+## Publiczne API: próbuje wykonać (lub zbuforować) trick danego rodzaju. Zwraca true, jeśli trick został przyjęty.
+func request_trick(kind: String) -> bool:
+	if is_on_floor() or current_state == State.DASH or current_state == State.WALL_SLIDE or current_state == State.WALL_CLIMB:
+		return false
+	if combo_finished:
+		return false
+	if kind == "finish":
+		var have: int = combo_tricks.size() if not combo_banked else 0
+		if have == 0:
+			kind = "flip"   # Finał wieńczy combo – bez wcześniejszego tricku wykonujemy salto
+	if current_trick != "":
+		if current_trick == "finish":
+			return false
+		queued_trick = kind
+		return true
+	_start_trick(kind)
+	return true
+
+func _start_trick(kind: String) -> void:
+	var def: Dictionary = get_trick_def(kind)
+	if def.is_empty():
+		return
+	if combo_banked:
+		_reset_combo_state()
+	var repeat: bool = (not combo_tricks.is_empty() and combo_tricks[combo_tricks.size() - 1] == kind)
+	var value: float = float(def["stamina"]) * trick_regen_multiplier * (combo_repeat_penalty if repeat else 1.0)
+	combo_tricks.append(kind)
+	combo_pending += value
+	current_trick = kind
+	trick_time_left = float(def["duration"])
+	is_tricking = true
+	queued_trick = ""
+	_afterimage_timer = 0.0
+	if anim_sprite and anim_sprite.sprite_frames and anim_sprite.sprite_frames.has_animation(def["anim"]):
+		anim_sprite.play(def["anim"])
+		anim_sprite.frame = 0
+	match kind:
+		"flip":
+			_apply_squash_stretch(Vector2(0.86, 1.14))
+		"star":
+			_apply_squash_stretch(Vector2(1.18, 0.88))
+			if velocity.y > 0.0:
+				velocity.y *= 0.55
+		"finish":
+			_apply_squash_stretch(Vector2(1.22, 0.82))
+			if velocity.y > 0.0:
+				velocity.y *= 0.4
+	var pts: int = int(def["points"]) * combo_tricks.size()
+	Events.trick_performed.emit(pts)
+	if is_instance_valid(Events.ai_director):
+		Events.ai_director.record_air_trick(float(def["duration"]))
+	if kind == "finish":
+		combo_finished = true
+		_bank_combo(true)
+	else:
+		Events.trick_combo_updated.emit(combo_tricks.duplicate(), get_combo_payout(), false)
+
+## Aktualizacja trwającego tricku (wywoływana co klatkę w powietrzu).
+func _update_trick(delta: float) -> void:
+	if current_trick == "":
+		return
+	trick_time_left -= delta
+	_afterimage_timer -= delta
+	if _afterimage_timer <= 0.0:
+		_afterimage_timer = 0.05
+		var tint := Color(1.0, 0.88, 0.35, 0.5)
+		if current_trick == "star":
+			tint = Color(0.68, 0.9, 1.0, 0.5)
+		elif current_trick == "finish":
+			tint = Color(1.0, 0.55, 0.85, 0.55)
+		_spawn_afterimage(tint)
+	if trick_time_left > 0.0:
+		return
+	if current_trick == "finish":
+		# Poza finałowa zostaje do lądowania
+		current_trick = ""
+		trick_time_left = 0.0
+		return
+	current_trick = ""
+	if queued_trick != "":
+		var next: String = queued_trick
+		queued_trick = ""
+		request_trick(next)
+	else:
+		is_tricking = false
+
+## Rozstrzyga combo: "land" (lądowanie/ściana/dash) lub "lost" (obrażenia, respawn).
+func _resolve_combo(reason: String = "land") -> void:
+	if combo_tricks.is_empty():
+		is_tricking = false
+		current_trick = ""
+		queued_trick = ""
+		return
+	if combo_banked:
+		_reset_combo_state()
+		return
+	var def: Dictionary = get_trick_def(current_trick)
+	var clean: bool = (reason == "land") and (current_trick == "" or current_trick == "finish" or trick_time_left <= float(def.get("duration", 0.0)) * trick_landing_grace)
+	if clean:
+		_bank_combo(false)
+	else:
+		var lost: float = get_combo_payout()
+		var count: int = combo_tricks.size()
+		_reset_combo_state()
+		_apply_squash_stretch(Vector2(1.3, 0.72))
+		Events.trick_combo_ended.emit(count, 0.0, false, true)
+		if lost > 0.0 and reason == "land":
+			_spawn_dust_burst(global_position + Vector2(0, 14), 6, Color(1.0, 0.55, 0.55, 0.8))
+	_reset_combo_state()
+
+func _bank_combo(finished: bool) -> void:
+	if combo_banked:
+		return
+	var payout: float = get_combo_payout()
+	var count: int = combo_tricks.size()
+	var prev: float = wall_stamina
+	wall_stamina = minf(get_stamina_overflow_cap(), wall_stamina + payout)
+	combo_banked = true
+	last_combo_payout = wall_stamina - prev
+	Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
+	_update_stamina_bar()
+	Events.trick_combo_updated.emit(combo_tricks.duplicate(), payout, finished)
+	Events.trick_combo_ended.emit(count, last_combo_payout, finished, false)
+	if finished:
+		_spawn_dust_burst(global_position, 10, Color(1.0, 0.86, 0.4, 0.9))
+
+func _reset_combo_state() -> void:
+	combo_tricks.clear()
+	combo_pending = 0.0
+	combo_finished = false
+	combo_banked = false
+	current_trick = ""
+	queued_trick = ""
+	trick_time_left = 0.0
+	is_tricking = false
 
 # --- Aktualizacja Timerów i Staminy ---
 func _update_timers(delta: float) -> void:
@@ -683,7 +852,7 @@ func set_checkpoint(pos: Vector2, cp_id: String = "CP") -> void:
 func respawn_at_checkpoint() -> void:
 	global_position = last_checkpoint_pos
 	velocity = Vector2.ZERO
-	is_tricking = false
+	_resolve_combo("lost")
 	last_wall_jump_normal = Vector2.ZERO
 	consecutive_same_wall_jumps = 0
 	wall_jump_lock_timer = 0.0
@@ -707,8 +876,9 @@ func apply_trampoline_bounce(launch_velocity: float = -470.0) -> void:
 		if not _can_stand_up():
 			return
 		_set_collider_crouched(false)
-	is_tricking = false
-	trick_point_buffer = 0.0
+	# Trampolina podtrzymuje combo (można je dalej rozbudowywać); zakończone combo się zeruje
+	if combo_banked:
+		_reset_combo_state()
 	velocity.y = launch_velocity
 	coyote_timer = 0.0
 	jump_buffer_timer = 0.0
@@ -774,6 +944,7 @@ func take_damage(amount: int, source_position: Vector2 = Vector2.ZERO) -> void:
 		return
 		
 	current_health = max(0, current_health - amount)
+	_resolve_combo("lost")
 	is_invulnerable = true
 	invulnerability_timer = invulnerability_duration
 	show_hp_indicator()
@@ -921,8 +1092,20 @@ func _is_dash_just_pressed() -> bool:
 func _is_crouch_pressed() -> bool:
 	return Input.is_action_pressed("crouch_slide")
 
+const TRICK_ACTIONS: Dictionary = {"trick_flip": "flip", "trick_star": "star", "trick_finish": "finish"}
+
 func _is_trick_pressed() -> bool:
-	return Input.is_action_pressed("trick")
+	for a in TRICK_ACTIONS:
+		if InputMap.has_action(a) and Input.is_action_pressed(a):
+			return true
+	return false
+
+## Zwraca rodzaj tricku, którego klawisz wciśnięto w tej klatce ("" gdy żaden).
+func _trick_just_pressed_kind() -> String:
+	for a in TRICK_ACTIONS:
+		if InputMap.has_action(a) and Input.is_action_just_pressed(a):
+			return String(TRICK_ACTIONS[a])
+	return ""
 
 func _can_stand_up() -> bool:
 	if ceiling_checker:
@@ -1040,8 +1223,7 @@ func _state_ground(delta: float) -> void:
 		return
 		
 	# Ruch poziomy (3 etapy: akceleracja, nieograniczona prędkość pierwiastkowa, deakceleracja + tarcie)
-	is_tricking = false
-	trick_point_buffer = 0.0
+	_resolve_combo("land")
 	_apply_horizontal_movement(input_x, speed, false, false, delta, 1.0, true)
 	if input_x != 0.0:
 		idle_trick_timer = 0.0
@@ -1078,33 +1260,15 @@ func _state_air(delta: float) -> void:
 	if dash_buffer_timer > 0.0 and can_air_dash and dash_cooldown_timer <= 0.0:
 		if can_use_special_move("dash"):
 			can_air_dash = false
-			is_tricking = false
-			trick_point_buffer = 0.0
+			_resolve_combo("land")
 			_start_dash(input_x)
 			return
 		
-	# Obsługa tricku w powietrzu (trzymanie klawisza tricku podczas skoków i spadków -> regeneruje staminę!)
-	if _is_trick_pressed() and not is_on_wall():
-		if not is_tricking:
-			is_tricking = true
-			_afterimage_timer = 0.0
-			_apply_squash_stretch(Vector2(1.16, 0.86))
-			if anim_sprite:
-				anim_sprite.play("trick")
-		_afterimage_timer -= delta
-		if _afterimage_timer <= 0.0:
-			_afterimage_timer = 0.07
-			_spawn_afterimage(Color(1.0, 0.88, 0.35, 0.45))
-		regenerate_stamina_from_trick(delta)
-		trick_point_buffer += trick_points_per_second * delta
-		if trick_point_buffer >= 10.0:
-			var pts: int = int(trick_point_buffer)
-			trick_point_buffer -= pts
-			Events.trick_performed.emit(pts)
-	else:
-		if is_tricking:
-			is_tricking = false
-			trick_point_buffer = 0.0
+	# Combo tricków: [Trick] + kierunek (zbuforowane naciśnięcie z ostatnich klatek też się liczy)
+	if trick_buffer_timer > 0.0 and not is_on_wall():
+		if request_trick(trick_buffer_kind):
+			trick_buffer_timer = 0.0
+	_update_trick(delta)
 
 	# Grawitacja: Jump Hang Time + szybsze opadanie + zmienna wysokość skoku
 	if velocity.y < 0.0 and not _is_jump_pressed():
@@ -1130,8 +1294,7 @@ func _state_air(delta: float) -> void:
 	# Detekcja lądowania (nie przy ruchu w górę – np. w klatce wybicia z trampoliny
 	# is_on_floor() jest jeszcze nieaktualne i zbuforowany skok nadpisałby wybicie)
 	if is_on_floor() and velocity.y >= 0.0:
-		is_tricking = false
-		trick_point_buffer = 0.0
+		_resolve_combo("land")
 		if jump_buffer_timer > 0.0:
 			_execute_jump()
 		elif _is_crouch_pressed() and (_slide_needs_release or absf(velocity.x) <= 95.0):
@@ -1150,8 +1313,7 @@ func _state_air(delta: float) -> void:
 			
 			# Chwytamy ścianę jeśli naciskamy w jej stronę LUB chcemy się wspinać
 			if pushing_into_wall or climbing_up:
-				is_tricking = false
-				trick_point_buffer = 0.0
+				_resolve_combo("land")
 				last_wall_normal = wall_norm
 				facing_direction = -sign(wall_norm.x)
 				wall_stick_timer = wall_stick_time
@@ -1187,8 +1349,7 @@ func _state_dash(delta: float) -> void:
 func _start_dash(input_x: float) -> void:
 	if not consume_special_move_stamina("dash"):
 		return
-	is_tricking = false
-	trick_point_buffer = 0.0
+	_resolve_combo("land")
 	dash_buffer_timer = 0.0
 	dash_direction = input_x if input_x != 0.0 else facing_direction
 	_pre_dash_speed = absf(velocity.x) if signf(velocity.x) == signf(dash_direction) else 0.0
@@ -1236,28 +1397,50 @@ func _state_crouch(delta: float) -> void:
 	else:
 		velocity.y = 0.0
 
-# 5. Wślizg (SLIDE - wyższy max speed i mocniejsze tarcie)
+# 5. Wślizg (SLIDE): krótki zryw z pełną prędkością, potem stopniowa utrata pędu
+#    (opór proporcjonalny do prędkości + małe stałe tarcie -> szybki start, łagodne wygaszanie).
 func _state_slide(delta: float) -> void:
 	idle_trick_timer = 0.0
 	var input_x: float = _get_input_direction()
-	var opposing: bool = (input_x != 0.0 and signf(input_x) != signf(velocity.x))
-	var eff_friction: float = slide_friction * (slide_brake_multiplier if opposing else 1.0)
-	velocity.x = move_toward(velocity.x, 0.0, eff_friction * delta)
+	var dir: float = signf(velocity.x) if velocity.x != 0.0 else slide_direction
+	var opposing: bool = (input_x != 0.0 and signf(input_x) != dir)
+	var brake: float = slide_brake_multiplier if opposing else 1.0
+	var spd: float = absf(velocity.x)
+	slide_timer -= delta
+	if slide_timer > 0.0:
+		spd = maxf(0.0, spd - slide_burst_friction * brake * delta)
+	else:
+		spd = maxf(0.0, spd - (slide_drag * spd + slide_friction) * brake * delta)
+	velocity.x = dir * spd
 	velocity.y = 0.0
-	
+
+	# Smuga kurzu za szybkim wślizgiem
+	if spd > speed:
+		_afterimage_timer -= delta
+		if _afterimage_timer <= 0.0:
+			_afterimage_timer = 0.06
+			_spawn_dust_burst(global_position + Vector2(-dir * 6.0, 14), 2, Color(0.88, 0.88, 0.92, 0.6))
+
 	if jump_buffer_timer > 0.0 and _can_stand_up():
 		_set_collider_crouched(false)
+		velocity.x = dir * minf(spd, maxf(slide_jump_max_speed, get_effective_speed()))
 		_execute_jump()
 		return
-		
-	if abs(velocity.x) < slide_min_speed:
+
+	# Puszczony przycisk kucania + kierunek zgodny z ruchem: płynne przejście w bieg, gdy pęd spadnie do prędkości biegu
+	if not _is_crouch_pressed() and input_x != 0.0 and not opposing and spd <= get_effective_speed() and _can_stand_up():
+		_set_collider_crouched(false)
+		_change_state(State.RUN)
+		return
+
+	if spd < slide_min_speed:
 		if _is_crouch_pressed() or not _can_stand_up():
 			_change_state(State.CROUCH)
 		else:
 			_set_collider_crouched(false)
 			_change_state(State.RUN if input_x != 0.0 else State.IDLE)
 		return
-			
+
 	if not is_on_floor():
 		if _can_stand_up():
 			_set_collider_crouched(false)
@@ -1269,13 +1452,15 @@ func _start_slide() -> void:
 	slide_direction = facing_direction
 	_slide_needs_release = true
 	slide_cooldown_timer = slide_cooldown
+	slide_timer = slide_burst_time
+	_afterimage_timer = 0.0
 	var cur_spd: float = absf(velocity.x)
-	var launch_spd: float = (cur_spd * 1.05) if cur_spd > slide_max_speed else clampf(maxf(cur_spd * 1.15, slide_initial_speed), slide_initial_speed, slide_max_speed)
+	var launch_spd: float = maxf(slide_burst_speed, cur_spd * slide_burst_carry)
 	velocity.x = slide_direction * launch_spd
 	_set_collider_crouched(true)
 	_change_state(State.SLIDE)
-	_apply_squash_stretch(Vector2(1.25, 0.72))
-	_spawn_dust_burst(global_position + Vector2(0, 14), 5, Color(0.88, 0.88, 0.92, 0.75))
+	_apply_squash_stretch(Vector2(1.32, 0.68))
+	_spawn_dust_burst(global_position + Vector2(0, 14), 7, Color(0.88, 0.88, 0.92, 0.75))
 	if anim_sprite:
 		anim_sprite.play("slide")
 	Events.player_slid.emit()
@@ -1437,8 +1622,7 @@ func _apply_corner_correction() -> void:
 			return
 
 func _on_landed(impact_vy: float) -> void:
-	is_tricking = false
-	trick_point_buffer = 0.0
+	_resolve_combo("land")
 	var impact_ratio: float = clampf(abs(impact_vy) / maxf(1.0, max_fall_speed), 0.15, 1.0)
 	_apply_squash_stretch(Vector2(1.0 + 0.28 * impact_ratio, 1.0 - 0.24 * impact_ratio))
 	var dust_count: int = 4 + int(round(impact_ratio * 4.0))
@@ -1492,8 +1676,7 @@ func _update_visuals(delta: float = 0.016) -> void:
 		return
 		
 	if is_tricking:
-		if anim_sprite.animation != "trick":
-			anim_sprite.play("trick")
+		# animację tricku uruchamia _start_trick (trick_flip / trick_star / trick_finish)
 		return
 		
 	match current_state:

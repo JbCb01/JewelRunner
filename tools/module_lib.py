@@ -147,7 +147,7 @@ m = Mod('trick_well', 28, ['trick', 'trampoline'], desc='Launch onto a high perc
 m.ground(); m.put(2, G, 'T'); m.bounce = [-700.0]
 m.fill(10, 15, 3, 18, '#').fill(10, 10, 3, 18, 'B')
 m.put(13, 1, 'J'); m.put(18, 6, 'J'); m.put(19, 10, 'J'); m.put(20, 14, 'J'); m.put(25, 18, 'm')
-m.label('Hold [{trick}] while falling to recharge stamina', 200, 40)
+m.label('Tricks in air: [{trick_flip}] [{trick_star}], [{trick_finish}] = FINALE', 200, 40)
 m.zone('trick', 16, 3, 24, 18)
 m.check(type='trampoline', start=[-3, G], pad_c=2, target=[10, 3, 15, 3])
 

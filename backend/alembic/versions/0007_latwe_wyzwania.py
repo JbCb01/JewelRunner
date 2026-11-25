@@ -1,4 +1,4 @@
-"""Pięć łatwych wyzwań na poziomie 1.
+"""Pięć wyzwań na poziomie 1 (klejnoty 10/30/wszystkie, czas < 1 min, 10 tricków).
 
 Revision ID: 0007
 Revises: 0006
@@ -13,7 +13,7 @@ branch_labels = None
 depends_on = None
 
 SCHEMA = Path(__file__).resolve().parents[2] / "db" / "schema" / "007_latwe_wyzwania.sql"
-NAMES = "('Pierwszy klejnot', 'Rozgrzewka', 'Mały wynik', 'Bez pośpiechu', 'Zbieracz')"
+NAMES = "('Garść klejnotów', 'Poszukiwacz klejnotów', 'Pełna kolekcja', 'Sprinter', 'Mistrz akrobacji')"
 
 
 def upgrade() -> None:

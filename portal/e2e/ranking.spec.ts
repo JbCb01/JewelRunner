@@ -6,7 +6,7 @@ test.describe("2.3 Wyświetlanie rankingu", () => {
     await login(page, DEMO);
     await page.goto("/rankingi");
     await expect(page.locator("tbody tr")).toHaveCount(100);
-    await expect(page.locator("tbody tr").first()).toContainText("gracz001");
+    await expect(page.locator("tbody tr").first()).toContainText("Maku");
     const mine = page.locator("tr.highlight");
     await expect(mine).toHaveCount(1);
     await expect(mine).toContainText("Demo");
@@ -17,8 +17,8 @@ test.describe("2.3 Wyświetlanie rankingu", () => {
     await page.goto("/rankingi");
     await expect(page.locator("tbody tr")).not.toHaveCount(0);
     const names = await page.locator("tbody tr td:nth-child(2)").allTextContents();
-    expect(names.indexOf("gracz009")).toBeLessThan(names.indexOf("gracz010"));
-    expect(names.indexOf("gracz050")).toBeLessThan(names.indexOf("Demo"));
+    expect(names.indexOf("Mammon")).toBeLessThan(names.indexOf("zony"));
+    expect(names.indexOf("Filip_Gamer")).toBeLessThan(names.indexOf("Demo"));
   });
 
   test("A1: gracz spoza setki widzi swoją pozycję pod tabelą", async ({ page }) => {
@@ -67,8 +67,8 @@ test.describe("2.3 Wyświetlanie rankingu", () => {
   test("kroki 5-6: profil publiczny gracza", async ({ page }) => {
     await login(page, DEMO);
     await page.goto("/rankingi");
-    await page.getByRole("link", { name: "gracz001" }).click();
-    await expect(page.getByRole("heading", { name: "gracz001" })).toBeVisible();
+    await page.getByRole("link", { name: "Maku" }).click();
+    await expect(page.getByRole("heading", { name: "Maku" })).toBeVisible();
     await expect(page.getByText("Ukończone poziomy")).toBeVisible();
     await expect(page.getByText("example.com")).toHaveCount(0);
   });

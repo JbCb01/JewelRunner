@@ -49,7 +49,7 @@ export function skinSprite(name: string | undefined | null): string {
   return SKINS.find((skin) => lower.includes(skin.match))?.src ?? skinDefault;
 }
 
-/** Skórki bez własnej grafiki rysujemy postacią podstawową z filtrem koloru. */
+/** Skórki bez własnej grafiki rysujemy postacią podstawową z filtrem (np. złota). */
 export function skinFilterClass(name: string | undefined | null): string {
   const lower = (name ?? "").toLowerCase();
   return lower.includes("złot") || lower.includes("zlot") ? "sprite-gold" : "";

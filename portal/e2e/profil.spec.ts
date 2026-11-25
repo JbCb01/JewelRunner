@@ -18,7 +18,7 @@ test.describe("8.6 Zmiana danych zalogowanego użytkownika", () => {
     const me = await register(page);
     await page.goto("/profil");
     const form = page.getByRole("form", { name: "Zmiana nazwy" });
-    await form.getByLabel("Nowa nazwa").fill("gracz001");
+    await form.getByLabel("Nowa nazwa").fill("Maku");
     await form.getByRole("button", { name: "Zapisz nazwę" }).click();
     await expect(form.getByRole("alert")).toHaveText("Nazwa jest zajęta.");
     await expect(page.getByTestId("current-user")).toHaveText(me.username);

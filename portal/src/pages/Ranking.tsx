@@ -129,7 +129,7 @@ export function Ranking() {
       )}
 
       {data && !data.empty_reason && data.items.length > 0 && (
-        <table>
+        <table className="ranking-table">
           <thead>
             <tr>
               <th>Pozycja</th>

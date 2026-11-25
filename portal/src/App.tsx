@@ -1,10 +1,11 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { RequireAuth } from "./components/RequireAuth";
 import { Attempts } from "./pages/Attempts";
 import { ChallengeDetails } from "./pages/ChallengeDetails";
 import { Challenges } from "./pages/Challenges";
 import { Collection } from "./pages/Collection";
+import { Dashboard } from "./pages/Dashboard";
 import { ConfirmEmail } from "./pages/ConfirmEmail";
 import { Friends } from "./pages/Friends";
 import { Login } from "./pages/Login";
@@ -27,7 +28,7 @@ export function App() {
         <Route path="/odzyskiwanie-hasla" element={<PasswordRecovery />} />
         <Route path="/nowe-haslo" element={<ResetPassword />} />
         <Route element={<RequireAuth />}>
-          <Route path="/" element={<Navigate to="/wyzwania" replace />} />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/wyzwania" element={<Challenges />} />
           <Route path="/wyzwania/:id" element={<ChallengeDetails />} />
           <Route path="/moje-wyzwania" element={<MyChallenges />} />

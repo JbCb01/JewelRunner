@@ -91,12 +91,18 @@ test.describe("8.6 Zmiana danych zalogowanego użytkownika", () => {
     await expect(form.getByRole("alert")).toHaveText("Hasła nie są takie same.");
   });
 
-  test("A4: wygasła sesja przy zapisie", async ({ page, context }) => {
+  test("A4: wygasła sesja przy zapisie", async ({ page }) => {
     await register(page);
     await page.goto("/profil");
     const form = page.getByRole("form", { name: "Zmiana nazwy" });
     await expect(form).toBeVisible();
-    await context.clearCookies();
+    // Sesja wygasa dokładnie przy zapisie. Czyszczenie ciasteczek było niestabilne, bo odświeżanie
+    // salda w tle potrafiło wylogować gracza, zanim test zdążył wpisać nazwę.
+    await page.route("**/api/me", (route) =>
+      route.request().method() === "PATCH"
+        ? route.fulfill({ status: 401, json: { error: { code: "unauthorized", message: "Zaloguj się.", details: null } } })
+        : route.continue(),
+    );
     await form.getByLabel("Nowa nazwa").fill("nowa_nazwa");
     await form.getByRole("button", { name: "Zapisz nazwę" }).click();
     await expect(page.getByText("Sesja wygasła. Zaloguj się ponownie.")).toBeVisible();

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import type { DailyRewardClaim } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import jewel from "../assets/jewel.png";
+import { SPRITES } from "../lib/sprites";
 
 export function DailyRewardModal() {
   const { dailyReward, dailyRewardOpen, closeDailyReward, claimDailyReward } = useAuth();
@@ -56,7 +56,7 @@ export function DailyRewardModal() {
         </div>
 
         <p className="daily-reward-hero">
-          <img src={jewel} alt="" width={28} height={28} />
+          <img className="pixel" src={SPRITES.jewel} alt="" width={28} height={28} />
           <strong>+{dailyReward.gems} klejnotów</strong>
           <span className="muted-text">· Dzień serii: {dailyReward.streak_day} z 7</span>
         </p>
@@ -72,6 +72,7 @@ export function DailyRewardModal() {
                 className={`daily-day${isCurrent ? " current" : ""}${isDone ? " done" : ""}${day.special ? " special" : ""}`}
               >
                 <span className="daily-day-num">Dzień {day.day}</span>
+                <img className="pixel daily-day-icon" src={day.special ? SPRITES.star : SPRITES.jewel} alt="" />
                 <strong>{day.gems}</strong>
                 {day.special && <span className="daily-day-tag">Specjalna</span>}
               </div>

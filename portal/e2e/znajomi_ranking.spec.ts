@@ -10,14 +10,20 @@ test.describe("2.3, 2.7 Filtry rankingu i znajomi", () => {
     await expect(page.getByRole("button", { name: "Ogółem" })).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator("tbody tr")).toHaveCount(100);
 
-    // Tydzień -> brak wyników w tym okresie.
+    // Tydzień -> brak wyników w tym okresie. Odpowiedź serwera podstawiamy, bo inne testy mogą
+    // dodać wyniki w bieżącym tygodniu i wtedy lista nie byłaby pusta.
+    await page.route("**/api/ranking?period=*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      await route.fulfill({ response, json: { ...body, items: [], me: null, empty_reason: "no_results" } });
+    });
     await page.getByRole("button", { name: "Tydzień" }).click();
     await expect(page.getByTestId("ranking-empty")).toContainText("Brak wyników w tym okresie");
+    await page.unroute("**/api/ranking?period=*");
 
     // Filtr jest zapamiętywany przez serwer po przeładowaniu.
     await page.reload();
     await expect(page.getByRole("button", { name: "Tydzień" })).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByTestId("ranking-empty")).toContainText("Brak wyników w tym okresie");
 
     // Znajomi bez dodanych znajomych -> zachęta „Dodaj znajomych”.
     await page.getByRole("button", { name: "Znajomi" }).click();

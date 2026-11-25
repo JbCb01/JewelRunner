@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import type { ChallengeListItem, ItemList } from "../api/types";
 import { ErrorBox, Loading } from "../components/Status";
 import { formatDate, formatReward } from "../lib/format";
+import { rewardSprite, skinFilterClass } from "../lib/sprites";
 import { useApi } from "../lib/useApi";
 
 export function Challenges() {
@@ -15,16 +16,25 @@ export function Challenges() {
       {data?.items.length === 0 && <p className="notice info">Brak dostępnych wyzwań.</p>}
       <div className="card-grid">
         {data?.items.map((challenge) => (
-          <Link key={challenge.id} to={`/wyzwania/${challenge.id}`} className="card">
+          <Link key={challenge.id} to={`/wyzwania/${challenge.id}`} className="card challenge-card">
             <div className="card-title">
               <h2>{challenge.name}</h2>
               {challenge.participation_status && <span className="badge">Przyjęte</span>}
             </div>
             <dl>
               <dt>Poziom trudności</dt>
-              <dd>{challenge.difficulty}</dd>
+              <dd>
+                <span className={`difficulty difficulty-${challenge.difficulty}`}>{challenge.difficulty}</span>
+              </dd>
               <dt>Nagroda</dt>
-              <dd>{formatReward(challenge.reward)}</dd>
+              <dd className="reward-line">
+                <img
+                  className={`pixel reward-icon ${challenge.reward.type === "skórka" ? skinFilterClass(challenge.reward.element_name) : ""}`}
+                  src={rewardSprite(challenge.reward)}
+                  alt=""
+                />
+                {formatReward(challenge.reward)}
+              </dd>
               <dt>Koniec</dt>
               <dd>{formatDate(challenge.ends_at)}</dd>
             </dl>

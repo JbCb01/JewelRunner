@@ -285,10 +285,10 @@ func _ready() -> void:
 	# Zliczenie wszystkich klejnotów na poziomie (wymaganych do odblokowania wyjścia)
 	refresh_jewel_count()
 	
-	# Reset sesji AI Directora i analiza geometrii bieżącego poziomu
-	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-		Events.ai_director.reset_session_state(true)
-		Events.ai_director.analyze_level(self)
+	# Reset sesji AI Directora - Patryk (Prywatny Asystent Technologiczny, Reagujący i Kreatywny) i analiza geometrii bieżącego poziomu
+	if is_instance_valid(Events) and is_instance_valid(Events.patryk):
+		Events.patryk.reset_session_state(true)
+		Events.patryk.analyze_level(self)
 	
 	# Inicjalizacja ID sesji i start zegara poziomu (startuje po animacji appear)
 	session_id = Events.generate_session_id()
@@ -1024,9 +1024,9 @@ func _update_status_toast(delta: float) -> void:
 		hud_status_toast.modulate.a = status_toast_timer / 0.6
 
 func _update_ai_hud() -> void:
-	if hud_mult_labels.is_empty() or not is_instance_valid(Events) or not is_instance_valid(Events.ai_director):
+	if hud_mult_labels.is_empty() or not is_instance_valid(Events) or not is_instance_valid(Events.patryk):
 		return
-	var dir: AdaptiveAIDirector = Events.ai_director
+	var patryk: AdaptiveAIDirector = Events.patryk # AI Director - Patryk (Prywatny Asystent Technologiczny, Reagujący i Kreatywny)
 	var move_defs: Array = [
 		["double_jump", "Double Jump"],
 		["wall_climb", "Wall Climb"],
@@ -1040,7 +1040,7 @@ func _update_ai_hud() -> void:
 		if not lbl:
 			continue
 
-		var val: float = dir.get_multiplier(move_key)
+		var val: float = patryk.get_multiplier(move_key)
 		var cur_tenth: int = int(round(val * 10.0))
 
 		if not _mult_hud_initialized:
@@ -1063,8 +1063,8 @@ func _update_ai_hud() -> void:
 				mult_ref_values[move_key] = val
 				mult_last_tenths[move_key] = cur_tenth
 
-		if dir.is_move_locked(move_key):
-			lbl.text = "%s: LOCK %.1fs" % [display_name, dir.get_lockout_remaining(move_key)]
+		if patryk.is_move_locked(move_key):
+			lbl.text = "%s: LOCK %.1fs" % [display_name, patryk.get_lockout_remaining(move_key)]
 		else:
 			lbl.text = "%s: %.1fx" % [display_name, val]
 
@@ -1074,17 +1074,17 @@ func _update_ai_hud() -> void:
 func _update_multiplier_hud_highlights(delta: float) -> void:
 	if hud_mult_labels.is_empty():
 		return
-	var dir: AdaptiveAIDirector = Events.ai_director if is_instance_valid(Events) else null
+	var patryk: AdaptiveAIDirector = Events.patryk if is_instance_valid(Events) else null
 	var display_names: Dictionary = {
 		"double_jump": "Double Jump",
 		"wall_climb": "Wall Climb",
 		"dash": "Dash"
 	}
 	for move_key in ["double_jump", "wall_climb", "dash"]:
-		if dir and dir.is_move_locked(move_key):
+		if patryk and patryk.is_move_locked(move_key):
 			var lbl := hud_mult_labels.get(move_key) as Label
 			if lbl:
-				lbl.text = "%s: LOCK %.1fs" % [display_names[move_key], dir.get_lockout_remaining(move_key)]
+				lbl.text = "%s: LOCK %.1fs" % [display_names[move_key], patryk.get_lockout_remaining(move_key)]
 		var fade_dt: float = delta
 		var hold_t: float = float(mult_hold_timers.get(move_key, 0.0))
 		if hold_t > 0.0:
@@ -1099,12 +1099,12 @@ func _update_multiplier_hud_highlights(delta: float) -> void:
 	_apply_multiplier_hud_colors()
 
 func _apply_multiplier_hud_colors() -> void:
-	var dir: AdaptiveAIDirector = Events.ai_director if is_instance_valid(Events) else null
+	var patryk: AdaptiveAIDirector = Events.patryk if is_instance_valid(Events) else null
 	for move_key in ["double_jump", "wall_climb", "dash"]:
 		var lbl := hud_mult_labels.get(move_key) as Label
 		if not lbl:
 			continue
-		if dir and dir.is_move_locked(move_key):
+		if patryk and patryk.is_move_locked(move_key):
 			lbl.add_theme_color_override("font_color", MULT_COLOR_LOCKED)
 			continue
 		var trend: int = int(mult_trends.get(move_key, 0))
@@ -1120,7 +1120,7 @@ func _on_mechanic_lockout_changed(_move_name: String, _is_locked: bool, _duratio
 
 func _on_stamina_action_rejected(move_name: String, _req: float, _cur: float) -> void:
 	var trick_key := Events.get_trick_keys_label(current_language) if is_instance_valid(Events) else "Z/X/C"
-	if is_instance_valid(Events) and is_instance_valid(Events.ai_director) and Events.ai_director.is_move_locked(move_name):
+	if is_instance_valid(Events) and is_instance_valid(Events.patryk) and Events.patryk.is_move_locked(move_name):
 		_show_hud_toast("[!] %s zablokowany! Użyj innego ruchu lub Tricku [%s]" % [move_name.to_upper(), trick_key], Color(1.0, 0.42, 0.42, 1.0), 2.2)
 	else:
 		_show_hud_toast("[!] Brak staminy na %s! Wykonaj Trick [%s] w locie" % [move_name.to_upper(), trick_key], Color(1.0, 0.48, 0.38, 1.0), 2.2)

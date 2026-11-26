@@ -137,8 +137,8 @@ func _close_run(completed: bool) -> void:
 	data["play_seconds"] = float(data.get("play_seconds", 0.0)) + secs
 	data["jewels_collected"] = int(data.get("jewels_collected", 0)) + _run_jewels
 	data["jewels_available"] = int(data.get("jewels_available", 0)) + max(_run_jewel_total, _run_jewels)
-	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-		_add_move("wall_climb", float(Events.ai_director.move_total_uses.get("wall_climb", 0.0)))
+	if is_instance_valid(Events) and is_instance_valid(Events.patryk):
+		_add_move("wall_climb", float(Events.patryk.move_total_uses.get("wall_climb", 0.0)))
 	if completed:
 		_inc("completions", 1)
 		var bt: Dictionary = data["best_times"]
@@ -146,7 +146,7 @@ func _close_run(completed: bool) -> void:
 		if not bt.has(key) or secs < float(bt[key]):
 			bt[key] = secs
 	save_profile()
-	_push_history_to_director()
+	_push_history_to_patryk()
 
 func _on_level_completed() -> void:
 	_close_run(true)
@@ -169,17 +169,21 @@ func load_profile() -> void:
 		var loaded: Dictionary = json.data
 		for k in loaded.keys():
 			data[k] = loaded[k]
-	_push_history_to_director()
+	_push_history_to_patryk()
 
 ## Historia ruchów z poprzednich sesji trafia do Reżysera AI (ulubiony / unikany ruch przetrwa restart gry).
-func _push_history_to_director() -> void:
-	if not is_instance_valid(Events) or not is_instance_valid(Events.ai_director):
+## AI Director - Patryk (Prywatny Asystent Technologiczny, Reagujący i Kreatywny)
+func _push_history_to_patryk() -> void:
+	if not is_instance_valid(Events) or not is_instance_valid(Events.patryk):
 		return
 	var moves: Dictionary = data["moves"]
-	var hist: Dictionary = Events.ai_director.historical_move_uses
+	var hist: Dictionary = Events.patryk.historical_move_uses
 	hist["double_jump"] = max(float(hist.get("double_jump", 0.0)), float(moves.get("double_jump", 0.0)))
 	hist["dash"] = max(float(hist.get("dash", 0.0)), float(moves.get("dash", 0.0)))
 	hist["wall_climb"] = max(float(hist.get("wall_climb", 0.0)), float(moves.get("wall_climb", 0.0)) + float(moves.get("wall_jump", 0.0)))
+
+func _push_history_to_director() -> void:
+	_push_history_to_patryk()
 
 func reset_profile() -> void:
 	_reset_data()

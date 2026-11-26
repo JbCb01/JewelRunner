@@ -525,7 +525,7 @@ func utHudJewelCounterGroupedAnimationAndWalletBalance() -> void:
 
 func utHudMinimalistMultipliersAndColorFade() -> void:
 	Events.selected_level_profile = 1
-	Events.ai_director.reset_session_state(true)
+	Events.patryk.reset_session_state(true)
 	var arenaScene := load("res://scenes/test_arena.tscn") as PackedScene
 	var arena := arenaScene.instantiate()
 	add_child(arena)
@@ -540,7 +540,7 @@ func utHudMinimalistMultipliersAndColorFade() -> void:
 	var initGrayOk: bool = is_equal_approx(float(arena.mult_highlights.get("double_jump", -1.0)), 0.0) and (djLbl != null)
 
 	# Użycie double_jump podnosi jego mnożnik (zielony) i obniża pozostałe (czerwone)
-	Events.ai_director.record_move_use("double_jump", 1.0)
+	Events.patryk.record_move_use("double_jump", 1.0)
 	var djCol: Color = djLbl.get_theme_color("font_color")
 	var wcCol: Color = wcLbl.get_theme_color("font_color")
 	var daCol: Color = daLbl.get_theme_color("font_color")
@@ -553,7 +553,7 @@ func utHudMinimalistMultipliersAndColorFade() -> void:
 	var fadedToGrayOk: bool = (float(arena.mult_highlights.get("double_jump", 1.0)) <= 0.05) and (abs(settledCol.r - settledCol.g) < 0.12) and (abs(settledCol.g - settledCol.b) < 0.12)
 
 	arena.free()
-	Events.ai_director.reset_session_state(true)
+	Events.patryk.reset_session_state(true)
 	assertCond(noControlsBarOk and minimalistFormatOk and initGrayOk and upGreenOk and downRedOk and fadedToGrayOk, "HUD-02", "Minimalistyczny HUD bez paska sterowania; mnożniki podświetlają wzrost na zielono, spadek na czerwono i szarzeją")
 
 # ==============================================================================
@@ -898,12 +898,12 @@ func utEnemyArchetypesAiStatesAndSpriteRows() -> void:
 	plr.free()
 
 func utSzachownicaAiSeedDeterminismVariationAndValidation() -> void:
-	var dir: AdaptiveAIDirector = Events.ai_director
-	dir.clear_historical_profile()
-	dir.reset_session_state(true)
-	dir.historical_move_uses["wall_climb"] = 20.0
-	dir.historical_move_uses["dash"] = 5.0
-	dir.historical_move_uses["double_jump"] = 1.0
+	var patryk: AdaptiveAIDirector = Events.patryk
+	patryk.clear_historical_profile()
+	patryk.reset_session_state(true)
+	patryk.historical_move_uses["wall_climb"] = 20.0
+	patryk.historical_move_uses["dash"] = 5.0
+	patryk.historical_move_uses["double_jump"] = 1.0
 
 	var rngA := RandomNumberGenerator.new()
 	rngA.seed = 424242
@@ -943,8 +943,8 @@ func utSzachownicaAiSeedDeterminismVariationAndValidation() -> void:
 	)
 	var challengeOk: bool = (bpChallenge["jewels"].size() >= 9) and (String(bpChallenge.get("second_half_mechanic", "")) == "dash") and bool(bpChallenge.get("validation", {}).get("passed", false))
 
-	dir.clear_historical_profile()
-	dir.reset_session_state(true)
+	patryk.clear_historical_profile()
+	patryk.reset_session_state(true)
 	assertCond(detOk and singleBiomeOk and allSeedsValid and playstyleOk and variationOk and challengeOk, "LVL-09", "Szachownica AI jest deterministyczna po seedzie, trzyma jeden biom Aether, kontruje styl i przechodzi walidator")
 
 # ==============================================================================
@@ -994,11 +994,11 @@ func utPlaystyleProfilerTracksZonesRoutesAndPersists() -> void:
 func utAiLevelAdaptsToPlaystyleProfile() -> void:
 	var prof = Events.playstyle_profiler
 	var saved_data: Dictionary = prof.data.duplicate(true)
-	var dir: AdaptiveAIDirector = Events.ai_director
-	dir.clear_historical_profile()
-	dir.historical_move_uses["dash"] = 30.0
-	dir.historical_move_uses["double_jump"] = 10.0
-	dir.historical_move_uses["wall_climb"] = 1.0
+	var patryk: AdaptiveAIDirector = Events.patryk
+	patryk.clear_historical_profile()
+	patryk.historical_move_uses["dash"] = 30.0
+	patryk.historical_move_uses["double_jump"] = 10.0
+	patryk.historical_move_uses["wall_climb"] = 1.0
 
 	# Profil A: gracz bez historii
 	prof._reset_data()
@@ -1036,7 +1036,7 @@ func utAiLevelAdaptsToPlaystyleProfile() -> void:
 	var validOk: bool = bool(bpA["validation"]["passed"]) and bool(bpB["validation"]["passed"])
 	assertCond(adaptsOk and halvesOk and shieldOk and validOk, "AI-02", "Poziom AI (Cyber Matrix) dobiera moduły, tarczę, sekret i trudność pod profil stylu gry, przechodząc walidator")
 	prof.data = saved_data
-	dir.clear_historical_profile()
+	patryk.clear_historical_profile()
 
 # ==============================================================================
 # FUNKCJE POMOCNICZE

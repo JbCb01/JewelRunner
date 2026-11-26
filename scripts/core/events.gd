@@ -81,8 +81,14 @@ var selected_level_seed: int = 0
 var return_to_level_select: bool = false
 var last_szachownica_music_path: String = ""
 
-## Instancja Adaptacyjnego Reżysera AI (zarządza mnożnikami staminy, kontraktami AI, blokadami i analizą poziomu)
-var ai_director: AdaptiveAIDirector = null
+## Instancja Adaptacyjnego Reżysera AI - Patryk (Prywatny Asystent Technologiczny, Reagujący i Kreatywny)
+## (zarządza mnożnikami staminy, kontraktami AI, blokadami i analizą poziomu)
+var patryk: AdaptiveAIDirector = null
+var ai_director: AdaptiveAIDirector:
+	get:
+		return patryk
+	set(value):
+		patryk = value
 
 ## Instancja Serwisu Synchronizacji z Portalem Webowym (ustawienia, skórki, kolory, akcesoria, zadania)
 var portal_sync: Node = null
@@ -148,7 +154,7 @@ func complete_level(level_id: int, completion_time: float = -1.0, contract_mode:
 	completed_levels[level_id] = true
 	var c_mode = contract_mode
 	if c_mode < 0:
-		c_mode = int(ai_director.active_contract) if is_instance_valid(ai_director) else 0
+		c_mode = int(patryk.active_contract) if is_instance_valid(patryk) else 0
 
 	if not level_contracts_completed.has(level_id):
 		level_contracts_completed[level_id] = {}
@@ -189,10 +195,10 @@ func _enter_tree() -> void:
 	_ensure_services()
 
 func _ensure_services() -> void:
-	if not is_instance_valid(ai_director):
-		ai_director = AIDirectorScript.new()
-		ai_director.name = "AIDirector"
-		add_child(ai_director)
+	if not is_instance_valid(patryk):
+		patryk = AIDirectorScript.new()
+		patryk.name = "Patryk" # AI Director - Patryk (Prywatny Asystent Technologiczny, Reagujący i Kreatywny)
+		add_child(patryk)
 	if not is_instance_valid(portal_sync):
 		portal_sync = PortalSyncScript.new()
 		portal_sync.name = "PortalSync"

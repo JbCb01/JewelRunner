@@ -897,20 +897,20 @@ func _on_ai_generate_btn_pressed() -> void:
 	_startLevelProfile(4, new_seed)
 
 func _cycle_ai_contract() -> void:
-	if not is_instance_valid(Events) or not is_instance_valid(Events.ai_director):
+	if not is_instance_valid(Events) or not is_instance_valid(Events.patryk):
 		return
-	var cur: int = int(Events.ai_director.active_contract)
+	var cur: int = int(Events.patryk.active_contract)
 	var next_mode: AdaptiveAIDirector.ContractMode = ((cur + 1) % 3) as AdaptiveAIDirector.ContractMode
-	Events.ai_director.set_contract_mode(next_mode)
+	Events.patryk.set_contract_mode(next_mode)
 	_update_contract_btn_text()
 
 func _update_contract_btn_text() -> void:
-	if not aiContractBtn or not is_instance_valid(Events) or not is_instance_valid(Events.ai_director):
+	if not aiContractBtn or not is_instance_valid(Events) or not is_instance_valid(Events.patryk):
 		return
 	if current_language == "en":
-		aiContractBtn.text = "📜 AI CONTRACT: %s" % Events.ai_director.get_contract_name()
+		aiContractBtn.text = "📜 AI CONTRACT: %s" % Events.patryk.get_contract_name()
 	else:
-		aiContractBtn.text = "📜 KONTRAKT AI: %s" % Events.ai_director.get_contract_name()
+		aiContractBtn.text = "📜 KONTRAKT AI: %s" % Events.patryk.get_contract_name()
 
 func _on_play_btn_pressed() -> void:
 	# Puszcza kolejny nieukończony poziom.
@@ -920,8 +920,8 @@ func _on_play_btn_pressed() -> void:
 		for lvl_id in [1, 2, 3]:
 			var is_done: bool = Events.is_level_contract_completed(lvl_id, contract_idx) if is_instance_valid(Events) else false
 			if not is_done:
-				if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-					Events.ai_director.set_contract_mode(contract_idx as AdaptiveAIDirector.ContractMode)
+				if is_instance_valid(Events) and is_instance_valid(Events.patryk):
+					Events.patryk.set_contract_mode(contract_idx as AdaptiveAIDirector.ContractMode)
 					_update_contract_btn_text()
 				_startLevelProfile(lvl_id)
 				return
@@ -1657,7 +1657,7 @@ func _ensure_card_badge_and_lock(btn: Button, lvl_num: int) -> Dictionary:
 	if old_star:
 		old_star.queue_free()
 
-	# Kontener z 3 gwiazdkami - 1 gwiazdka za każdy kontrakt AI Director
+	# Kontener z 3 gwiazdkami - 1 gwiazdka za każdy kontrakt AI Director - Patryk (Prywatny Asystent Technologiczny, Reagujący i Kreatywny)
 	var stars_box = btn.get_node_or_null("StarsBox") as HBoxContainer
 	if not stars_box:
 		stars_box = HBoxContainer.new()

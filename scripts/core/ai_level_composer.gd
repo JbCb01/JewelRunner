@@ -83,10 +83,10 @@ static func compute_difficulty_tier(challenge_reqs: Dictionary = {}, profile: Di
 			tier = 2
 		if done_cnt >= 3:
 			tier = 3
-		if is_instance_valid(Events.ai_director):
+		if is_instance_valid(Events.patryk):
 			var hist_sum: float = 0.0
-			for m in Events.ai_director.TRACKED_MOVES:
-				hist_sum += float(Events.ai_director.historical_move_uses.get(m, 0.0))
+			for m in Events.patryk.TRACKED_MOVES:
+				hist_sum += float(Events.patryk.historical_move_uses.get(m, 0.0))
 			if hist_sum >= 45.0:
 				tier = maxi(tier, 2)
 			if hist_sum >= 110.0:

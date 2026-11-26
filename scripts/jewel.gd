@@ -175,8 +175,8 @@ func _onBodyEntered(body: Node2D) -> void:
 					body.apply_shield()
 					
 		if is_cursed and not cursed_mechanic.is_empty():
-			if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-				Events.ai_director.apply_cursed_jewel_lock(cursed_mechanic, curse_duration)
+			if is_instance_valid(Events) and is_instance_valid(Events.patryk):
+				Events.patryk.apply_cursed_jewel_lock(cursed_mechanic, curse_duration)
 			if is_instance_valid(Events):
 				Events.cursed_jewel_triggered.emit(cursed_mechanic, curse_duration)
 		Events.jewel_collected.emit(pointVal, global_position)

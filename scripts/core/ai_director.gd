@@ -1,7 +1,7 @@
 extends Node
 class_name AdaptiveAIDirector
 
-## Adaptacyjny Reżyser AI (AI Director) oraz Analizator Poziomu dla JewelRunner.
+## Adaptacyjny Reżyser AI (AI Director) - Patryk (Prywatny Asystent Technologiczny, Reagujący i Kreatywny) oraz Analizator Poziomu dla JewelRunner.
 ## Odpowiada za:
 ## 1. Zliczanie częstotliwości wykonywania ruchów specjalnych (double_jump, wall_climb, dash) oraz historię stylu gracza.
 ## 2. Dynamiczne zarządzanie mnożnikami kosztu staminy przy zachowaniu STAŁEJ SUMY mnożników (z uwzględnieniem wag).

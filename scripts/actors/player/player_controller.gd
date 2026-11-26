@@ -253,7 +253,7 @@ var _afterimage_timer: float = 0.0
 var _hitstop_active: bool = false
 var _pre_dash_speed: float = 0.0
 
-# Lokalna kopia mnożników ruchów specjalnych (zsynchronizowana z Events.ai_director)
+# Lokalna kopia mnożników ruchów specjalnych (zsynchronizowana z Events.patryk - Patryk: Prywatny Asystent Technologiczny, Reagujący i Kreatywny)
 var move_multipliers: Dictionary = {
 	"double_jump": 1.0,
 	"wall_climb": 1.0,
@@ -305,8 +305,8 @@ func _ready() -> void:
 			Events.stamina_multipliers_updated.connect(_on_stamina_multipliers_updated)
 		if not Events.portal_profile_synced.is_connected(_on_portal_profile_synced):
 			Events.portal_profile_synced.connect(_on_portal_profile_synced)
-		if is_instance_valid(Events.ai_director):
-			move_multipliers = Events.ai_director.multipliers.duplicate()
+		if is_instance_valid(Events.patryk):
+			move_multipliers = Events.patryk.multipliers.duplicate()
 		if is_instance_valid(Events.portal_sync):
 			Events.portal_sync.apply_cosmetics_and_boosters_to_player(self)
 		else:
@@ -455,10 +455,10 @@ func _physics_process(delta: float) -> void:
 
 ## Zwraca aktualny mnożnik kosztu staminy dla wskazanego ruchu specjalnego.
 func get_move_multiplier(move_name: String) -> float:
-	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-		var dir_mult: float = Events.ai_director.get_multiplier(move_name)
-		move_multipliers[move_name] = dir_mult
-		return dir_mult
+	if is_instance_valid(Events) and is_instance_valid(Events.patryk):
+		var patryk_mult: float = Events.patryk.get_multiplier(move_name)
+		move_multipliers[move_name] = patryk_mult
+		return patryk_mult
 	return float(move_multipliers.get(move_name, 1.0))
 
 ## Ustawia mnożnik dla wskazanego ruchu (lub trick_regen).
@@ -467,8 +467,8 @@ func set_move_multiplier(move_name: String, value: float) -> void:
 		trick_regen_multiplier = max(0.1, value)
 		return
 	move_multipliers[move_name] = max(0.1, value)
-	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-		Events.ai_director.multipliers[move_name] = move_multipliers[move_name]
+	if is_instance_valid(Events) and is_instance_valid(Events.patryk):
+		Events.patryk.multipliers[move_name] = move_multipliers[move_name]
 
 ## Oblicza aktualny koszt staminy dla danego ruchu specjalnego z uwzględnieniem jego mnożnika.
 func get_move_stamina_cost(move_name: String) -> float:
@@ -485,8 +485,8 @@ func get_move_stamina_cost(move_name: String) -> float:
 
 ## Sprawdza, czy gracz ma wystarczająco staminy oraz czy ruch nie jest zablokowany przez AI Director.
 func can_use_special_move(move_name: String) -> bool:
-	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-		if Events.ai_director.is_move_locked(move_name):
+	if is_instance_valid(Events) and is_instance_valid(Events.patryk):
+		if Events.patryk.is_move_locked(move_name):
 			Events.stamina_action_rejected.emit(move_name, get_move_stamina_cost(move_name), wall_stamina)
 			return false
 			
@@ -515,8 +515,8 @@ func consume_special_move_stamina(move_name: String) -> bool:
 	used_special_in_current_air = true
 	airborne_stamina_ceiling = max(wall_stamina, pre_stamina - cost * 0.25)
 	
-	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-		Events.ai_director.record_move_use(move_name, 1.0)
+	if is_instance_valid(Events) and is_instance_valid(Events.patryk):
+		Events.patryk.record_move_use(move_name, 1.0)
 		
 	Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
 	_update_stamina_bar()
@@ -610,8 +610,8 @@ func _start_trick(kind: String) -> void:
 				velocity.y *= 0.4
 	var pts: int = int(def["points"]) * combo_tricks.size()
 	Events.trick_performed.emit(pts)
-	if is_instance_valid(Events.ai_director):
-		Events.ai_director.record_air_trick(float(def["duration"]))
+	if is_instance_valid(Events.patryk):
+		Events.patryk.record_air_trick(float(def["duration"]))
 	if kind == "finish":
 		combo_finished = true
 		_bank_combo(true)
@@ -1047,8 +1047,8 @@ func _update_stamina(delta: float, is_draining: bool) -> void:
 		wall_stamina = max(0.0, wall_stamina - drained)
 		used_special_in_current_air = true
 		airborne_stamina_ceiling = max(wall_stamina, pre_stamina - drained * 0.25)
-		if is_instance_valid(Events) and is_instance_valid(Events.ai_director) and is_inside_tree():
-			Events.ai_director.record_move_use("wall_climb", delta)
+		if is_instance_valid(Events) and is_instance_valid(Events.patryk) and is_inside_tree():
+			Events.patryk.record_move_use("wall_climb", delta)
 		
 	Events.player_stamina_changed.emit(wall_stamina, wall_climb_max_stamina)
 	_update_stamina_bar()

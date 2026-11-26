@@ -214,9 +214,9 @@ static func get_profile_metadata(profile_id: int) -> Dictionary:
 		_:
 			var fav: String = "double_jump"
 			var least: String = "wall_climb"
-			if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-				fav = Events.ai_director.get_favorite_move()
-				least = Events.ai_director.get_least_used_move()
+			if is_instance_valid(Events) and is_instance_valid(Events.patryk):
+				fav = Events.patryk.get_favorite_move()
+				least = Events.patryk.get_least_used_move()
 			var rand_track: String = get_random_szachownica_shuffle_path()
 			var track_name: String = rand_track.get_file().get_basename()
 			return {
@@ -345,8 +345,8 @@ static func build_level_for_arena(
 ## Generuje kompletny plan poziomu dla Profilu 1, 2, 3 lub 4 (Szachownica AI z seedem).
 static func generate_blueprint(profile_id: int, rng: RandomNumberGenerator, challenge_reqs: Dictionary = {}) -> Dictionary:
 	var use_cursed: bool = false
-	if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-		use_cursed = (Events.ai_director.active_contract == AdaptiveAIDirector.ContractMode.CURSED_JEWELS)
+	if is_instance_valid(Events) and is_instance_valid(Events.patryk):
+		use_cursed = (Events.patryk.active_contract == AdaptiveAIDirector.ContractMode.CURSED_JEWELS)
 
 	var blueprint: Dictionary
 	match profile_id:
@@ -359,9 +359,9 @@ static func generate_blueprint(profile_id: int, rng: RandomNumberGenerator, chal
 		_:
 			var fav_move: String = "double_jump"
 			var least_move: String = "wall_climb"
-			if is_instance_valid(Events) and is_instance_valid(Events.ai_director):
-				fav_move = Events.ai_director.get_favorite_move()
-				least_move = Events.ai_director.get_least_used_move()
+			if is_instance_valid(Events) and is_instance_valid(Events.patryk):
+				fav_move = Events.patryk.get_favorite_move()
+				least_move = Events.patryk.get_least_used_move()
 			var focus_list: Array = challenge_reqs.get("focus_mechanics", [])
 			if not focus_list.is_empty():
 				least_move = String(focus_list[0])

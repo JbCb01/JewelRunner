@@ -166,8 +166,8 @@ func utPlayerColliderResize() -> void:
 	plr.free()
 
 func utPlayerStaminaCalculation() -> void:
-	Events.ai_director.set_contract_mode(AIDirectorScript.ContractMode.OVERLOAD_CLASSIC)
-	Events.ai_director.reset_session_state(true)
+	Events.patryk.set_contract_mode(AIDirectorScript.ContractMode.OVERLOAD_CLASSIC)
+	Events.patryk.reset_session_state(true)
 	var plr = _createMockPlayer()
 	plr.wall_stamina = 2.0
 	plr._update_stamina(0.75, true)
@@ -190,8 +190,8 @@ func utPlayerCoyoteAndCooldownTimers() -> void:
 	plr.free()
 
 func utSpecialMovesConsumeStamina() -> void:
-	Events.ai_director.set_contract_mode(AIDirectorScript.ContractMode.OVERLOAD_CLASSIC)
-	Events.ai_director.reset_session_state(true)
+	Events.patryk.set_contract_mode(AIDirectorScript.ContractMode.OVERLOAD_CLASSIC)
+	Events.patryk.reset_session_state(true)
 	var plr = _createMockPlayer()
 	plr.wall_stamina = 2.0
 	
@@ -215,7 +215,7 @@ func utSpecialMovesConsumeStamina() -> void:
 	plr.free()
 
 func utTrickRegenCannotMultiplyStamina() -> void:
-	Events.ai_director.reset_session_state(true)
+	Events.patryk.reset_session_state(true)
 	var plr = _createMockPlayer()
 	var m: float = plr.trick_regen_multiplier
 	var flipDur: float = plr.trick_flip_duration + 0.01
@@ -283,47 +283,47 @@ func utTrickRegenCannotMultiplyStamina() -> void:
 	plr.free()
 
 func utAdaptiveMultipliersConstantSumAndWeights() -> void:
-	var dir: AdaptiveAIDirector = Events.ai_director
-	dir.reset_session_state(true)
+	var patryk: AdaptiveAIDirector = Events.patryk
+	patryk.reset_session_state(true)
 	
-	var initialSum: float = dir.get_multiplier_sum()
-	var sumOk1: bool = is_equal_approx(initialSum, dir.target_multiplier_sum)
+	var initialSum: float = patryk.get_multiplier_sum()
+	var sumOk1: bool = is_equal_approx(initialSum, patryk.target_multiplier_sum)
 	
-	dir.record_move_use("double_jump", 1.0)
-	dir.record_move_use("double_jump", 1.0)
-	dir.record_move_use("double_jump", 1.0)
+	patryk.record_move_use("double_jump", 1.0)
+	patryk.record_move_use("double_jump", 1.0)
+	patryk.record_move_use("double_jump", 1.0)
 	
-	var mDj: float = dir.get_multiplier("double_jump")
-	var mWc: float = dir.get_multiplier("wall_climb")
-	var mDash: float = dir.get_multiplier("dash")
-	var sumAfterDj: float = dir.get_multiplier_sum()
+	var mDj: float = patryk.get_multiplier("double_jump")
+	var mWc: float = patryk.get_multiplier("wall_climb")
+	var mDash: float = patryk.get_multiplier("dash")
+	var sumAfterDj: float = patryk.get_multiplier_sum()
 	
 	var shiftedProperly: bool = (mDj > 1.0) and (mWc < 1.0) and (mDash < 1.0)
-	var sumOk2: bool = is_equal_approx(sumAfterDj, dir.target_multiplier_sum)
+	var sumOk2: bool = is_equal_approx(sumAfterDj, patryk.target_multiplier_sum)
 	
-	dir.set_move_weights({"double_jump": 1.4, "wall_climb": 0.9, "dash": 0.7})
+	patryk.set_move_weights({"double_jump": 1.4, "wall_climb": 0.9, "dash": 0.7})
 	for _i in range(15):
-		dir.record_move_use("dash", 1.0)
-	var sumAfterWeightsAndSpam: float = dir.get_multiplier_sum()
-	var sumOk3: bool = is_equal_approx(sumAfterWeightsAndSpam, dir.target_multiplier_sum)
+		patryk.record_move_use("dash", 1.0)
+	var sumAfterWeightsAndSpam: float = patryk.get_multiplier_sum()
+	var sumOk3: bool = is_equal_approx(sumAfterWeightsAndSpam, patryk.target_multiplier_sum)
 	
 	assertCond(sumOk1 and shiftedProperly and sumOk2 and sumOk3, "UT-11", "System mnożników podnosi koszt używanego ruchu, obniża pozostałe i zachowuje stałą sumę z wagami")
-	dir.reset_session_state(true)
+	patryk.reset_session_state(true)
 
 func utAIDirectorOverloadAndLevelAnalyzer() -> void:
-	var dir: AdaptiveAIDirector = Events.ai_director
-	dir.set_contract_mode(AIDirectorScript.ContractMode.OVERLOAD_CLASSIC)
-	dir.reset_session_state(true)
+	var patryk: AdaptiveAIDirector = Events.patryk
+	patryk.set_contract_mode(AIDirectorScript.ContractMode.OVERLOAD_CLASSIC)
+	patryk.reset_session_state(true)
 	
 	for _i in range(5):
-		dir.record_move_use("dash", 1.0)
-	var dashLocked: bool = dir.is_move_locked("dash")
+		patryk.record_move_use("dash", 1.0)
+	var dashLocked: bool = patryk.is_move_locked("dash")
 	
-	dir.record_air_trick(3.0)
-	var dashUnlockedAfterTrick: bool = not dir.is_move_locked("dash")
+	patryk.record_air_trick(3.0)
+	var dashUnlockedAfterTrick: bool = not patryk.is_move_locked("dash")
 	
 	assertCond(dashLocked and dashUnlockedAfterTrick, "UT-12", "AI Director blokuje przeciążony ruch i odblokowuje go po wykonaniu Tricków w powietrzu")
-	dir.reset_session_state(true)
+	patryk.reset_session_state(true)
 
 func utLevelGeneratorAndTileMapIntegration() -> void:
 	var mockArena := Node2D.new()
@@ -334,37 +334,37 @@ func utLevelGeneratorAndTileMapIntegration() -> void:
 	var hasGridMeta: bool = (tileLayer != null) and tileLayer.has_meta("logical_tile_grid")
 	var grid: Dictionary = tileLayer.get_meta("logical_tile_grid") if hasGridMeta else {}
 	
-	var analysis: Dictionary = Events.ai_director.analyze_level(mockArena)
+	var analysis: Dictionary = Events.patryk.analyze_level(mockArena)
 	var analyzedOk: bool = analysis.has("dominant_mechanic") and int(analysis.get("jewel_count", 0)) >= 4
 	
 	assertCond(bool(genInfo.get("generated", false)) and grid.size() > 20 and analyzedOk, "UT-13", "Generator poziomów tworzy geometrię, siatkę kafelków TileMapLayer oraz profil dla Analizatora AI")
 	mockArena.free()
-	Events.ai_director.reset_session_state(true)
+	Events.patryk.reset_session_state(true)
 
 func utAIContractRelayLockMode() -> void:
-	var dir: AdaptiveAIDirector = Events.ai_director
-	dir.reset_session_state(true)
-	dir.set_contract_mode(AIDirectorScript.ContractMode.RELAY_LOCK)
+	var patryk: AdaptiveAIDirector = Events.patryk
+	patryk.reset_session_state(true)
+	patryk.set_contract_mode(AIDirectorScript.ContractMode.RELAY_LOCK)
 	
 	# Użycie double_jump blokuje double_jump w trybie Sztafety
-	dir.record_move_use("double_jump", 1.0)
-	var djLocked: bool = dir.is_move_locked("double_jump") and not dir.is_move_locked("dash")
+	patryk.record_move_use("double_jump", 1.0)
+	var djLocked: bool = patryk.is_move_locked("double_jump") and not patryk.is_move_locked("dash")
 	
 	# Użycie dash odblokowuje double_jump i blokuje dash!
-	dir.record_move_use("dash", 1.0)
-	var relaySwitched: bool = (not dir.is_move_locked("double_jump")) and dir.is_move_locked("dash")
+	patryk.record_move_use("dash", 1.0)
+	var relaySwitched: bool = (not patryk.is_move_locked("double_jump")) and patryk.is_move_locked("dash")
 	
 	# Wykonanie Tricku w powietrzu resetuje blokadę Sztafety
-	dir.record_air_trick(0.35)
-	var resetByTrick: bool = not dir.is_move_locked("dash")
+	patryk.record_air_trick(0.35)
+	var resetByTrick: bool = not patryk.is_move_locked("dash")
 	
-	dir.set_contract_mode(AIDirectorScript.ContractMode.OVERLOAD_CLASSIC)
-	dir.reset_session_state(true)
+	patryk.set_contract_mode(AIDirectorScript.ContractMode.OVERLOAD_CLASSIC)
+	patryk.reset_session_state(true)
 	assertCond(djLocked and relaySwitched and resetByTrick, "UT-14", "Kontrakt AI 'Sztafeta Ruchu' (Relay Lock) wymusza przeplatanie ruchów A -> B lub Trick")
 
 func utAIContractCursedJewelsMode() -> void:
-	var dir: AdaptiveAIDirector = Events.ai_director
-	dir.reset_session_state(true)
+	var patryk: AdaptiveAIDirector = Events.patryk
+	patryk.reset_session_state(true)
 	
 	var jwl = JewelScript.new()
 	var spr = Sprite2D.new()
@@ -381,20 +381,20 @@ func utAIContractCursedJewelsMode() -> void:
 	
 	plr.free()
 	jwl.free()
-	dir.reset_session_state(true)
+	patryk.reset_session_state(true)
 
 func utCounterPlaystyleChessboardGenerator() -> void:
-	var dir: AdaptiveAIDirector = Events.ai_director
-	dir.clear_historical_profile()
-	dir.reset_session_state(true)
+	var patryk: AdaptiveAIDirector = Events.patryk
+	patryk.clear_historical_profile()
+	patryk.reset_session_state(true)
 	
 	# Symulacja historii gracza: gracz bardzo często używa double_jump, czasem dash, a unika wall_climb
-	dir.historical_move_uses["double_jump"] = 25.0
-	dir.historical_move_uses["dash"] = 8.0
-	dir.historical_move_uses["wall_climb"] = 1.0
+	patryk.historical_move_uses["double_jump"] = 25.0
+	patryk.historical_move_uses["dash"] = 8.0
+	patryk.historical_move_uses["wall_climb"] = 1.0
 	
-	var fav: String = dir.get_favorite_move()
-	var least: String = dir.get_least_used_move()
+	var fav: String = patryk.get_favorite_move()
+	var least: String = patryk.get_least_used_move()
 	
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 42
@@ -403,13 +403,13 @@ func utCounterPlaystyleChessboardGenerator() -> void:
 	var secondHalfOk: bool = (String(bp.get("second_half_mechanic", "")) == "wall_climb")
 	
 	assertCond(fav == "double_jump" and least == "wall_climb" and firstHalfOk and secondHalfOk, "UT-16", "Generator 'Szachownica Stylu Gracza' buduje 1. połowę pod ulubiony ruch, a 2. połowę pod unikany ruch")
-	dir.clear_historical_profile()
+	patryk.clear_historical_profile()
 
 func utMechanicDnaRadarCalculation() -> void:
 	var mockArena := Node2D.new()
 	add_child(mockArena)
 	LevelGeneratorScript.build_level_for_arena(mockArena, LevelGeneratorScript.MechanicProfile.HORIZON_IMPULSE, 999)
-	var analysis: Dictionary = Events.ai_director.analyze_level(mockArena)
+	var analysis: Dictionary = Events.patryk.analyze_level(mockArena)
 	var dna: Dictionary = analysis.get("dna_shares", {})
 	var totalPct: int = int(dna.get("double_jump", 0)) + int(dna.get("wall_climb", 0)) + int(dna.get("dash", 0))
 	assertCond(totalPct == 100 and int(dna.get("dash", 0)) > 0, "UT-17", "Analizator poziomu wylicza procentowy Radar DNA Mechanik sumujący się do 100%")
@@ -643,8 +643,8 @@ func itPlayerTrickRegensStaminaOnHud() -> void:
 	arena.free()
 
 func itPlayerStaminaSyncsWithHudBar() -> void:
-	Events.ai_director.set_contract_mode(AIDirectorScript.ContractMode.OVERLOAD_CLASSIC)
-	Events.ai_director.reset_session_state(true)
+	Events.patryk.set_contract_mode(AIDirectorScript.ContractMode.OVERLOAD_CLASSIC)
+	Events.patryk.reset_session_state(true)
 	var arena = _createMockArena(1)
 	var plr = _createMockPlayer()
 	
